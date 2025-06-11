@@ -4,7 +4,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Tables } from '@/integrations/supabase/types';
 
-type Content = Tables<'content'>;
+type Content = Tables<'content'> & {
+  categories?: Tables<'categories'>;
+  profiles?: Tables<'profiles'>;
+};
 type Category = Tables<'categories'>;
 
 export const useContent = () => {
@@ -30,10 +33,10 @@ export const useContent = () => {
       query = query.eq('categories.slug', filters.category);
     }
     if (filters?.contentType) {
-      query = query.eq('content_type', filters.contentType);
+      query = query.eq('content_type', filters.contentType as any);
     }
     if (filters?.status) {
-      query = query.eq('status', filters.status);
+      query = query.eq('status', filters.status as any);
     } else {
       query = query.eq('status', 'published');
     }
