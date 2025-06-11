@@ -24,8 +24,8 @@ export const useContent = () => {
       .from('content')
       .select(`
         *,
-        categories(name, slug, color),
-        profiles(full_name, username, avatar_url)
+        categories(*),
+        profiles(*)
       `)
       .order('published_at', { ascending: false });
 
@@ -65,8 +65,8 @@ export const useContent = () => {
       .from('content')
       .select(`
         *,
-        categories(name, slug, color),
-        profiles(full_name, username, avatar_url)
+        categories(*),
+        profiles(*)
       `)
       .eq('status', 'published')
       .eq('is_featured', true)

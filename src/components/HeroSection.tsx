@@ -1,69 +1,83 @@
 
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Clock, User, ArrowRight } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { useContent } from '@/hooks/useContent';
+import { ArrowRight, TrendingUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const HeroSection = () => {
-  const heroNews = {
-    title: "Apple Vision Pro 2 Rumors: Everything We Know About the Next-Gen Mixed Reality Headset",
-    excerpt: "From improved displays to lighter design, here's what industry insiders are saying about Apple's upcoming Vision Pro successor that could reshape the AR/VR landscape.",
-    category: "Apple",
-    author: "Sarah Chen",
-    publishTime: "2 hours ago",
-    readTime: "5 min read",
-    image: "https://images.unsplash.com/photo-1592478411213-6153e4ebc696?q=80&w=2012&auto=format&fit=crop",
-  };
+  const { useFeaturedContentQuery } = useContent();
+  const { data: featuredContent } = useFeaturedContentQuery();
+  const mainStory = featuredContent?.[0];
 
   return (
-    <section className="py-12 lg:py-20">
+    <section className="relative bg-gradient-to-br from-primary/10 via-background to-accent/10 py-20">
       <div className="container mx-auto px-4">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          {/* Content */}
-          <div className="space-y-6">
-            <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
-              🔥 Trending Now
-            </Badge>
-            
-            <h1 className="text-4xl lg:text-5xl xl:text-6xl font-bold leading-tight">
-              {heroNews.title}
-            </h1>
-            
-            <p className="text-xl text-muted-foreground leading-relaxed">
-              {heroNews.excerpt}
-            </p>
-            
-            <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-              <Badge variant="outline" className="border-accent text-accent">
-                {heroNews.category}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <div className="space-y-8">
+            <div className="space-y-4">
+              <Badge variant="secondary" className="inline-flex items-center gap-2">
+                <TrendingUp className="w-4 h-4" />
+                Latest in Tech
               </Badge>
-              <div className="flex items-center gap-1">
-                <User className="w-4 h-4" />
-                {heroNews.author}
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                {heroNews.publishTime}
-              </div>
-              <span>{heroNews.readTime}</span>
+              <h1 className="text-5xl lg:text-6xl font-bold leading-tight">
+                Your Gateway to the
+                <span className="text-gradient block">Tech Universe</span>
+              </h1>
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                Stay ahead with the latest tech news, in-depth reviews, and expert insights. 
+                From smartphones to AI, we cover everything that matters in technology.
+              </p>
             </div>
-            
-            <Button size="lg" className="group glow">
-              Read Full Story
-              <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-            </Button>
-          </div>
-          
-          {/* Hero Image */}
-          <div className="relative">
-            <div className="aspect-[4/3] rounded-2xl overflow-hidden glow">
-              <img
-                src={heroNews.image}
-                alt={heroNews.title}
-                className="w-full h-full object-cover"
-              />
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button size="lg" className="group" asChild>
+                <Link to="/news">
+                  Explore Latest News
+                  <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </Button>
+              <Button variant="outline" size="lg" asChild>
+                <Link to="/reviews">Browse Reviews</Link>
+              </Button>
             </div>
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent rounded-2xl"></div>
           </div>
+
+          {mainStory && (
+            <div className="relative">
+              <div className="card-hover bg-card rounded-2xl p-6 shadow-2xl border">
+                <div className="aspect-video bg-muted rounded-lg mb-6 overflow-hidden">
+                  {mainStory.featured_image ? (
+                    <img 
+                      src={mainStory.featured_image} 
+                      alt={mainStory.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                      <span className="text-4xl font-bold text-muted-foreground">TB</span>
+                    </div>
+                  )}
+                </div>
+                <div className="space-y-3">
+                  <Badge variant="outline">
+                    {mainStory.categories?.name || 'Featured'}
+                  </Badge>
+                  <h3 className="text-xl font-bold line-clamp-2">
+                    {mainStory.title}
+                  </h3>
+                  <p className="text-muted-foreground line-clamp-2">
+                    {mainStory.excerpt}
+                  </p>
+                  <Button variant="ghost" className="p-0 h-auto font-semibold">
+                    Read More →
+                  </Button>
+                </div>
+              </div>
+              <div className="absolute -top-4 -right-4 w-24 h-24 bg-accent/20 rounded-full blur-xl" />
+              <div className="absolute -bottom-4 -left-4 w-32 h-32 bg-primary/20 rounded-full blur-xl" />
+            </div>
+          )}
         </div>
       </div>
     </section>

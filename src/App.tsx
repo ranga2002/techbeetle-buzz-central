@@ -10,6 +10,9 @@ import Index from "./pages/Index";
 import AuthPage from "./components/auth/AuthPage";
 import NewsPage from "./pages/NewsPage";
 import ReviewsPage from "./pages/ReviewsPage";
+import VideosPage from "./pages/VideosPage";
+import HowToPage from "./pages/HowToPage";
+import ComparePage from "./pages/ComparePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +30,9 @@ const App = () => (
               <Route path="/auth" element={<AuthPage />} />
               <Route path="/news" element={<NewsPage />} />
               <Route path="/reviews" element={<ReviewsPage />} />
+              <Route path="/videos" element={<VideosPage />} />
+              <Route path="/how-to" element={<HowToPage />} />
+              <Route path="/compare" element={<ComparePage />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

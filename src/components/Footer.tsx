@@ -1,104 +1,96 @@
 
-import { Facebook, Twitter, Instagram, Youtube, Mail } from 'lucide-react';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Mail, Twitter, Facebook, Instagram, Youtube } from 'lucide-react';
 
 const Footer = () => {
-  const footerSections = [
-    {
-      title: "Content",
-      links: ["Latest News", "Reviews", "How-To Guides", "Videos", "Comparisons"]
-    },
-    {
-      title: "Categories", 
-      links: ["Mobile", "Laptops", "AI & ML", "Gaming", "Gadgets"]
-    },
-    {
-      title: "Company",
-      links: ["About Us", "Contact", "Privacy Policy", "Terms of Service", "Careers"]
-    }
-  ];
-
   return (
-    <footer className="bg-card border-t border-border mt-20">
+    <footer className="bg-muted/30 border-t">
       <div className="container mx-auto px-4 py-12">
-        {/* Newsletter Section */}
-        <div className="mb-12 text-center">
-          <h3 className="text-2xl font-bold mb-4">Stay Updated</h3>
-          <p className="text-muted-foreground mb-6 max-w-2xl mx-auto">
-            Get the latest tech news, reviews, and insights delivered to your inbox. 
-            Join thousands of tech enthusiasts who trust TechBeetle.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
-            <Input 
-              type="email" 
-              placeholder="Enter your email"
-              className="flex-1"
-            />
-            <Button className="sm:w-auto">
-              <Mail className="w-4 h-4 mr-2" />
-              Subscribe
-            </Button>
-          </div>
-        </div>
-
-        {/* Links Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Brand Section */}
           <div className="space-y-4">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg"></div>
-              <span className="text-xl font-bold text-gradient">TechBeetle</span>
+              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                <span className="text-primary-foreground font-bold text-sm">TB</span>
+              </div>
+              <span className="text-xl font-bold">TechBeetle</span>
             </div>
-            <p className="text-muted-foreground text-sm leading-relaxed">
-              Your trusted source for the latest technology news, expert reviews, 
-              and comprehensive guides to help you navigate the digital world.
+            <p className="text-muted-foreground">
+              Your trusted source for the latest tech news, reviews, and insights.
             </p>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm">
-                <Facebook className="w-4 h-4" />
-              </Button>
-              <Button variant="ghost" size="sm">
+            <div className="flex space-x-2">
+              <Button variant="ghost" size="icon">
                 <Twitter className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="icon">
+                <Facebook className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon">
                 <Instagram className="w-4 h-4" />
               </Button>
-              <Button variant="ghost" size="sm">
+              <Button variant="ghost" size="icon">
                 <Youtube className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          {/* Footer Links */}
-          {footerSections.map((section) => (
-            <div key={section.title} className="space-y-4">
-              <h4 className="font-semibold">{section.title}</h4>
-              <ul className="space-y-2">
-                {section.links.map((link) => (
-                  <li key={link}>
-                    <a 
-                      href="#" 
-                      className="text-muted-foreground hover:text-foreground transition-colors text-sm"
-                    >
-                      {link}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+          {/* Quick Links */}
+          <div>
+            <h3 className="font-semibold mb-4">Quick Links</h3>
+            <ul className="space-y-2">
+              <li><Link to="/news" className="text-muted-foreground hover:text-primary transition-colors">News</Link></li>
+              <li><Link to="/reviews" className="text-muted-foreground hover:text-primary transition-colors">Reviews</Link></li>
+              <li><Link to="/videos" className="text-muted-foreground hover:text-primary transition-colors">Videos</Link></li>
+              <li><Link to="/how-to" className="text-muted-foreground hover:text-primary transition-colors">How-To</Link></li>
+              <li><Link to="/compare" className="text-muted-foreground hover:text-primary transition-colors">Compare</Link></li>
+            </ul>
+          </div>
+
+          {/* Categories */}
+          <div>
+            <h3 className="font-semibold mb-4">Categories</h3>
+            <ul className="space-y-2">
+              <li><Link to="/news?category=mobile" className="text-muted-foreground hover:text-primary transition-colors">Mobile</Link></li>
+              <li><Link to="/news?category=laptops" className="text-muted-foreground hover:text-primary transition-colors">Laptops</Link></li>
+              <li><Link to="/news?category=ai" className="text-muted-foreground hover:text-primary transition-colors">AI</Link></li>
+              <li><Link to="/news?category=gaming" className="text-muted-foreground hover:text-primary transition-colors">Gaming</Link></li>
+              <li><Link to="/news?category=startups" className="text-muted-foreground hover:text-primary transition-colors">Startups</Link></li>
+            </ul>
+          </div>
+
+          {/* Newsletter */}
+          <div>
+            <h3 className="font-semibold mb-4">Stay Updated</h3>
+            <p className="text-muted-foreground mb-4">
+              Subscribe to our newsletter for the latest tech updates.
+            </p>
+            <div className="space-y-2">
+              <Input placeholder="Enter your email" type="email" />
+              <Button className="w-full">
+                <Mail className="w-4 h-4 mr-2" />
+                Subscribe
+              </Button>
             </div>
-          ))}
+          </div>
         </div>
 
-        {/* Bottom Bar */}
-        <div className="pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-muted-foreground text-sm">
             © 2024 TechBeetle. All rights reserved.
           </p>
-          <div className="flex items-center gap-6 text-sm text-muted-foreground">
-            <a href="#" className="hover:text-foreground transition-colors">Privacy</a>
-            <a href="#" className="hover:text-foreground transition-colors">Terms</a>
-            <a href="#" className="hover:text-foreground transition-colors">Cookies</a>
+          <div className="flex space-x-6 mt-4 md:mt-0">
+            <Link to="/privacy" className="text-muted-foreground hover:text-primary text-sm transition-colors">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-muted-foreground hover:text-primary text-sm transition-colors">
+              Terms of Service
+            </Link>
+            <Link to="/contact" className="text-muted-foreground hover:text-primary text-sm transition-colors">
+              Contact
+            </Link>
           </div>
         </div>
       </div>
