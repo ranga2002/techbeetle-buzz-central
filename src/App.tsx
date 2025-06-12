@@ -14,6 +14,10 @@ import VideosPage from "./pages/VideosPage";
 import HowToPage from "./pages/HowToPage";
 import ComparePage from "./pages/ComparePage";
 import NotFound from "./pages/NotFound";
+import AdminLayout from "./components/admin/AdminLayout";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import ContentManagement from "./pages/admin/ContentManagement";
+import UserManagement from "./pages/admin/UserManagement";
 
 const queryClient = new QueryClient();
 
@@ -33,6 +37,14 @@ const App = () => (
               <Route path="/videos" element={<VideosPage />} />
               <Route path="/how-to" element={<HowToPage />} />
               <Route path="/compare" element={<ComparePage />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route index element={<AdminDashboard />} />
+                <Route path="content" element={<ContentManagement />} />
+                <Route path="users" element={<UserManagement />} />
+              </Route>
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

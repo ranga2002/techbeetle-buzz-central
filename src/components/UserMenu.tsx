@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -10,11 +11,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, LogOut } from 'lucide-react';
+import { User, Settings, LogOut, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const UserMenu = () => {
   const { user, signOut, loading } = useAuth();
+  const { hasContentAccess } = useAdminAuth();
 
   if (loading) {
     return <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />;
@@ -63,6 +65,14 @@ const UserMenu = () => {
             Profile
           </Link>
         </DropdownMenuItem>
+        {hasContentAccess && (
+          <DropdownMenuItem asChild>
+            <Link to="/admin" className="flex items-center">
+              <Shield className="mr-2 h-4 w-4" />
+              Admin Panel
+            </Link>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem asChild>
           <Link to="/settings" className="flex items-center">
             <Settings className="mr-2 h-4 w-4" />

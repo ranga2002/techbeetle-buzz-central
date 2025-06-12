@@ -434,8 +434,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_role: {
+        Args: {
+          user_id: string
+          required_role: Database["public"]["Enums"]["user_role"]
+        }
+        Returns: boolean
+      }
       increment_content_views: {
         Args: { content_id_param: string }
+        Returns: undefined
+      }
+      is_admin_user: {
+        Args: { user_id?: string }
+        Returns: boolean
+      }
+      promote_to_admin: {
+        Args: { user_email: string }
         Returns: undefined
       }
     }
@@ -443,7 +458,7 @@ export type Database = {
       comment_status: "pending" | "approved" | "rejected" | "spam"
       content_status: "draft" | "pending" | "published" | "archived"
       content_type: "news" | "review" | "video" | "how_to" | "comparison"
-      user_role: "admin" | "editor" | "author" | "user"
+      user_role: "user" | "author" | "editor" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -562,7 +577,7 @@ export const Constants = {
       comment_status: ["pending", "approved", "rejected", "spam"],
       content_status: ["draft", "pending", "published", "archived"],
       content_type: ["news", "review", "video", "how_to", "comparison"],
-      user_role: ["admin", "editor", "author", "user"],
+      user_role: ["user", "author", "editor", "admin"],
     },
   },
 } as const
