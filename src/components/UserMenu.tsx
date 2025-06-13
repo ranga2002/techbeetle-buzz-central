@@ -16,9 +16,9 @@ import { Link } from 'react-router-dom';
 
 const UserMenu = () => {
   const { user, signOut, loading } = useAuth();
-  const { hasContentAccess } = useAdminAuth();
+  const { hasContentAccess, isLoading: adminLoading } = useAdminAuth();
 
-  if (loading) {
+  if (loading || adminLoading) {
     return <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />;
   }
 
@@ -38,6 +38,8 @@ const UserMenu = () => {
   const getInitials = (email: string) => {
     return email.substring(0, 2).toUpperCase();
   };
+
+  console.log('UserMenu - hasContentAccess:', hasContentAccess);
 
   return (
     <DropdownMenu>

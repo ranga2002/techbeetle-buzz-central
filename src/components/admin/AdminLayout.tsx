@@ -2,8 +2,7 @@
 import React from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useAdminAuth } from '@/hooks/useAdminAuth';
 import { Button } from '@/components/ui/button';
 import { 
   LayoutDashboard, 
@@ -19,24 +18,11 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 
 const AdminLayout = () => {
-  const { user, signOut } = useAuth();
+  const { signOut } = useAuth();
+  const { user, profile, isLoading, hasContentAccess } = useAdminAuth();
   const location = useLocation();
 
-  const { data: profile, isLoading } = useQuery({
-    queryKey: ['admin-profile', user?.id],
-    queryFn: async () => {
-      if (!user?.id) throw new Error('No user');
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!user?.id,
-  });
+  console.log('AdminLayout - Auth state:', { user: !!user, profile, isLoading, hasContentAccess });
 
   if (isLoading) {
     return (
@@ -57,7 +43,8 @@ const AdminLayout = () => {
     );
   }
 
-  if (!user || !profile || !['admin', 'editor', 'author'].includes(profile.role)) {
+  if (!user || !profile || !hasContentAccess) {
+    console.log('AdminLayout - Access denied, redirecting to home');
     return <Navigate to="/" replace />;
   }
 
