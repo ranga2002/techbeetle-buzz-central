@@ -24,12 +24,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Plus, Search, Edit, Trash2, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, Database } from '@/integrations/supabase/types';
 
 type Content = Tables<'content'> & {
   profiles: Pick<Tables<'profiles'>, 'full_name'> | null;
   categories: Pick<Tables<'categories'>, 'name'> | null;
 };
+
+type ContentStatus = Database['public']['Enums']['content_status'];
+type ContentType = Database['public']['Enums']['content_type'];
 
 const ContentManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,10 +57,10 @@ const ContentManagement = () => {
         query = query.ilike('title', `%${searchTerm}%`);
       }
       if (statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        query = query.eq('status', statusFilter as ContentStatus);
       }
       if (typeFilter !== 'all') {
-        query = query.eq('content_type', typeFilter);
+        query = query.eq('content_type', typeFilter as ContentType);
       }
 
       const { data, error } = await query;
@@ -92,11 +95,11 @@ const ContentManagement = () => {
   });
 
   const updateStatusMutation = useMutation({
-    mutationFn: async ({ contentId, status }: { contentId: string; status: string }) => {
+    mutationFn: async ({ contentId, status }: { contentId: string; status: ContentStatus }) => {
       const { error } = await supabase
         .from('content')
         .update({ 
-          status: status as any,
+          status: status,
           published_at: status === 'published' ? new Date().toISOString() : null
         })
         .eq('id', contentId);
@@ -215,7 +218,7 @@ const ContentManagement = () => {
                     <Select
                       value={item.status || 'draft'}
                       onValueChange={(value) => 
-                        updateStatusMutation.mutate({ contentId: item.id, status: value })
+                        updateStatusMutation.mutate({ contentId: item.id, status: value as ContentStatus })
                       }
                     >
                       <SelectTrigger className="w-32">

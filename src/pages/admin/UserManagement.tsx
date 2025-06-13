@@ -24,7 +24,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Shield, ShieldOff } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Tables } from '@/integrations/supabase/types';
+import type { Tables, Database } from '@/integrations/supabase/types';
+
+type UserRole = Database['public']['Enums']['user_role'];
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -44,7 +46,7 @@ const UserManagement = () => {
         query = query.or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
       }
       if (roleFilter !== 'all') {
-        query = query.eq('role', roleFilter);
+        query = query.eq('role', roleFilter as UserRole);
       }
 
       const { data, error } = await query;
@@ -54,10 +56,10 @@ const UserManagement = () => {
   });
 
   const updateRoleMutation = useMutation({
-    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+    mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
       const { error } = await supabase
         .from('profiles')
-        .update({ role: role as any })
+        .update({ role: role })
         .eq('id', userId);
       
       if (error) throw error;
@@ -195,7 +197,7 @@ const UserManagement = () => {
                     <Select
                       value={user.role || 'user'}
                       onValueChange={(value) => 
-                        updateRoleMutation.mutate({ userId: user.id, role: value })
+                        updateRoleMutation.mutate({ userId: user.id, role: value as UserRole })
                       }
                     >
                       <SelectTrigger className="w-32">
