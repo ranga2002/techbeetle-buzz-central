@@ -74,7 +74,7 @@ const CommentsManagement = () => {
     },
   });
 
-  const delete CommentMutation = useMutation({
+  const deleteCommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
       const { error } = await supabase
         .from('comments')
