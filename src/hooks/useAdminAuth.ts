@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 export const useAdminAuth = () => {
   const { user, loading: authLoading } = useAuth();
 
-  const { data: profile, isLoading } = useQuery({
+  const { data: profile, isLoading, error } = useQuery({
     queryKey: ['admin-profile', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
@@ -15,7 +15,7 @@ export const useAdminAuth = () => {
       
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, full_name, username')
         .eq('id', user.id)
         .single();
       
@@ -28,6 +28,7 @@ export const useAdminAuth = () => {
       return data;
     },
     enabled: !!user?.id && !authLoading,
+    retry: 1,
   });
 
   const isAdmin = profile?.role === 'admin';
@@ -38,19 +39,25 @@ export const useAdminAuth = () => {
 
   console.log('Admin auth state:', {
     user: !!user,
+    userId: user?.id,
+    userEmail: user?.email,
     profile,
+    profileError: error,
     isAdmin,
     isEditor,
     isAuthor,
     hasAdminAccess,
     hasContentAccess,
-    isLoading: isLoading || authLoading
+    isLoading: isLoading || authLoading,
+    authLoading,
+    profileLoading: isLoading
   });
 
   return {
     user,
     profile,
     isLoading: isLoading || authLoading,
+    error,
     isAdmin,
     isEditor,
     isAuthor,

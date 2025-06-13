@@ -16,13 +16,21 @@ import {
   LogOut
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const AdminLayout = () => {
   const { signOut } = useAuth();
-  const { user, profile, isLoading, hasContentAccess } = useAdminAuth();
+  const { user, profile, isLoading, hasContentAccess, error } = useAdminAuth();
   const location = useLocation();
 
-  console.log('AdminLayout - Auth state:', { user: !!user, profile, isLoading, hasContentAccess });
+  console.log('AdminLayout - Auth state:', { 
+    user: !!user, 
+    profile, 
+    isLoading, 
+    hasContentAccess,
+    error: error?.message,
+    currentPath: location.pathname
+  });
 
   if (isLoading) {
     return (
@@ -43,9 +51,69 @@ const AdminLayout = () => {
     );
   }
 
-  if (!user || !profile || !hasContentAccess) {
-    console.log('AdminLayout - Access denied, redirecting to home');
-    return <Navigate to="/" replace />;
+  // Show error message if there's an issue fetching profile
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full">
+          <Alert className="mb-4">
+            <AlertDescription>
+              Error loading user profile: {error.message}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => window.location.href = '/'}>
+            Go to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user is not logged in
+  if (!user) {
+    console.log('AdminLayout - No user, redirecting to auth');
+    return <Navigate to="/auth" replace />;
+  }
+
+  // Check if profile doesn't exist (user needs to complete profile setup)
+  if (!profile) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full text-center">
+          <Alert className="mb-4">
+            <AlertDescription>
+              Your profile is not set up yet. Please contact an administrator to assign you a role.
+            </AlertDescription>
+          </Alert>
+          <div className="space-y-2 text-sm text-gray-600">
+            <p>User ID: {user.id}</p>
+            <p>Email: {user.email}</p>
+          </div>
+          <Button onClick={() => window.location.href = '/'} className="mt-4">
+            Go to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user doesn't have content access
+  if (!hasContentAccess) {
+    console.log('AdminLayout - Access denied, user role:', profile.role);
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="max-w-md w-full text-center">
+          <Alert className="mb-4">
+            <AlertDescription>
+              You don't have permission to access the admin panel. Your current role is: {profile.role || 'none'}
+            </AlertDescription>
+          </Alert>
+          <Button onClick={() => window.location.href = '/'}>
+            Go to Home
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   const isAdmin = profile.role === 'admin';
