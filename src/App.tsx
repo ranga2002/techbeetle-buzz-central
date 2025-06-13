@@ -18,6 +18,11 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ContentManagement from "./pages/admin/ContentManagement";
 import UserManagement from "./pages/admin/UserManagement";
+import CommentsManagement from "./pages/admin/CommentsManagement";
+import CategoriesManagement from "./pages/admin/CategoriesManagement";
+import TagsManagement from "./pages/admin/TagsManagement";
+import AnalyticsManagement from "./pages/admin/AnalyticsManagement";
+import SettingsManagement from "./pages/admin/SettingsManagement";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +48,11 @@ const App = () => (
                 <Route index element={<AdminDashboard />} />
                 <Route path="content" element={<ContentManagement />} />
                 <Route path="users" element={<UserManagement />} />
+                <Route path="comments" element={<CommentsManagement />} />
+                <Route path="categories" element={<CategoriesManagement />} />
+                <Route path="tags" element={<TagsManagement />} />
+                <Route path="analytics" element={<AnalyticsManagement />} />
+                <Route path="settings" element={<SettingsManagement />} />
               </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
