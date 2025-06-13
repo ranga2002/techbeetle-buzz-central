@@ -3,18 +3,8 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   Select,
   SelectContent,
@@ -23,8 +13,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Check, X, Eye } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import CommentTable from '@/components/admin/comments/CommentTable';
 import type { Tables, Database } from '@/integrations/supabase/types';
 
 type Comment = Tables<'comments'> & {
@@ -83,7 +74,7 @@ const CommentsManagement = () => {
     },
   });
 
-  const deleteCommentMutation = useMutation({
+  const delete CommentMutation = useMutation({
     mutationFn: async (commentId: string) => {
       const { error } = await supabase
         .from('comments')
@@ -101,15 +92,6 @@ const CommentsManagement = () => {
     },
   });
 
-  const getStatusBadge = (status: string) => {
-    const variants = {
-      approved: 'bg-green-100 text-green-800',
-      pending: 'bg-yellow-100 text-yellow-800',
-      rejected: 'bg-red-100 text-red-800',
-    };
-    return variants[status as keyof typeof variants] || variants.pending;
-  };
-
   if (isLoading) {
     return (
       <div className="space-y-6">
@@ -125,119 +107,50 @@ const CommentsManagement = () => {
         <h1 className="text-3xl font-bold">Comments Management</h1>
       </div>
 
-      <Tabs defaultValue="all" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="all">All Comments</TabsTrigger>
-          <TabsTrigger value="pending">Pending</TabsTrigger>
-          <TabsTrigger value="approved">Approved</TabsTrigger>
-          <TabsTrigger value="rejected">Rejected</TabsTrigger>
-        </TabsList>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Filters</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex space-x-4">
-              <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search comments..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Filters</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex space-x-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Search comments..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
-          </CardContent>
-        </Card>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
-        <TabsContent value="all" className="space-y-4">
-          <Card>
-            <CardContent className="p-0">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Comment</TableHead>
-                    <TableHead>User</TableHead>
-                    <TableHead>Content</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {comments?.map((comment) => (
-                    <TableRow key={comment.id}>
-                      <TableCell className="max-w-xs">
-                        <p className="truncate">{comment.comment_text}</p>
-                      </TableCell>
-                      <TableCell>{comment.profiles?.full_name || 'Unknown'}</TableCell>
-                      <TableCell>{comment.content?.title || 'Unknown'}</TableCell>
-                      <TableCell>
-                        <Badge className={getStatusBadge(comment.status || 'pending')}>
-                          {comment.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(comment.created_at || '').toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => 
-                              updateStatusMutation.mutate({ 
-                                commentId: comment.id, 
-                                status: 'approved' as CommentStatus 
-                              })
-                            }
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => 
-                              updateStatusMutation.mutate({ 
-                                commentId: comment.id, 
-                                status: 'rejected' as CommentStatus 
-                              })
-                            }
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => deleteCommentMutation.mutate(comment.id)}
-                          >
-                            <X className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      <Card>
+        <CardContent className="p-0">
+          <CommentTable
+            comments={comments}
+            onStatusUpdate={(commentId, status) => 
+              updateStatusMutation.mutate({ commentId, status })
+            }
+            onDelete={(commentId) => deleteCommentMutation.mutate(commentId)}
+            isUpdating={updateStatusMutation.isPending}
+          />
+        </CardContent>
+      </Card>
     </div>
   );
 };
