@@ -13,7 +13,8 @@ import {
   MessageSquare,
   Tags,
   FolderOpen,
-  LogOut
+  LogOut,
+  Rss
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -128,6 +129,7 @@ const AdminLayout = () => {
     { path: '/admin/tags', icon: Tags, label: 'Tags', roles: ['admin', 'editor'] },
     { path: '/admin/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin'] },
     { path: '/admin/settings', icon: Settings, label: 'Settings', roles: ['admin'] },
+    { path: '/admin/news-test', icon: Rss, label: 'News API Test', roles: ['admin'] },
   ];
 
   const filteredNavigation = navigationItems.filter(item => 

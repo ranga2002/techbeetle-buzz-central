@@ -23,6 +23,7 @@ import CategoriesManagement from "./pages/admin/CategoriesManagement";
 import TagsManagement from "./pages/admin/TagsManagement";
 import AnalyticsManagement from "./pages/admin/AnalyticsManagement";
 import SettingsManagement from "./pages/admin/SettingsManagement";
+import NewsApiTest from "./pages/admin/NewsApiTest";
 
 const queryClient = new QueryClient();
 
@@ -53,6 +54,7 @@ const App = () => (
                 <Route path="tags" element={<TagsManagement />} />
                 <Route path="analytics" element={<AnalyticsManagement />} />
                 <Route path="settings" element={<SettingsManagement />} />
+                <Route path="news-test" element={<NewsApiTest />} />
               </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
