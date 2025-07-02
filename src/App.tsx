@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -24,6 +23,7 @@ import TagsManagement from "./pages/admin/TagsManagement";
 import AnalyticsManagement from "./pages/admin/AnalyticsManagement";
 import SettingsManagement from "./pages/admin/SettingsManagement";
 import NewsApiTest from "./pages/admin/NewsApiTest";
+import ReviewGeneration from "./pages/admin/ReviewGeneration";
 
 const queryClient = new QueryClient();
 
@@ -55,6 +55,7 @@ const App = () => (
                 <Route path="analytics" element={<AnalyticsManagement />} />
                 <Route path="settings" element={<SettingsManagement />} />
                 <Route path="news-test" element={<NewsApiTest />} />
+                <Route path="review-generator" element={<ReviewGeneration />} />
               </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

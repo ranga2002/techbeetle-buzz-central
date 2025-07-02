@@ -223,6 +223,44 @@ export type Database = {
           },
         ]
       }
+      content_sources: {
+        Row: {
+          content_id: string | null
+          id: string
+          last_updated: string | null
+          scraped_at: string | null
+          source_name: string
+          source_type: string | null
+          source_url: string
+        }
+        Insert: {
+          content_id?: string | null
+          id?: string
+          last_updated?: string | null
+          scraped_at?: string | null
+          source_name: string
+          source_type?: string | null
+          source_url: string
+        }
+        Update: {
+          content_id?: string | null
+          id?: string
+          last_updated?: string | null
+          scraped_at?: string | null
+          source_name?: string
+          source_type?: string | null
+          source_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_sources_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_tags: {
         Row: {
           content_id: string
@@ -277,6 +315,47 @@ export type Database = {
         }
         Relationships: []
       }
+      product_specs: {
+        Row: {
+          content_id: string | null
+          created_at: string | null
+          display_order: number | null
+          id: string
+          spec_category: string
+          spec_name: string
+          spec_unit: string | null
+          spec_value: string
+        }
+        Insert: {
+          content_id?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          spec_category: string
+          spec_name: string
+          spec_unit?: string | null
+          spec_value: string
+        }
+        Update: {
+          content_id?: string | null
+          created_at?: string | null
+          display_order?: number | null
+          id?: string
+          spec_category?: string
+          spec_name?: string
+          spec_unit?: string | null
+          spec_value?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_specs_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -315,6 +394,53 @@ export type Database = {
           username?: string | null
         }
         Relationships: []
+      }
+      purchase_links: {
+        Row: {
+          availability_status: string | null
+          content_id: string | null
+          created_at: string | null
+          currency: string | null
+          id: string
+          is_primary: boolean | null
+          price: number | null
+          product_url: string
+          retailer_name: string
+          updated_at: string | null
+        }
+        Insert: {
+          availability_status?: string | null
+          content_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_primary?: boolean | null
+          price?: number | null
+          product_url: string
+          retailer_name: string
+          updated_at?: string | null
+        }
+        Update: {
+          availability_status?: string | null
+          content_id?: string | null
+          created_at?: string | null
+          currency?: string | null
+          id?: string
+          is_primary?: boolean | null
+          price?: number | null
+          product_url?: string
+          retailer_name?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_links_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       review_details: {
         Row: {
@@ -434,6 +560,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_average_price: {
+        Args: { content_id_param: string }
+        Returns: number
+      }
       get_current_user_role: {
         Args: Record<PropertyKey, never>
         Returns: Database["public"]["Enums"]["user_role"]
