@@ -1,17 +1,30 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useContent } from '@/hooks/useContent';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ContentCard from '@/components/ContentCard';
+import NewsModal from '@/components/NewsModal';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const NewsPage = () => {
+  const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { useContentQuery } = useContent();
   const { data: newsContent, isLoading } = useContentQuery({
     contentType: 'news',
     limit: 20,
   });
+
+  const handleNewsClick = (newsItem: any) => {
+    setSelectedNewsItem(newsItem);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedNewsItem(null);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -51,13 +64,17 @@ const NewsPage = () => {
                 likesCount={content.likes_count || 0}
                 readingTime={content.reading_time || undefined}
                 publishedAt={content.published_at || undefined}
-                onClick={() => {
-                  console.log('Navigate to news article:', content.slug);
-                }}
+                onClick={() => handleNewsClick(content)}
               />
             ))}
           </div>
         )}
+        
+        <NewsModal 
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          newsItem={selectedNewsItem}
+        />
       </main>
       <Footer />
     </div>

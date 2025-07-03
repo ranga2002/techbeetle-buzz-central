@@ -2,19 +2,33 @@
 import React, { useState } from 'react';
 import { useContent } from '@/hooks/useContent';
 import ContentCard from './ContentCard';
+import NewsModal from './NewsModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 
 const LatestNews = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { useContentQuery, useCategoriesQuery } = useContent();
   
   const { data: content, isLoading } = useContentQuery({
     category: selectedCategory || undefined,
+    contentType: 'news',
     limit: 12,
   });
   
   const { data: categories } = useCategoriesQuery();
+
+  const handleNewsClick = (newsItem: any) => {
+    setSelectedNewsItem(newsItem);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedNewsItem(null);
+  };
 
   if (isLoading) {
     return (
@@ -78,10 +92,7 @@ const LatestNews = () => {
                 likesCount={item.likes_count || 0}
                 readingTime={item.reading_time || undefined}
                 publishedAt={item.published_at || undefined}
-                onClick={() => {
-                  // TODO: Navigate to content page
-                  console.log('Navigate to content:', item.slug);
-                }}
+                onClick={() => handleNewsClick(item)}
               />
             ))}
           </div>
@@ -90,6 +101,12 @@ const LatestNews = () => {
             <p className="text-lg text-muted-foreground">No content available yet.</p>
           </div>
         )}
+        
+        <NewsModal 
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          newsItem={selectedNewsItem}
+        />
       </div>
     </section>
   );
