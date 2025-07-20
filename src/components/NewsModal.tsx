@@ -63,15 +63,16 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   if (!newsItem) return null;
 
   const handleShare = async () => {
+    const articleUrl = `${window.location.origin}/news/${newsItem.id}`;
     try {
       await navigator.share({
         title: newsItem.title,
         text: newsItem.excerpt || '',
-        url: window.location.href,
+        url: articleUrl,
       });
     } catch (error) {
       // Fallback for browsers that don't support Web Share API
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(articleUrl);
       toast({
         title: "Link copied!",
         description: "Article link has been copied to clipboard",
@@ -99,10 +100,10 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0">
-        <div className="flex flex-col h-full">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
+          <div className="flex flex-col h-full max-h-[90vh]">
           {/* Header */}
-          <DialogHeader className="px-6 py-4 border-b">
+          <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
             <div className="flex items-start justify-between">
               <div className="flex-1 pr-4">
                 <DialogTitle className="text-xl font-bold leading-tight mb-2">
@@ -187,7 +188,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                     Share
                   </Button>
                   <Button variant="outline" size="sm" asChild>
-                    <a href="#" target="_blank" rel="noopener noreferrer">
+                    <a href={`/news/${newsItem.id}`} target="_blank" rel="noopener noreferrer">
                       <ExternalLink className="w-4 h-4 mr-1" />
                       View Original
                     </a>
