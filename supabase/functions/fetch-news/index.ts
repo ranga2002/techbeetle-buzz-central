@@ -26,11 +26,19 @@ serve(async (req) => {
       throw new Error('NEWS_API_KEY not configured');
     }
 
-    console.log('Starting news fetch process...');
+    // Get location from request body
+    const { location } = await req.json();
+    console.log('Starting news fetch process for location:', location);
+
+    // Build search query with location if provided
+    let searchQuery = 'technology OR tech OR smartphone OR laptop OR AI OR software';
+    if (location) {
+      searchQuery += ` AND ${location}`;
+    }
 
     // Fetch tech news from NewsAPI
     const newsResponse = await fetch(
-      `https://newsapi.org/v2/everything?q=technology OR tech OR smartphone OR laptop OR AI OR software&sortBy=publishedAt&pageSize=20&language=en&apiKey=${newsApiKey}`
+      `https://newsapi.org/v2/everything?q=${encodeURIComponent(searchQuery)}&sortBy=publishedAt&pageSize=20&language=en&apiKey=${newsApiKey}`
     );
 
     if (!newsResponse.ok) {
