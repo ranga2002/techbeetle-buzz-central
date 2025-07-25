@@ -19,18 +19,29 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Using your provided News API key
+    // Parse request body to get search query
+    let searchQuery = 'technology OR tech OR smartphone OR laptop OR AI OR software';
+    try {
+      const body = await req.json();
+      if (body.query) {
+        searchQuery = body.query;
+      }
+    } catch (e) {
+      console.log('No query provided, using default tech search');
+    }
+
+    console.log('Starting news search for:', searchQuery);
+
+    // Using NewsAPI key
     const newsApiKey = '055584e2130a462892c6ce319905ed63';
     
     if (!newsApiKey) {
       throw new Error('NEWS_API_KEY not configured');
     }
 
-    console.log('Starting news fetch process...');
-
-    // Fetch tech news from NewsAPI
+    // Fetch news from NewsAPI with the search query
     const newsResponse = await fetch(
-      `https://newsapi.org/v2/everything?q=technology OR tech OR smartphone OR laptop OR AI OR software&sortBy=publishedAt&pageSize=20&language=en&apiKey=${newsApiKey}`
+      `https://newsapi.org/v2/everything?q=${encodeURIComponent(searchQuery)}&sortBy=publishedAt&pageSize=20&language=en&apiKey=${newsApiKey}`
     );
 
     if (!newsResponse.ok) {
@@ -42,131 +53,26 @@ serve(async (req) => {
     const newsData = await newsResponse.json();
     const articles = newsData.articles || [];
 
-    console.log(`Fetched ${articles.length} articles from NewsAPI`);
+    console.log(`Fetched ${articles.length} articles from NewsAPI for query: ${searchQuery}`);
 
-    // Get admin user to assign as author
-    const { data: adminProfile } = await supabaseClient
-      .from('profiles')
-      .select('id')
-      .eq('role', 'admin')
-      .limit(1)
-      .single();
+    // Filter out removed or invalid articles
+    const validArticles = articles.filter(article => 
+      article.title && 
+      article.description && 
+      article.title !== '[Removed]' &&
+      article.description !== '[Removed]'
+    );
 
-    if (!adminProfile) {
-      console.log('No admin user found, creating articles without author');
-    }
+    console.log(`Returning ${validArticles.length} valid articles`);
 
-    // Get or create tech category
-    let { data: techCategory } = await supabaseClient
-      .from('categories')
-      .select('id')
-      .eq('slug', 'technology')
-      .single();
-
-    if (!techCategory) {
-      const { data: newCategory, error: categoryError } = await supabaseClient
-        .from('categories')
-        .insert([{
-          name: 'Technology',
-          slug: 'technology',
-          description: 'Latest technology news and updates',
-          is_active: true,
-          color: '#3B82F6'
-        }])
-        .select()
-        .single();
-      
-      if (categoryError) {
-        console.error('Error creating category:', categoryError);
-      } else {
-        techCategory = newCategory;
-        console.log('Created technology category');
-      }
-    }
-
-    let insertedCount = 0;
-    let skippedCount = 0;
-
-    for (const article of articles) {
-      if (!article.title || !article.description || article.title === '[Removed]') {
-        console.log('Skipping article with missing or removed content');
-        continue;
-      }
-
-      // Check if article already exists
-      const { data: existingArticle } = await supabaseClient
-        .from('content')
-        .select('id')
-        .eq('title', article.title)
-        .single();
-
-      if (existingArticle) {
-        console.log(`Article "${article.title}" already exists, skipping`);
-        skippedCount++;
-        continue;
-      }
-
-      // Create slug from title
-      const slug = article.title
-        .toLowerCase()
-        .replace(/[^a-z0-9 -]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim('-')
-        .substring(0, 100); // Limit slug length
-
-      // Prepare content with source attribution
-      const content = `${article.description || ''}
-
-${article.content ? article.content.replace('[+\\d+ chars]', '') : ''}
-
-**Source:** ${article.source?.name || 'Unknown'}
-**Original URL:** ${article.url}`;
-
-      // Insert article
-      const { error } = await supabaseClient
-        .from('content')
-        .insert([{
-          title: article.title.substring(0, 255), // Limit title length
-          slug: slug,
-          excerpt: article.description?.substring(0, 500) || '', // Limit excerpt length
-          content: content,
-          featured_image: article.urlToImage,
-          author_id: adminProfile?.id || null,
-          category_id: techCategory?.id || null,
-          content_type: 'news',
-          status: 'published',
-          published_at: new Date(article.publishedAt).toISOString(),
-          meta_title: article.title.substring(0, 60),
-          meta_description: article.description?.substring(0, 160) || '',
-          views_count: 0
-        }]);
-
-      if (error) {
-        console.error('Error inserting article:', error);
-        console.error('Article data:', {
-          title: article.title,
-          slug: slug,
-          publishedAt: article.publishedAt
-        });
-      } else {
-        insertedCount++;
-        console.log(`Inserted article: ${article.title}`);
-      }
-    }
-
-    const summary = {
-      success: true,
-      message: `Successfully processed ${insertedCount} new articles (${skippedCount} duplicates skipped)`,
-      totalFetched: articles.length,
-      inserted: insertedCount,
-      skipped: skippedCount
-    };
-
-    console.log('News fetch completed:', summary);
-
+    // Return the articles directly for frontend consumption
     return new Response(
-      JSON.stringify(summary),
+      JSON.stringify({
+        success: true,
+        articles: validArticles,
+        query: searchQuery,
+        totalFound: validArticles.length
+      }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200 

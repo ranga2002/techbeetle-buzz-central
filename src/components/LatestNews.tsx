@@ -104,11 +104,8 @@ const LatestNews = () => {
       }
 
       // Parse the response data
-      let articles = [];
-      if (data && typeof data === 'object') {
-        articles = data.articles || data.data || [];
-      }
-
+      const articles = data?.articles || [];
+      
       setSearchResults(articles);
       setHasSearched(true);
       
