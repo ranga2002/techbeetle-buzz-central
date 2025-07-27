@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Clock, User, MessageCircle, Heart, Share2, ExternalLink, X } from 'lucide-react';
+import { Clock, User, MessageCircle, Heart, Share2, ExternalLink, Link2, Twitter, Facebook, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
@@ -58,25 +58,74 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     }
   ]);
   const [isLiked, setIsLiked] = useState(false);
+  const [showSharePanel, setShowSharePanel] = useState(false);
   const { toast } = useToast();
 
   if (!newsItem) return null;
 
-  const handleShare = async () => {
-    const articleUrl = `${window.location.origin}/news/${newsItem.id}`;
-    try {
-      await navigator.share({
-        title: newsItem.title,
-        text: newsItem.excerpt || '',
-        url: articleUrl,
-      });
-    } catch (error) {
-      // Fallback for browsers that don't support Web Share API
+  // Helper function to format and clean content
+  const formatContent = (content: string) => {
+    if (!content) return '';
+    
+    // Remove markdown-style formatting and clean up
+    let cleaned = content
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold text
+      .replace(/\*(.*?)\*/g, '<em>$1</em>') // Italic text
+      .replace(/\n\n/g, '</p><p>') // Paragraph breaks
+      .replace(/\n/g, '<br>'); // Line breaks
+    
+    // Wrap in paragraph tags
+    if (!cleaned.startsWith('<p>')) {
+      cleaned = '<p>' + cleaned + '</p>';
+    }
+    
+    return cleaned;
+  };
+
+  // Extract source and original URL from content
+  const extractSourceInfo = (content: string) => {
+    const sourceMatch = content.match(/\*\*Source:\*\*\s*([^\n]*)/);
+    const urlMatch = content.match(/\*\*Original URL:\*\*\s*([^\n]*)/);
+    
+    return {
+      source: sourceMatch ? sourceMatch[1].trim() : null,
+      originalUrl: urlMatch ? urlMatch[1].trim() : null,
+      cleanContent: content
+        .replace(/\*\*Source:\*\*[^\n]*/g, '')
+        .replace(/\*\*Original URL:\*\*[^\n]*/g, '')
+        .trim()
+    };
+  };
+
+  const { source, originalUrl, cleanContent } = extractSourceInfo(newsItem.content || '');
+
+  const handleShare = async (platform?: string) => {
+    const articleUrl = window.location.href;
+    const title = newsItem.title;
+    const text = newsItem.excerpt || '';
+
+    if (platform === 'twitter') {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(articleUrl)}`, '_blank');
+    } else if (platform === 'facebook') {
+      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(articleUrl)}`, '_blank');
+    } else if (platform === 'copy') {
       navigator.clipboard.writeText(articleUrl);
       toast({
         title: "Link copied!",
         description: "Article link has been copied to clipboard",
       });
+      setShowSharePanel(false);
+    } else {
+      // Native share or show share panel
+      if (navigator.share) {
+        try {
+          await navigator.share({ title, text, url: articleUrl });
+        } catch (error) {
+          setShowSharePanel(!showSharePanel);
+        }
+      } else {
+        setShowSharePanel(!showSharePanel);
+      }
     }
   };
 
@@ -129,14 +178,6 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                   {newsItem.reading_time && <span>{newsItem.reading_time} min read</span>}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onClose}
-                className="shrink-0"
-              >
-                <X className="w-4 h-4" />
-              </Button>
             </div>
           </DialogHeader>
 
@@ -157,10 +198,40 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
               {/* Article Content */}
               <div className="prose max-w-none mb-8">
                 <div 
-                  className="text-foreground leading-relaxed whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ __html: newsItem.content || newsItem.excerpt || '' }}
+                  className="text-foreground leading-relaxed text-justify space-y-4"
+                  dangerouslySetInnerHTML={{ __html: formatContent(cleanContent) }}
                 />
               </div>
+
+              {/* Source Information */}
+              {(source || originalUrl) && (
+                <Card className="mb-6 bg-muted/50">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Link2 className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium text-sm">Source Information</span>
+                    </div>
+                    {source && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        <strong>Source:</strong> {source}
+                      </p>
+                    )}
+                    {originalUrl && (
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        asChild
+                        className="h-8"
+                      >
+                        <a href={originalUrl} target="_blank" rel="noopener noreferrer">
+                          <ExternalLink className="w-3 h-3 mr-1" />
+                          Read Original Article
+                        </a>
+                      </Button>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Engagement Actions */}
               <div className="flex items-center justify-between py-4 border-t border-b">
@@ -182,17 +253,59 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                     {newsItem.views_count || 0} views
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={handleShare}>
-                    <Share2 className="w-4 h-4 mr-1" />
-                    Share
-                  </Button>
-                  <Button variant="outline" size="sm" asChild>
-                    <a href={`/news/${newsItem.id}`} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="w-4 h-4 mr-1" />
-                      View Original
-                    </a>
-                  </Button>
+                <div className="flex items-center gap-2 relative">
+                  <div className="relative">
+                    <Button variant="outline" size="sm" onClick={() => handleShare()}>
+                      <Share2 className="w-4 h-4 mr-1" />
+                      Share
+                    </Button>
+                    
+                    {/* Share Panel */}
+                    {showSharePanel && (
+                      <Card className="absolute top-full mt-2 right-0 z-50 w-48 shadow-lg">
+                        <CardContent className="p-3">
+                          <div className="space-y-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => handleShare('twitter')}
+                            >
+                              <Twitter className="w-4 h-4 mr-2 text-blue-500" />
+                              Share on Twitter
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => handleShare('facebook')}
+                            >
+                              <Facebook className="w-4 h-4 mr-2 text-blue-600" />
+                              Share on Facebook
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start"
+                              onClick={() => handleShare('copy')}
+                            >
+                              <Copy className="w-4 h-4 mr-2" />
+                              Copy Link
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </div>
+                  
+                  {originalUrl && (
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={originalUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4 mr-1" />
+                        View Original
+                      </a>
+                    </Button>
+                  )}
                 </div>
               </div>
 
