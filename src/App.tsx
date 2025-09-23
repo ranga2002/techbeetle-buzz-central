@@ -12,6 +12,7 @@ import ReviewsPage from "./pages/ReviewsPage";
 import VideosPage from "./pages/VideosPage";
 import HowToPage from "./pages/HowToPage";
 import ComparePage from "./pages/ComparePage";
+import ProductsPage from "./pages/ProductsPage";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/videos" element={<VideosPage />} />
               <Route path="/how-to" element={<HowToPage />} />
               <Route path="/compare" element={<ComparePage />} />
+              <Route path="/products" element={<ProductsPage />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
