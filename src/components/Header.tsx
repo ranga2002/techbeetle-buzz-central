@@ -38,6 +38,9 @@ const Header = () => {
             <Link to="/compare" className="text-foreground/80 hover:text-primary transition-colors">
               Compare
             </Link>
+            <Link to="/products" className="text-foreground/80 hover:text-primary transition-colors">
+              Products
+            </Link>
           </nav>
 
           {/* Search and Controls */}

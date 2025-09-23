@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
+import ProductsSection from "@/components/ProductsSection";
 import CategoryTabs from "@/components/CategoryTabs";
 import FeaturedSection from "@/components/FeaturedSection";
 import LatestNews from "@/components/LatestNews";
@@ -16,6 +17,7 @@ const Index = () => {
       <Header />
       <main>
         <HeroSection />
+        <ProductsSection />
         <CategoryTabs />
         <FeaturedSection />
         <LatestNews />
