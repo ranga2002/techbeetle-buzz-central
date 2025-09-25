@@ -25,6 +25,7 @@ import AnalyticsManagement from "./pages/admin/AnalyticsManagement";
 import SettingsManagement from "./pages/admin/SettingsManagement";
 import NewsApiTest from "./pages/admin/NewsApiTest";
 import ReviewGeneration from "./pages/admin/ReviewGeneration";
+import ProductScraperPage from "./pages/admin/ProductScraperPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
                 <Route path="settings" element={<SettingsManagement />} />
                 <Route path="news-test" element={<NewsApiTest />} />
                 <Route path="review-generator" element={<ReviewGeneration />} />
+                <Route path="product-scraper" element={<ProductScraperPage />} />
               </Route>
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -14,7 +14,8 @@ import {
   Tags,
   FolderOpen,
   LogOut,
-  Rss
+  Rss,
+  Package
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -130,6 +131,7 @@ const AdminLayout = () => {
     { path: '/admin/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin'] },
     { path: '/admin/settings', icon: Settings, label: 'Settings', roles: ['admin'] },
     { path: '/admin/news-test', icon: Rss, label: 'News API Test', roles: ['admin'] },
+    { path: '/admin/product-scraper', icon: Package, label: 'Product Scraper', roles: ['admin', 'editor'] },
   ];
 
   const filteredNavigation = navigationItems.filter(item => 
