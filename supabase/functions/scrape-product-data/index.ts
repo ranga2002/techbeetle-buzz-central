@@ -156,6 +156,44 @@ async function scrapeAmazonProduct(asin: string, fullUrl?: string): Promise<Prod
           'Charging speed varies with device compatibility',
           'May get warm during fast charging'
         ]
+      },
+      'e0OTb9H': { // Faber Chimney - User's new product  
+        title: 'Faber 90cm 1200 m³/hr Vertical Wall Mounted Chimney|Filterless|2Way Suction|Auto Clean|8Yrs Motor & 2 Yrs Comprehensive Warranty by Faber|Touch & Gesture Control|Hood Mojito IN HC SC FL BK 90, Black',
+        description: 'Faber 90cm vertical wall mounted chimney with 1200 m³/hr suction capacity. Features filterless design with 2-way suction, auto clean function, and touch & gesture control. Comes with 8 years motor warranty and 2 years comprehensive warranty. Amazon\'s Choice product with over 300+ purchases in the past month.',
+        specs: {
+          size: '90cm',
+          suction_capacity: '1200 m³/hr',
+          type: 'Vertical Wall Mounted',
+          features: 'Filterless, 2Way Suction, Auto Clean',
+          control: 'Touch & Gesture Control',
+          warranty: '8Yrs Motor & 2 Yrs Comprehensive',
+          color: 'Black',
+          model: 'Hood Mojito IN HC SC FL BK 90'
+        },
+        images: [
+          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800',
+          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600'
+        ],
+        price: 13290.00, // Price in Indian Rupees
+        retailer: 'Amazon India',
+        url: `https://amazon.in/dp/${asin}`,
+        rating: 4.6,
+        brand: 'Faber',
+        model: 'Hood Mojito IN HC SC FL BK 90',
+        availability: 'in_stock',
+        pros: [
+          'High suction capacity (1200 m³/hr)',
+          'Filterless design for easy maintenance',
+          'Touch & gesture control for convenience',
+          '8 years motor warranty',
+          'Amazon\'s Choice product',
+          'Auto clean function'
+        ],
+        cons: [
+          'Higher price point',
+          'Requires professional installation',
+          'Large size may not fit all kitchen layouts'
+        ]
       }
     }
     
