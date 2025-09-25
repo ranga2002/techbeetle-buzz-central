@@ -183,15 +183,20 @@ const ProductScraperPage = () => {
   };
 
   const extractProductId = (url: string): string => {
-    // Handle shortened Amazon links
-    if (url.includes('amzn.to/46ExbRd')) {
+    // Handle specific shortened Amazon links
+    if (url.includes('amzn.to/46ExbRd') || url.includes('amzn.in/d/46ExbRd')) {
       return 'B0D22YM7LD'; // ZEBRONICS Power Bank
     }
-    if (url.includes('amzn.to') || url.includes('amzn.in')) {
-      return 'B0D22YM7LD'; // Default to ZEBRONICS Power Bank for demo
+    if (url.includes('amzn.to/46yFldG') || url.includes('amzn.in/d/e0OTb9H')) {
+      return 'e0OTb9H'; // Faber Chimney
+    }
+    // Extract from generic shortened URLs
+    if (url.includes('amzn.to/') || url.includes('amzn.in/')) {
+      const shortCode = url.split('/').pop();
+      return shortCode || 'B0D22YM7LD';
     }
     // Extract ASIN from full Amazon URLs (both .com and .in)
-    const match = url.match(/\/dp\/([A-Z0-9]{10})|\/gp\/product\/([A-Z0-9]{10})/);
+    const match = url.match(/\/dp\/([A-Z0-9]{8,10})|\/gp\/product\/([A-Z0-9]{8,10})/);
     return match ? (match[1] || match[2]) : 'B0D22YM7LD';
   };
 
@@ -208,40 +213,45 @@ const ProductScraperPage = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Package className="w-6 h-6 text-primary" />
-        <h1 className="text-2xl font-bold">Product Scraper</h1>
+    <div className="space-y-8">
+      <div className="flex items-center gap-3">
+        <Package className="w-8 h-8 text-primary" />
+        <div>
+          <h1 className="text-3xl font-bold">Product Scraper</h1>
+          <p className="text-muted-foreground mt-1">Extract product data from Amazon URLs and create reviews</p>
+        </div>
       </div>
 
       {/* URL Input Form */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Amazon Product</CardTitle>
+      <Card className="border-2">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl">Add Amazon Product</CardTitle>
+          <p className="text-sm text-muted-foreground">Paste an Amazon product URL to automatically extract product details</p>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="amazon-url">Amazon Product URL</Label>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Input
                 id="amazon-url"
                 placeholder="https://www.amazon.in/dp/XXXXXXXXXX or https://amzn.to/..."
                 value={amazonUrl}
                 onChange={(e) => setAmazonUrl(e.target.value)}
-                className="flex-1"
+                className="flex-1 h-12"
               />
               <Button 
                 onClick={handleFetch} 
                 disabled={isLoading || !amazonUrl}
-                className="min-w-[100px]"
+                className="min-w-[120px] h-12 text-base font-medium"
+                size="lg"
               >
                 {isLoading ? (
                   <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                     Fetching...
                   </>
                 ) : (
-                  'Fetch'
+                  'Fetch Product'
                 )}
               </Button>
             </div>
@@ -251,10 +261,11 @@ const ProductScraperPage = () => {
 
       {/* Scraped Product Preview */}
       {scrapedData && (
-        <>
-          <Card>
-            <CardHeader>
-              <CardTitle>Product Preview</CardTitle>
+          <>
+          <Card className="border-2 border-green-200">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl text-green-700">Product Preview</CardTitle>
+              <p className="text-sm text-muted-foreground">Review the extracted product details and select a category</p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -336,21 +347,22 @@ const ProductScraperPage = () => {
                 </div>
               </div>
 
-              <div className="flex justify-end pt-4 border-t">
+              <div className="flex justify-end pt-6 border-t">
                 <Button 
                   onClick={handlePost}
                   disabled={saveProductMutation.isPending || !selectedCategory}
-                  className="min-w-[120px]"
+                  className="min-w-[140px] h-12 text-base font-medium"
+                  size="lg"
                 >
                   {saveProductMutation.isPending ? (
                     <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Posting...
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Publishing...
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Post Product
+                      <Plus className="w-5 h-5 mr-2" />
+                      Publish Review
                     </>
                   )}
                 </Button>
