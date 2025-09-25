@@ -176,7 +176,10 @@ const AdminLayout = () => {
         <div className="absolute bottom-4 left-4 right-4">
           <Button
             variant="outline"
-            onClick={signOut}
+            onClick={() => {
+              console.log('Sign out clicked');
+              signOut();
+            }}
             className="w-full justify-start"
           >
             <LogOut className="w-4 h-4 mr-2" />
