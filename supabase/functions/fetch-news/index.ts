@@ -63,8 +63,8 @@ serve(async (req) => {
     // If this is a search request, return the articles directly
     if (isSearchRequest) {
       const formattedArticles = articles
-        .filter(article => article.webTitle && article.webTitle !== '[Removed]')
-        .map(article => ({
+        .filter((article: any) => article.webTitle && article.webTitle !== '[Removed]')
+        .map((article: any) => ({
           id: article.id,
           title: article.webTitle,
           description: article.fields?.bodyText?.substring(0, 250) + '...' || '',
@@ -233,7 +233,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        error: error.message,
+        error: (error as Error).message,
         timestamp: new Date().toISOString()
       }),
       { 
