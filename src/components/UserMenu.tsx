@@ -82,7 +82,13 @@ const UserMenu = () => {
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={signOut} className="flex items-center">
+        <DropdownMenuItem 
+          onClick={() => {
+            console.log('User menu sign out clicked');
+            signOut();
+          }} 
+          className="flex items-center cursor-pointer"
+        >
           <LogOut className="mr-2 h-4 w-4" />
           Sign Out
         </DropdownMenuItem>

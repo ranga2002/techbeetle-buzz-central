@@ -146,7 +146,8 @@ const ProductScraperPage = () => {
       const { data, error } = await supabase.functions.invoke('scrape-product-data', {
         body: {
           product_id: extractProductId(amazonUrl),
-          source_type: 'amazon'
+          source_type: 'amazon',
+          product_url: amazonUrl
         }
       });
 

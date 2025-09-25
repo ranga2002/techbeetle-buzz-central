@@ -24,10 +24,36 @@ interface ProductData {
 }
 
 // Function to scrape Amazon product data
-async function scrapeAmazonProduct(asin: string): Promise<ProductData | null> {
+async function scrapeAmazonProduct(asin: string, fullUrl?: string): Promise<ProductData | null> {
   try {
-    // In production, you'd use a proper scraping service like ScrapingBee or Apify
-    // For demo purposes, we'll simulate real product data
+    // Try to fetch actual product page if we have the full URL
+    if (fullUrl && (fullUrl.includes('amazon.in') || fullUrl.includes('amazon.com'))) {
+      console.log('Attempting to fetch Amazon page:', fullUrl);
+      
+      try {
+        const response = await fetch(fullUrl, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+          }
+        });
+
+        if (response.ok) {
+          const html = await response.text();
+          console.log('Successfully fetched Amazon page, parsing...');
+          return parseAmazonHTML(html, asin, fullUrl);
+        }
+      } catch (fetchError) {
+        console.error('Failed to fetch Amazon page:', fetchError);
+      }
+    }
+
+    // Fallback to mock data if fetching fails
+    console.log('Using mock data for ASIN:', asin);
     const mockData: Record<string, ProductData> = {
       'B0BDHB9Y8H': { // iPhone 15 Pro Max
         title: 'Apple iPhone 15 Pro Max (256GB) - Natural Titanium',
@@ -140,6 +166,115 @@ async function scrapeAmazonProduct(asin: string): Promise<ProductData | null> {
   }
 }
 
+// Function to parse Amazon HTML and extract product data
+function parseAmazonHTML(html: string, asin: string, url: string): ProductData | null {
+  try {
+    // Extract title
+    let title = '';
+    const titleMatch = html.match(/<span[^>]*id="productTitle"[^>]*>([^<]+)<\/span>/i);
+    if (titleMatch) {
+      title = titleMatch[1].trim();
+    }
+
+    // Extract price (Indian format)
+    let price = 0;
+    const priceMatches = [
+      /₹([0-9,]+(?:\.[0-9]{2})?)/g,
+      /Rs\.?\s*([0-9,]+(?:\.[0-9]{2})?)/g,
+      /INR\s*([0-9,]+(?:\.[0-9]{2})?)/g
+    ];
+    
+    for (const priceRegex of priceMatches) {
+      const matches = [...html.matchAll(priceRegex)];
+      if (matches.length > 0) {
+        const priceStr = matches[0][1].replace(/,/g, '');
+        price = parseFloat(priceStr);
+        if (price > 0) break;
+      }
+    }
+
+    // Extract rating
+    let rating = 0;
+    const ratingMatch = html.match(/([0-9]\.[0-9])\s*out of 5 stars/i);
+    if (ratingMatch) {
+      rating = parseFloat(ratingMatch[1]);
+    }
+
+    // Extract brand
+    let brand = '';
+    const brandMatches = [
+      /"brand":\s*"([^"]+)"/i,
+      /Brand:\s*([^<\n]+)/i,
+      /Visit the ([^<\s]+) Store/i
+    ];
+    
+    for (const brandRegex of brandMatches) {
+      const brandMatch = html.match(brandRegex);
+      if (brandMatch) {
+        brand = brandMatch[1].trim();
+        break;
+      }
+    }
+
+    // Extract images
+    const images: string[] = [];
+    const imageMatches = html.matchAll(/"hiRes":"([^"]+)"/g);
+    for (const match of imageMatches) {
+      images.push(match[1]);
+      if (images.length >= 3) break;
+    }
+
+    // If no images found, try alternative pattern
+    if (images.length === 0) {
+      const altImageMatches = html.matchAll(/"large":"([^"]+)"/g);
+      for (const match of altImageMatches) {
+        images.push(match[1]);
+        if (images.length >= 3) break;
+      }
+    }
+
+    // Generate fallback image if none found
+    if (images.length === 0) {
+      images.push('https://images.unsplash.com/photo-1609592806451-d6ba85fa8b89?w=800');
+    }
+
+    // Create basic product data from parsed information
+    const productData: ProductData = {
+      title: title || `Product ${asin}`,
+      description: `${title || 'Product'} - ${brand ? `by ${brand}` : 'Available on Amazon'}. Specifications and features may vary.`,
+      specs: {
+        asin: asin,
+        availability: 'Available on Amazon India',
+        source: 'Amazon India'
+      },
+      images: images,
+      price: price || 999,
+      retailer: url.includes('amazon.in') ? 'Amazon India' : 'Amazon',
+      url: url,
+      rating: rating || 4.0,
+      brand: brand || 'Various',
+      model: asin,
+      availability: 'in_stock',
+      pros: [
+        'Available on Amazon with fast delivery',
+        'Customer reviews available',
+        'Return policy included'
+      ],
+      cons: [
+        'Price may vary',
+        'Availability subject to change'
+      ]
+    };
+
+    console.log('Parsed product data:', JSON.stringify(productData, null, 2));
+    return productData;
+
+  } catch (error) {
+    console.error('Error parsing Amazon HTML:', error);
+    return null;
+  }
+}
+
 // Function to get current pricing from multiple retailers
 async function fetchPricingData(productName: string) {
   // Simulate fetching from multiple retailers for Indian market
@@ -163,12 +298,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? '',
     )
 
-    const { product_id, source_type = 'amazon' } = await req.json()
+    const { product_id, source_type = 'amazon', product_url } = await req.json()
 
     let productData: ProductData | null = null
 
     if (source_type === 'amazon') {
-      productData = await scrapeAmazonProduct(product_id)
+      productData = await scrapeAmazonProduct(product_id, product_url)
     }
 
     if (!productData) {
