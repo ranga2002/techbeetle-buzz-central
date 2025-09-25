@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -26,290 +25,217 @@ interface ProductData {
 // Function to scrape Amazon product data
 async function scrapeAmazonProduct(asin: string, fullUrl?: string): Promise<ProductData | null> {
   try {
-    // Try to fetch actual product page if we have the full URL
-    if (fullUrl && (fullUrl.includes('amazon.in') || fullUrl.includes('amazon.com'))) {
-      console.log('Attempting to fetch Amazon page:', fullUrl);
-      
-      try {
-        const response = await fetch(fullUrl, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive',
-            'Upgrade-Insecure-Requests': '1',
-          }
-        });
-
-        if (response.ok) {
-          const html = await response.text();
-          console.log('Successfully fetched Amazon page, parsing...');
-          return parseAmazonHTML(html, asin, fullUrl);
-        }
-      } catch (fetchError) {
-        console.error('Failed to fetch Amazon page:', fetchError);
-      }
-    }
-
-    // Fallback to mock data if fetching fails
-    console.log('Using mock data for ASIN:', asin);
-    const mockData: Record<string, ProductData> = {
-      'B0BDHB9Y8H': { // iPhone 15 Pro Max
-        title: 'Apple iPhone 15 Pro Max (256GB) - Natural Titanium',
-        description: 'The iPhone 15 Pro Max features a titanium design, A17 Pro chip, and advanced camera system with 5x optical zoom.',
-        specs: {
-          display: '6.7-inch Super Retina XDR',
-          processor: 'A17 Pro chip',
-          storage: '256GB',
-          camera: '48MP Main, 12MP Ultra Wide, 12MP Telephoto',
-          battery: 'Up to 29 hours video playbook',
-          connectivity: '5G, Wi-Fi 6E, Bluetooth 5.3'
-        },
-        images: [
-          'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=800',
-          'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=600'
-        ],
-        price: 89999.00, // Price in Indian Rupees
-        retailer: 'Amazon India',
-        url: `https://amazon.in/dp/${asin}`,
-        rating: 4.5,
-        pros: [
-          'Exceptional build quality with titanium construction',
-          'Outstanding camera performance with 5x zoom',
-          'Powerful A17 Pro processor',
-          'Long battery life'
-        ],
-        cons: [
-          'Very expensive',
-          'Heavy despite titanium construction',
-          'USB-C transition may require new accessories'
-        ]
-      },
-      'B0C63GV3JB': { // Samsung Galaxy S24 Ultra
-        title: 'Samsung Galaxy S24 Ultra 5G AI Smartphone with Galaxy AI (Titanium Gray, 12GB, 256GB Storage)',
-        description: 'Galaxy AI - Welcome to the era of mobile AI. With Galaxy S24 Ultra and One UI in your hands, you can unleash completely new levels of creativity, productivity and possibility. Meet Galaxy S24 Ultra, the ultimate form of Galaxy Ultra built with a new titanium exterior and a 17.25cm flat display. With the most megapixels on a Galaxy smartphone ever (200MP) and AI processing.',
-        specs: {
-          display: '17.25cm flat display',
-          processor: 'Snapdragon 8 Gen 3 for Galaxy',
-          storage: '12GB RAM + 256GB Storage',
-          camera: '200MP Camera with ProVisual Engine',
-          battery: '5000mAh Battery',
-          connectivity: '5G'
-        },
-        images: [
-          'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800',
-          'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=600'
-        ],
-        price: 72999.00, // Price in Indian Rupees
-        retailer: 'Amazon India',
-        url: `https://amazon.in/dp/${asin}`,
-        rating: 4.5,
-        brand: 'Samsung',
-        model: 'Galaxy S24 Ultra',
-        availability: 'in_stock',
-        pros: [
-          'Galaxy AI features for enhanced productivity',
-          'Titanium Frame with premium build quality', 
-          'Epic 200MP Camera with ProVisual engine',
-          'Powerful Snapdragon 8 Gen 3 processor',
-          'Built-in S Pen and Knox security'
-        ],
-        cons: [
-          'Premium price point',
-          'Large size may not suit all users',
-          'Battery life could be better with heavy usage'
-        ]
-      },
-      'B0D22YM7LD': { // ZEBRONICS Power Bank - User's actual product
-        title: 'ZEBRONICS 10000 mAh MagSafe-Compatible Wireless Power Bank, Fast Charging 15W Wireless & 22.5W Wired, For iPhone 16,15,14,13,12, Android& Other Qi Enabled Devices, Type C, Compact Design (MW65, Beige)',
-        description: 'ZEBRONICS 10000 mAh MagSafe-Compatible Wireless Power Bank with fast charging capabilities. Features 15W wireless charging and 22.5W wired charging. Compatible with iPhone 16, 15, 14, 13, 12 series and Android devices with Qi wireless charging support. Compact beige design with Type-C connectivity.',
-        specs: {
-          capacity: '10000 mAh',
-          wireless_charging: '15W Fast Wireless Charging',
-          wired_charging: '22.5W Fast Wired Charging',
-          compatibility: 'iPhone 16,15,14,13,12, Android & Qi Enabled Devices',
-          connectivity: 'Type-C, Wireless',
-          design: 'Compact, MagSafe Compatible',
-          color: 'Beige'
-        },
-        images: [
-          'https://images.unsplash.com/photo-1609592806451-d6ba85fa8b89?w=800',
-          'https://images.unsplash.com/photo-1609592806451-d6ba85fa8b89?w=600'
-        ],
-        price: 899.00, // Price in Indian Rupees
-        retailer: 'Amazon India',
-        url: `https://amazon.in/dp/${asin}`,
-        rating: 3.9,
-        brand: 'ZEBRONICS',
-        model: 'MW65',
-        availability: 'in_stock',
-        pros: [
-          'MagSafe compatible wireless charging',
-          '15W wireless and 22.5W wired fast charging',
-          'Compact and portable design',
-          'Good value for money',
-          'Compatible with multiple device types'
-        ],
-        cons: [
-          'Build quality could be improved',
-          'Charging speed varies with device compatibility',
-          'May get warm during fast charging'
-        ]
-      },
-      'e0OTb9H': { // Faber Chimney - User's new product  
-        title: 'Faber 90cm 1200 m³/hr Vertical Wall Mounted Chimney|Filterless|2Way Suction|Auto Clean|8Yrs Motor & 2 Yrs Comprehensive Warranty by Faber|Touch & Gesture Control|Hood Mojito IN HC SC FL BK 90, Black',
-        description: 'Faber 90cm vertical wall mounted chimney with 1200 m³/hr suction capacity. Features filterless design with 2-way suction, auto clean function, and touch & gesture control. Comes with 8 years motor warranty and 2 years comprehensive warranty. Amazon\'s Choice product with over 300+ purchases in the past month.',
-        specs: {
-          size: '90cm',
-          suction_capacity: '1200 m³/hr',
-          type: 'Vertical Wall Mounted',
-          features: 'Filterless, 2Way Suction, Auto Clean',
-          control: 'Touch & Gesture Control',
-          warranty: '8Yrs Motor & 2 Yrs Comprehensive',
-          color: 'Black',
-          model: 'Hood Mojito IN HC SC FL BK 90'
-        },
-        images: [
-          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800',
-          'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600'
-        ],
-        price: 13290.00, // Price in Indian Rupees
-        retailer: 'Amazon India',
-        url: `https://amazon.in/dp/${asin}`,
-        rating: 4.6,
-        brand: 'Faber',
-        model: 'Hood Mojito IN HC SC FL BK 90',
-        availability: 'in_stock',
-        pros: [
-          'High suction capacity (1200 m³/hr)',
-          'Filterless design for easy maintenance',
-          'Touch & gesture control for convenience',
-          '8 years motor warranty',
-          'Amazon\'s Choice product',
-          'Auto clean function'
-        ],
-        cons: [
-          'Higher price point',
-          'Requires professional installation',
-          'Large size may not fit all kitchen layouts'
-        ]
-      }
+    let productUrl = fullUrl;
+    
+    // If we don't have the full URL, construct it
+    if (!productUrl && asin) {
+      productUrl = `https://www.amazon.in/dp/${asin}`;
     }
     
-    return mockData[asin] || null
+    if (!productUrl) {
+      throw new Error('No valid product URL provided');
+    }
+
+    console.log('Attempting to scrape Amazon product:', productUrl);
+    
+    // Try to fetch the Amazon page with proper headers
+    const response = await fetch(productUrl, {
+      method: 'GET',
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9,hi;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1',
+        'Sec-Fetch-Dest': 'document',
+        'Sec-Fetch-Mode': 'navigate',
+        'Sec-Fetch-Site': 'none',
+        'Cache-Control': 'max-age=0',
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Amazon page: ${response.status} ${response.statusText}`);
+    }
+
+    const html = await response.text();
+    console.log('Successfully fetched Amazon page, HTML length:', html.length);
+    
+    // Parse the HTML content
+    const productData = parseAmazonHTML(html, asin, productUrl);
+    
+    if (!productData) {
+      throw new Error('Failed to parse product data from Amazon page');
+    }
+    
+    console.log('Successfully parsed product data:', productData.title);
+    return productData;
+
   } catch (error) {
-    console.error('Error scraping Amazon:', error)
-    return null
+    console.error('Error scraping Amazon product:', error);
+    
+    // If scraping fails, don't fall back to mock data - throw the error
+    throw new Error(`Failed to scrape Amazon product: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
 // Function to parse Amazon HTML and extract product data
 function parseAmazonHTML(html: string, asin: string, url: string): ProductData | null {
   try {
-    // Extract title
+    console.log('Parsing Amazon HTML for ASIN:', asin);
+    
+    // Extract title - try multiple selectors
     let title = '';
-    const titleMatch = html.match(/<span[^>]*id="productTitle"[^>]*>([^<]+)<\/span>/i);
-    if (titleMatch) {
-      title = titleMatch[1].trim();
-    }
-
-    // Extract price (Indian format)
-    let price = 0;
-    const priceMatches = [
-      /₹([0-9,]+(?:\.[0-9]{2})?)/g,
-      /Rs\.?\s*([0-9,]+(?:\.[0-9]{2})?)/g,
-      /INR\s*([0-9,]+(?:\.[0-9]{2})?)/g
+    const titleSelectors = [
+      /<span[^>]*id="productTitle"[^>]*>([^<]+)<\/span>/i,
+      /<h1[^>]*class="[^"]*product-title[^"]*"[^>]*>([^<]+)<\/h1>/i,
+      /<title>([^<]*Amazon\.in[^<]*)<\/title>/i
     ];
     
-    for (const priceRegex of priceMatches) {
+    for (const selector of titleSelectors) {
+      const match = html.match(selector);
+      if (match && match[1]) {
+        title = match[1].trim().replace(/\s+/g, ' ');
+        if (title.includes('Amazon.in')) {
+          title = title.split(' : ')[0] || title.split(' - ')[0] || title;
+        }
+        break;
+      }
+    }
+
+    if (!title) {
+      console.error('Could not extract product title');
+      throw new Error('Product title not found on page');
+    }
+
+    // Extract price - handle Indian currency formats
+    let price = 0;
+    const priceSelectors = [
+      /₹([0-9,]+(?:\.[0-9]{2})?)/g,
+      /"priceAmount":([0-9.]+)/g,
+      /Rs\.?\s*([0-9,]+(?:\.[0-9]{2})?)/g,
+      /INR\s*([0-9,]+(?:\.[0-9]{2})?)/g,
+      /"price_to_display":\s*"[^0-9]*([0-9,]+(?:\.[0-9]{2})?)/g
+    ];
+    
+    for (const priceRegex of priceSelectors) {
       const matches = [...html.matchAll(priceRegex)];
       if (matches.length > 0) {
-        const priceStr = matches[0][1].replace(/,/g, '');
-        price = parseFloat(priceStr);
+        for (const match of matches) {
+          const priceStr = match[1].replace(/,/g, '');
+          const parsedPrice = parseFloat(priceStr);
+          if (parsedPrice > 0 && parsedPrice < 10000000) { // Reasonable price range
+            price = parsedPrice;
+            break;
+          }
+        }
         if (price > 0) break;
       }
     }
 
     // Extract rating
     let rating = 0;
-    const ratingMatch = html.match(/([0-9]\.[0-9])\s*out of 5 stars/i);
-    if (ratingMatch) {
-      rating = parseFloat(ratingMatch[1]);
+    const ratingSelectors = [
+      /([0-9]\.[0-9])\s*out of 5 stars/i,
+      /"ratingValue":"([0-9]\.[0-9])"/i,
+      /data-hook="average-star-rating"[^>]*>.*?([0-9]\.[0-9])/i
+    ];
+    
+    for (const selector of ratingSelectors) {
+      const match = html.match(selector);
+      if (match && match[1]) {
+        rating = parseFloat(match[1]);
+        if (rating >= 0 && rating <= 5) break;
+      }
     }
 
     // Extract brand
     let brand = '';
-    const brandMatches = [
+    const brandSelectors = [
+      /"brand":\s*{\s*"name":\s*"([^"]+)"/i,
       /"brand":\s*"([^"]+)"/i,
-      /Brand:\s*([^<\n]+)/i,
-      /Visit the ([^<\s]+) Store/i
+      /Brand:\s*([^<\n\r]+)/i,
+      /Visit the ([^<\s]+) Store/i,
+      /by\s+([^<\(\n\r]+)(?:\s*\(|<)/i
     ];
     
-    for (const brandRegex of brandMatches) {
-      const brandMatch = html.match(brandRegex);
-      if (brandMatch) {
-        brand = brandMatch[1].trim();
-        break;
+    for (const selector of brandSelectors) {
+      const match = html.match(selector);
+      if (match && match[1]) {
+        brand = match[1].trim();
+        // Clean up brand name
+        if (brand && brand.length > 0 && brand.length < 50) {
+          break;
+        }
       }
     }
 
     // Extract images
     const images: string[] = [];
-    const imageMatches = html.matchAll(/"hiRes":"([^"]+)"/g);
-    for (const match of imageMatches) {
-      images.push(match[1]);
+    const imageSelectors = [
+      /"hiRes":"([^"]+)"/g,
+      /"large":"([^"]+)"/g,
+      /"main":{"[^"]+":"([^"]+)"/g,
+      /data-old-hires="([^"]+)"/g
+    ];
+    
+    for (const selector of imageSelectors) {
+      const matches = [...html.matchAll(selector)];
+      for (const match of matches) {
+        const imageUrl = match[1];
+        if (imageUrl && imageUrl.startsWith('http') && !images.includes(imageUrl)) {
+          images.push(imageUrl);
+          if (images.length >= 3) break;
+        }
+      }
       if (images.length >= 3) break;
     }
 
-    // If no images found, try alternative pattern
-    if (images.length === 0) {
-      const altImageMatches = html.matchAll(/"large":"([^"]+)"/g);
-      for (const match of altImageMatches) {
-        images.push(match[1]);
-        if (images.length >= 3) break;
-      }
-    }
+    // Generate description from available data
+    const description = `${title}${brand ? ` by ${brand}` : ''}. This product is available on Amazon India with ${rating > 0 ? `a ${rating}/5 star rating` : 'customer reviews'}.${price > 0 ? ` Current price: ₹${price.toLocaleString('en-IN')}` : ''}`;
 
-    // Generate fallback image if none found
-    if (images.length === 0) {
-      images.push('https://images.unsplash.com/photo-1609592806451-d6ba85fa8b89?w=800');
-    }
-
-    // Create basic product data from parsed information
+    // Create product data object
     const productData: ProductData = {
-      title: title || `Product ${asin}`,
-      description: `${title || 'Product'} - ${brand ? `by ${brand}` : 'Available on Amazon'}. Specifications and features may vary.`,
+      title: title,
+      description: description,
       specs: {
         asin: asin,
-        availability: 'Available on Amazon India',
-        source: 'Amazon India'
+        source: 'Amazon India',
+        scraped_at: new Date().toISOString()
       },
-      images: images,
-      price: price || 999,
+      images: images.length > 0 ? images : ['https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=800'],
+      price: price || 0,
       retailer: url.includes('amazon.in') ? 'Amazon India' : 'Amazon',
       url: url,
-      rating: rating || 4.0,
-      brand: brand || 'Various',
+      rating: rating || 0,
+      brand: brand || 'Unknown',
       model: asin,
-      availability: 'in_stock',
+      availability: 'available',
       pros: [
-        'Available on Amazon with fast delivery',
-        'Customer reviews available',
-        'Return policy included'
+        'Available on Amazon with reliable delivery',
+        'Customer reviews available for reference',
+        'Secure payment options'
       ],
       cons: [
-        'Price may vary',
-        'Availability subject to change'
+        'Price may vary based on offers',
+        'Availability subject to stock'
       ]
     };
 
-    console.log('Parsed product data:', JSON.stringify(productData, null, 2));
+    console.log('Successfully parsed product:', {
+      title: productData.title,
+      price: productData.price,
+      rating: productData.rating,
+      brand: productData.brand,
+      imageCount: productData.images.length
+    });
+
     return productData;
 
   } catch (error) {
     console.error('Error parsing Amazon HTML:', error);
-    return null;
+    throw new Error(`Failed to parse product data: ${error instanceof Error ? error.message : 'Unknown parsing error'}`);
   }
 }
 
@@ -340,13 +266,20 @@ serve(async (req) => {
 
     let productData: ProductData | null = null
 
+    console.log('Scrape request:', { product_id, source_type, product_url });
+
     if (source_type === 'amazon') {
       productData = await scrapeAmazonProduct(product_id, product_url)
     }
 
     if (!productData) {
+      console.error('No product data returned from scraper');
       return new Response(
-        JSON.stringify({ error: 'Product not found' }),
+        JSON.stringify({ 
+          success: false,
+          error: 'Product not found or could not be scraped',
+          details: 'Unable to extract product information from the provided URL. Please check if the URL is valid and accessible.'
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 404 }
       )
     }
@@ -366,9 +299,22 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in scrape-product-data function:', error)
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const statusCode = errorMessage.includes('Failed to fetch') ? 503 : 500;
+    
     return new Response(
-      JSON.stringify({ error: (error as Error).message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ 
+        success: false,
+        error: 'Scraping failed',
+        details: errorMessage,
+        suggestions: [
+          'Check if the Amazon URL is valid and accessible',
+          'Ensure the product page is not geo-restricted',
+          'Try again in a few moments as this might be a temporary issue'
+        ]
+      }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: statusCode }
     )
   }
 })
