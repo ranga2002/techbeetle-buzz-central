@@ -152,16 +152,16 @@ const ProductScraperPage = () => {
 
       if (error) throw error;
 
-      if (data.productData) {
+      if (data.product) {
         setScrapedData({
-          title: data.productData.title,
-          description: data.productData.description,
-          image: data.productData.images[0],
-          price: data.productData.price,
-          rating: data.productData.rating,
-          brand: data.productData.brand,
-          model: data.productData.model,
-          availability: data.productData.availability
+          title: data.product.title,
+          description: data.product.description,
+          image: data.product.images[0],
+          price: data.product.price,
+          rating: data.product.rating,
+          brand: data.product.brand,
+          model: data.product.model,
+          availability: data.product.availability
         });
         toast({
           title: "Success",
