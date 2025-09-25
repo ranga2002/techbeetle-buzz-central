@@ -172,11 +172,23 @@ const ProductScraperPage = () => {
         throw new Error('No product data found');
       }
     } catch (error: any) {
+      console.error('Scraping error:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to fetch product data",
+        title: "Scraping Failed",
+        description: error.details || error.message || "Failed to fetch product data from Amazon",
         variant: "destructive",
       });
+      
+      // Show additional suggestions if available
+      if (error.suggestions && Array.isArray(error.suggestions)) {
+        setTimeout(() => {
+          toast({
+            title: "Suggestions",
+            description: error.suggestions.join('. '),
+            variant: "default",
+          });
+        }, 2000);
+      }
     } finally {
       setIsLoading(false);
     }
