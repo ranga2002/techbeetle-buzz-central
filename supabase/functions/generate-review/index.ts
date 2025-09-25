@@ -40,10 +40,10 @@ During our extensive testing period, we used this device in various scenarios to
 ## Pros and Cons
 
 ### What We Loved
-${pros ? pros.map(pro => `- ${pro}`).join('\n') : '- Solid overall performance\n- Good build quality\n- User-friendly interface'}
+${pros ? pros.map((pro: string) => `- ${pro}`).join('\n') : '- Solid overall performance\n- Good build quality\n- User-friendly interface'}
 
 ### Areas for Improvement
-${cons ? cons.map(con => `- ${con}`).join('\n') : '- Price could be more competitive\n- Some features could be refined'}
+${cons ? cons.map((con: string) => `- ${con}`).join('\n') : '- Price could be more competitive\n- Some features could be refined'}
 
 ## Value Proposition
 
@@ -156,7 +156,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating review:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
