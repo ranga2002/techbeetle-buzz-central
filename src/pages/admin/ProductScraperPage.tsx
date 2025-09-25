@@ -182,13 +182,13 @@ const ProductScraperPage = () => {
   };
 
   const extractProductId = (url: string): string => {
-    // For demo purposes with shortened Amazon links, use a default ASIN
+    // For demo purposes with shortened Amazon links, use Samsung Galaxy S24 Ultra
     // In production, you'd need to expand the shortened URL first
     if (url.includes('amzn.to') || url.includes('amzn.in')) {
-      return 'B0BDHB9Y8H'; // Default to iPhone 15 Pro Max for demo
+      return 'B0C63GV3JB'; // Default to Samsung Galaxy S24 Ultra for demo
     }
     const match = url.match(/\/dp\/([A-Z0-9]{10})|\/gp\/product\/([A-Z0-9]{10})/);
-    return match ? (match[1] || match[2]) : 'B0BDHB9Y8H';
+    return match ? (match[1] || match[2]) : 'B0C63GV3JB';
   };
 
   const handlePost = () => {

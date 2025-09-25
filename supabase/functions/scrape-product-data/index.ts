@@ -18,6 +18,9 @@ interface ProductData {
   rating?: number
   pros?: string[]
   cons?: string[]
+  brand?: string
+  model?: string
+  availability?: string
 }
 
 // Function to scrape Amazon product data
@@ -58,34 +61,38 @@ async function scrapeAmazonProduct(asin: string): Promise<ProductData | null> {
         ]
       },
       'B0C63GV3JB': { // Samsung Galaxy S24 Ultra
-        title: 'Samsung Galaxy S24 Ultra (512GB) - Titanium Black',
-        description: 'The Galaxy S24 Ultra combines AI-powered features with S Pen functionality and a 200MP camera system.',
+        title: 'Samsung Galaxy S24 Ultra 5G AI Smartphone with Galaxy AI (Titanium Gray, 12GB, 256GB Storage)',
+        description: 'Galaxy AI - Welcome to the era of mobile AI. With Galaxy S24 Ultra and One UI in your hands, you can unleash completely new levels of creativity, productivity and possibility. Meet Galaxy S24 Ultra, the ultimate form of Galaxy Ultra built with a new titanium exterior and a 17.25cm flat display. With the most megapixels on a Galaxy smartphone ever (200MP) and AI processing.',
         specs: {
-          display: '6.8-inch Dynamic AMOLED 2X',
-          processor: 'Snapdragon 8 Gen 3',
-          storage: '512GB',
-          camera: '200MP Main, 50MP Periscope Telephoto, 10MP Telephoto, 12MP Ultra Wide',
-          battery: '5000mAh with 45W fast charging',
-          connectivity: '5G, Wi-Fi 7, Bluetooth 5.3'
+          display: '17.25cm flat display',
+          processor: 'Snapdragon 8 Gen 3 for Galaxy',
+          storage: '12GB RAM + 256GB Storage',
+          camera: '200MP Camera with ProVisual Engine',
+          battery: '5000mAh Battery',
+          connectivity: '5G'
         },
         images: [
           'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=800',
           'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=600'
         ],
-        price: 1419.99,
+        price: 72999.00,
         retailer: 'Amazon',
         url: `https://amazon.com/dp/${asin}`,
-        rating: 4.6,
+        rating: 4.5,
+        brand: 'Samsung',
+        model: 'Galaxy S24 Ultra',
+        availability: 'in_stock',
         pros: [
-          'Incredible 200MP camera with advanced zoom',
-          'S Pen integration for productivity',
-          'AI-powered features enhance daily use',
-          'Excellent display quality'
+          'Galaxy AI features for enhanced productivity',
+          'Titanium Frame with premium build quality', 
+          'Epic 200MP Camera with ProVisual engine',
+          'Powerful Snapdragon 8 Gen 3 processor',
+          'Built-in S Pen and Knox security'
         ],
         cons: [
           'Premium price point',
           'Large size may not suit all users',
-          'Battery life could be better with heavy use'
+          'Battery life could be better with heavy usage'
         ]
       }
     }
@@ -151,7 +158,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in scrape-product-data function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
