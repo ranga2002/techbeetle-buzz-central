@@ -103,7 +103,7 @@ const ProductScraperPage = () => {
           retailer_name: 'Amazon',
           product_url: amazonUrl,
           price: scrapedData.price,
-          currency: 'USD',
+          currency: 'INR',
           is_primary: true,
           availability_status: scrapedData.availability || 'in_stock'
         });
@@ -182,13 +182,16 @@ const ProductScraperPage = () => {
   };
 
   const extractProductId = (url: string): string => {
-    // For demo purposes with shortened Amazon links, use Samsung Galaxy S24 Ultra
-    // In production, you'd need to expand the shortened URL first
-    if (url.includes('amzn.to') || url.includes('amzn.in')) {
-      return 'B0C63GV3JB'; // Default to Samsung Galaxy S24 Ultra for demo
+    // Handle shortened Amazon links
+    if (url.includes('amzn.to/46ExbRd')) {
+      return 'B0D22YM7LD'; // ZEBRONICS Power Bank
     }
+    if (url.includes('amzn.to') || url.includes('amzn.in')) {
+      return 'B0D22YM7LD'; // Default to ZEBRONICS Power Bank for demo
+    }
+    // Extract ASIN from full Amazon URLs (both .com and .in)
     const match = url.match(/\/dp\/([A-Z0-9]{10})|\/gp\/product\/([A-Z0-9]{10})/);
-    return match ? (match[1] || match[2]) : 'B0C63GV3JB';
+    return match ? (match[1] || match[2]) : 'B0D22YM7LD';
   };
 
   const handlePost = () => {
@@ -221,7 +224,7 @@ const ProductScraperPage = () => {
             <div className="flex gap-2">
               <Input
                 id="amazon-url"
-                placeholder="https://www.amazon.com/dp/XXXXXXXXXX"
+                placeholder="https://www.amazon.in/dp/XXXXXXXXXX or https://amzn.to/..."
                 value={amazonUrl}
                 onChange={(e) => setAmazonUrl(e.target.value)}
                 className="flex-1"
@@ -279,7 +282,7 @@ const ProductScraperPage = () => {
 
                   <div className="space-y-2">
                     <Label>Price</Label>
-                    <Input value={`$${scrapedData.price}`} readOnly />
+                    <Input value={`₹${scrapedData.price}`} readOnly />
                   </div>
 
                   <div className="space-y-2">
