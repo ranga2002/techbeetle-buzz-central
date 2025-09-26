@@ -103,7 +103,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
         {price && (
           <div className="flex items-center justify-between">
             <div className="text-lg font-bold text-green-600">
-              ${price.toLocaleString()}
+              ₹{price.toLocaleString()}
             </div>
             {primaryLink && (
               <Button 
@@ -177,7 +177,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     window.open(link.product_url, '_blank');
                   }}
                 >
-                  {link.retailer_name}: ${link.price}
+                  {link.retailer_name}: ₹{link.price}
                 </Button>
               ))}
             </div>
