@@ -141,7 +141,7 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex">
       {/* Sidebar */}
-      <div className="w-64 bg-white shadow-sm border-r">
+      <div className="w-64 bg-white shadow-sm border-r flex flex-col">
         <div className="p-4 border-b">
           <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary rounded flex items-center justify-center">
@@ -151,7 +151,7 @@ const AdminLayout = () => {
           </Link>
         </div>
         
-        <nav className="p-4 space-y-2">
+        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {filteredNavigation.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
@@ -173,14 +173,14 @@ const AdminLayout = () => {
           })}
         </nav>
 
-        <div className="absolute bottom-4 left-4 right-4">
+        <div className="p-4 border-t">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={() => {
               console.log('Sign out clicked');
               signOut();
             }}
-            className="w-full justify-start"
+            className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out
