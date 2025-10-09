@@ -50,6 +50,8 @@ const ProductManagement = () => {
     retailerName: ''
   });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [fetchUrl, setFetchUrl] = useState('');
+  const [isFetching, setIsFetching] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -303,6 +305,59 @@ const ProductManagement = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleFetchProduct = async () => {
+    if (!fetchUrl.trim()) {
+      toast({
+        title: "Error",
+        description: "Please enter an Amazon product URL",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsFetching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-product-data', {
+        body: { productUrl: fetchUrl }
+      });
+
+      if (error) throw error;
+
+      if (data.success && data.data) {
+        const product = data.data;
+        setFormData(prev => ({
+          ...prev,
+          title: product.title || prev.title,
+          description: product.description || prev.description,
+          price: product.price ? product.price.toString() : prev.price,
+          brand: product.brand || prev.brand,
+          model: product.model || prev.model,
+          rating: product.rating ? product.rating.toString() : prev.rating,
+          imageUrl: product.images?.[0] || prev.imageUrl,
+          productUrl: fetchUrl,
+          retailerName: fetchUrl.includes('amazon') ? 'Amazon' : prev.retailerName,
+        }));
+
+        toast({
+          title: "Success",
+          description: "Product details fetched successfully!",
+        });
+        setFetchUrl('');
+      } else {
+        throw new Error(data.error || 'Failed to fetch product details');
+      }
+    } catch (error: any) {
+      console.error('Error fetching product:', error);
+      toast({
+        title: "Error fetching product",
+        description: error.message || "Failed to fetch product details from Amazon",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     saveProductMutation.mutate();
@@ -318,6 +373,46 @@ const ProductManagement = () => {
         </div>
       </div>
 
+      {/* Product Fetcher */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="w-5 h-5" />
+            Fetch Product from Amazon
+          </CardTitle>
+          <CardDescription>
+            Enter an Amazon product URL to automatically fetch product details
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-3">
+            <Input
+              placeholder="https://www.amazon.in/dp/..."
+              value={fetchUrl}
+              onChange={(e) => setFetchUrl(e.target.value)}
+              disabled={isFetching}
+              className="flex-1"
+            />
+            <Button 
+              onClick={handleFetchProduct}
+              disabled={isFetching || !fetchUrl.trim()}
+            >
+              {isFetching ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Fetching...
+                </>
+              ) : (
+                'Fetch Details'
+              )}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">
+            Supports Amazon.in, Amazon.com and short links (amzn.in/...)
+          </p>
+        </CardContent>
+      </Card>
+
       {/* Product Form */}
       <Card>
         <CardHeader>
@@ -326,7 +421,7 @@ const ProductManagement = () => {
             {editingId ? 'Edit Product' : 'Add New Product'}
           </CardTitle>
           <CardDescription>
-            {editingId ? 'Update product details' : 'Fill in the product information to create a new review'}
+            {editingId ? 'Update product details' : 'Fill in the product information or use the fetcher above'}
           </CardDescription>
         </CardHeader>
         <CardContent>
