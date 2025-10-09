@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -8,46 +8,53 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Package, Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Loader2, Package, Plus, Edit, Trash2, Eye, Save } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from '@/components/ui/alert-dialog';
 
 interface ProductFormData {
   title: string;
   description: string;
-  price: number;
+  price: string;
   brand: string;
   model: string;
-  rating: number;
+  rating: string;
   imageUrl: string;
   categoryId: string;
   productUrl: string;
   retailerName: string;
-  specifications: Record<string, string>;
 }
 
 const ProductManagement = () => {
   const [formData, setFormData] = useState<ProductFormData>({
     title: '',
     description: '',
-    price: 0,
+    price: '',
     brand: '',
     model: '',
-    rating: 0,
+    rating: '',
     imageUrl: '',
     categoryId: '',
     productUrl: '',
-    retailerName: '',
-    specifications: {}
+    retailerName: ''
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch categories
-  const { data: categories } = useQuery({
+  const { data: categories, isLoading: loadingCategories } = useQuery({
     queryKey: ['categories'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -56,7 +63,7 @@ const ProductManagement = () => {
         .eq('is_active', true)
         .order('name');
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
@@ -76,7 +83,7 @@ const ProductManagement = () => {
         .eq('content_type', 'review')
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data;
+      return data || [];
     }
   });
 
@@ -86,8 +93,17 @@ const ProductManagement = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const slug = formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+      if (!formData.title || !formData.categoryId) {
+        throw new Error('Title and category are required');
+      }
+
+      const slug = formData.title.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/(^-|-$)/g, '');
       
+      const priceNum = formData.price ? parseFloat(formData.price) : null;
+      const ratingNum = formData.rating ? parseFloat(formData.rating) : null;
+
       let contentData;
       if (editingId) {
         // Update existing product
@@ -96,12 +112,12 @@ const ProductManagement = () => {
           .update({
             title: formData.title,
             slug,
-            excerpt: formData.description.substring(0, 200) + '...',
+            excerpt: formData.description ? formData.description.substring(0, 200) : '',
             content: `# ${formData.title}\n\n${formData.description}`,
-            featured_image: formData.imageUrl,
+            featured_image: formData.imageUrl || null,
             category_id: formData.categoryId,
             meta_title: formData.title,
-            meta_description: formData.description.substring(0, 160),
+            meta_description: formData.description ? formData.description.substring(0, 160) : '',
           })
           .eq('id', editingId)
           .select()
@@ -109,6 +125,43 @@ const ProductManagement = () => {
         
         if (error) throw error;
         contentData = data;
+
+        // Update review details
+        const { error: reviewError } = await supabase
+          .from('review_details')
+          .upsert({
+            content_id: contentData.id,
+            product_name: formData.title,
+            brand: formData.brand || null,
+            model: formData.model || null,
+            price: priceNum,
+            overall_rating: ratingNum,
+            specifications: {},
+            pros: ['High quality product', 'Great value'],
+            cons: ['Could be improved'],
+            images: formData.imageUrl ? [formData.imageUrl] : []
+          }, {
+            onConflict: 'content_id'
+          });
+
+        if (reviewError) throw reviewError;
+
+        // Update purchase link
+        if (formData.productUrl) {
+          const { error: linkError } = await supabase
+            .from('purchase_links')
+            .upsert({
+              content_id: contentData.id,
+              retailer_name: formData.retailerName || 'Store',
+              product_url: formData.productUrl,
+              price: priceNum,
+              currency: 'INR',
+              is_primary: true,
+              availability_status: 'in_stock'
+            });
+
+          if (linkError) throw linkError;
+        }
       } else {
         // Create new product
         const { data, error } = await supabase
@@ -116,56 +169,60 @@ const ProductManagement = () => {
           .insert({
             title: formData.title,
             slug,
-            excerpt: formData.description.substring(0, 200) + '...',
+            excerpt: formData.description ? formData.description.substring(0, 200) : '',
             content: `# ${formData.title}\n\n${formData.description}`,
-            featured_image: formData.imageUrl,
+            featured_image: formData.imageUrl || null,
             content_type: 'review',
             status: 'published',
             author_id: user.id,
             category_id: formData.categoryId,
             meta_title: formData.title,
-            meta_description: formData.description.substring(0, 160),
-            reading_time: 5
+            meta_description: formData.description ? formData.description.substring(0, 160) : '',
+            reading_time: 5,
+            published_at: new Date().toISOString()
           })
           .select()
           .single();
         
         if (error) throw error;
         contentData = data;
+
+        // Create review details
+        const { error: reviewError } = await supabase
+          .from('review_details')
+          .insert({
+            content_id: contentData.id,
+            product_name: formData.title,
+            brand: formData.brand || null,
+            model: formData.model || null,
+            price: priceNum,
+            overall_rating: ratingNum,
+            specifications: {},
+            pros: ['High quality product', 'Great value'],
+            cons: ['Could be improved'],
+            images: formData.imageUrl ? [formData.imageUrl] : []
+          });
+
+        if (reviewError) throw reviewError;
+
+        // Create purchase link
+        if (formData.productUrl) {
+          const { error: linkError } = await supabase
+            .from('purchase_links')
+            .insert({
+              content_id: contentData.id,
+              retailer_name: formData.retailerName || 'Store',
+              product_url: formData.productUrl,
+              price: priceNum,
+              currency: 'INR',
+              is_primary: true,
+              availability_status: 'in_stock'
+            });
+
+          if (linkError) throw linkError;
+        }
       }
 
-      // Update or create review details
-      const { error: reviewError } = await supabase
-        .from('review_details')
-        .upsert({
-          content_id: contentData.id,
-          product_name: formData.title,
-          brand: formData.brand,
-          model: formData.model,
-          price: formData.price,
-          overall_rating: formData.rating,
-          specifications: formData.specifications,
-          pros: ['Great features', 'Good value for money'],
-          cons: ['Could be improved'],
-          images: [formData.imageUrl]
-        });
-
-      if (reviewError) throw reviewError;
-
-      // Update or create purchase link
-      const { error: linkError } = await supabase
-        .from('purchase_links')
-        .upsert({
-          content_id: contentData.id,
-          retailer_name: formData.retailerName || 'Store',
-          product_url: formData.productUrl,
-          price: formData.price,
-          currency: 'INR',
-          is_primary: true,
-          availability_status: 'in_stock'
-        });
-
-      if (linkError) throw linkError;
       return contentData;
     },
     onSuccess: () => {
@@ -214,15 +271,14 @@ const ProductManagement = () => {
     setFormData({
       title: '',
       description: '',
-      price: 0,
+      price: '',
       brand: '',
       model: '',
-      rating: 0,
+      rating: '',
       imageUrl: '',
       categoryId: '',
       productUrl: '',
-      retailerName: '',
-      specifications: {}
+      retailerName: ''
     });
     setEditingId(null);
   };
@@ -234,51 +290,44 @@ const ProductManagement = () => {
     setFormData({
       title: product.title,
       description: product.excerpt?.replace('...', '') || '',
-      price: reviewDetails?.price || 0,
+      price: reviewDetails?.price ? reviewDetails.price.toString() : '',
       brand: reviewDetails?.brand || '',
       model: reviewDetails?.model || '',
-      rating: reviewDetails?.overall_rating || 0,
+      rating: reviewDetails?.overall_rating ? reviewDetails.overall_rating.toString() : '',
       imageUrl: product.featured_image || '',
       categoryId: product.category_id || '',
       productUrl: purchaseLink?.product_url || '',
-      retailerName: purchaseLink?.retailer_name || '',
-      specifications: reviewDetails?.specifications || {}
+      retailerName: purchaseLink?.retailer_name || ''
     });
     setEditingId(product.id);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.categoryId) {
-      toast({
-        title: "Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
     saveProductMutation.mutate();
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center gap-3">
         <Package className="w-8 h-8 text-primary" />
         <div>
           <h1 className="text-3xl font-bold">Product Management</h1>
-          <p className="text-muted-foreground mt-1">Add and manage your product reviews manually</p>
+          <p className="text-muted-foreground mt-1">Add and manage your product reviews</p>
         </div>
       </div>
 
       {/* Product Form */}
-      <Card className="border-2">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-xl">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            {editingId ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
             {editingId ? 'Edit Product' : 'Add New Product'}
           </CardTitle>
-          <p className="text-sm text-muted-foreground">
+          <CardDescription>
             {editingId ? 'Update product details' : 'Fill in the product information to create a new review'}
-          </p>
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -290,14 +339,18 @@ const ProductManagement = () => {
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="Enter product title"
+                    placeholder="e.g., iPhone 15 Pro Max"
                     required
                   />
                 </div>
 
                 <div className="space-y-2">
                   <Label htmlFor="category">Category *</Label>
-                  <Select value={formData.categoryId} onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}>
+                  <Select 
+                    value={formData.categoryId} 
+                    onValueChange={(value) => setFormData(prev => ({ ...prev, categoryId: value }))}
+                    disabled={loadingCategories}
+                  >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
@@ -318,12 +371,13 @@ const ProductManagement = () => {
                       id="price"
                       type="number"
                       value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: Number(e.target.value) }))}
-                      placeholder="0"
+                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                      placeholder="99999"
+                      step="0.01"
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="rating">Rating</Label>
+                    <Label htmlFor="rating">Rating (0-5)</Label>
                     <Input
                       id="rating"
                       type="number"
@@ -331,7 +385,7 @@ const ProductManagement = () => {
                       max="5"
                       step="0.1"
                       value={formData.rating}
-                      onChange={(e) => setFormData(prev => ({ ...prev, rating: Number(e.target.value) }))}
+                      onChange={(e) => setFormData(prev => ({ ...prev, rating: e.target.value }))}
                       placeholder="4.5"
                     />
                   </div>
@@ -344,7 +398,7 @@ const ProductManagement = () => {
                       id="brand"
                       value={formData.brand}
                       onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                      placeholder="Brand name"
+                      placeholder="Apple, Samsung, etc."
                     />
                   </div>
                   <div className="space-y-2">
@@ -366,8 +420,8 @@ const ProductManagement = () => {
                     id="description"
                     value={formData.description}
                     onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter product description"
-                    className="h-32"
+                    placeholder="Enter detailed product description..."
+                    className="min-h-[120px]"
                   />
                 </div>
 
@@ -382,7 +436,7 @@ const ProductManagement = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="productUrl">Purchase URL</Label>
+                  <Label htmlFor="productUrl">Purchase Link (Amazon, Flipkart, etc.)</Label>
                   <Input
                     id="productUrl"
                     value={formData.productUrl}
@@ -403,7 +457,7 @@ const ProductManagement = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-4 pt-6 border-t">
+            <div className="flex justify-end gap-3 pt-4 border-t">
               {editingId && (
                 <Button type="button" variant="outline" onClick={resetForm}>
                   Cancel
@@ -412,16 +466,15 @@ const ProductManagement = () => {
               <Button 
                 type="submit"
                 disabled={saveProductMutation.isPending}
-                className="min-w-[140px]"
               >
                 {saveProductMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    {editingId ? 'Updating...' : 'Creating...'}
+                    Saving...
                   </>
                 ) : (
                   <>
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Save className="w-4 h-4 mr-2" />
                     {editingId ? 'Update Product' : 'Create Product'}
                   </>
                 )}
@@ -434,125 +487,134 @@ const ProductManagement = () => {
       {/* Products Table */}
       <Card>
         <CardHeader>
-          <CardTitle>All Products</CardTitle>
-          <p className="text-sm text-muted-foreground">Manage your existing product reviews</p>
+          <CardTitle>All Products ({products?.length || 0})</CardTitle>
+          <CardDescription>Manage your existing product reviews</CardDescription>
         </CardHeader>
         <CardContent>
           {loadingProducts ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-6 h-6 animate-spin" />
-              <span className="ml-2">Loading products...</span>
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 animate-spin text-primary" />
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Price</TableHead>
-                  <TableHead>Rating</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Views</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {products?.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {product.featured_image && (
-                          <img
-                            src={product.featured_image}
-                            alt={product.title}
-                            className="w-12 h-12 rounded-lg object-cover"
-                          />
-                        )}
-                        <div>
-                          <div className="font-medium line-clamp-1">{product.title}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {product.profiles?.full_name}
+          ) : products && products.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[300px]">Product</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Rating</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Views</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {products.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {product.featured_image && (
+                            <img
+                              src={product.featured_image}
+                              alt={product.title}
+                              className="w-12 h-12 rounded object-cover"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">{product.title}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {product.profiles?.full_name || 'Unknown'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {product.categories && (
-                        <Badge 
-                          variant="secondary" 
-                          style={{ 
-                            backgroundColor: product.categories.color + '20', 
-                            color: product.categories.color 
-                          }}
-                        >
-                          {product.categories.name}
+                      </TableCell>
+                      <TableCell>
+                        {product.categories && (
+                          <Badge 
+                            variant="secondary" 
+                            style={{ 
+                              backgroundColor: `${product.categories.color}20`, 
+                              color: product.categories.color 
+                            }}
+                          >
+                            {product.categories.name}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {product.review_details?.[0]?.price ? 
+                          `₹${product.review_details[0].price.toLocaleString('en-IN')}` : 
+                          '-'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {product.review_details?.[0]?.overall_rating ? 
+                          `${product.review_details[0].overall_rating}/5` : 
+                          '-'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
+                          {product.status}
                         </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {product.review_details?.[0]?.price ? 
-                        `₹${product.review_details[0].price.toLocaleString()}` : 
-                        '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      {product.review_details?.[0]?.overall_rating ? 
-                        `${product.review_details[0].overall_rating}/5` : 
-                        '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={product.status === 'published' ? 'default' : 'secondary'}>
-                        {product.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{product.views_count.toLocaleString()}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => window.open(`/products`, '_blank')}
-                        >
-                          <Eye className="w-3 h-3" />
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleEdit(product)}
-                        >
-                          <Edit className="w-3 h-3" />
-                        </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button size="sm" variant="outline">
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Product</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete "{product.title}"? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => deleteProductMutation.mutate(product.id)}
-                                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                              >
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                      <TableCell>{product.views_count.toLocaleString('en-IN')}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => window.open(`/products`, '_blank')}
+                            title="View product"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleEdit(product)}
+                            title="Edit product"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="ghost" title="Delete product">
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Product</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{product.title}"? This action cannot be undone and will also delete all associated review details and purchase links.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => deleteProductMutation.mutate(product.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">No products yet</h3>
+              <p className="text-muted-foreground">Create your first product using the form above</p>
+            </div>
           )}
         </CardContent>
       </Card>
