@@ -156,16 +156,33 @@ serve(async (req) => {
         continue;
       }
 
-      // Check if an article with the same title already exists
-      const { data: existingArticle } = await supabaseClient
+      // Check if a similar article already exists (check for duplicate or similar titles)
+      const titleWords = articleTitle.toLowerCase().split(' ').filter(word => word.length > 3);
+      const { data: existingArticles } = await supabaseClient
         .from('content')
-        .select('id')
-        .eq('title', articleTitle)
-        .limit(1)
-        .single();
+        .select('id, title')
+        .eq('content_type', 'news')
+        .order('created_at', { ascending: false })
+        .limit(50);
 
-      if (existingArticle) {
-        console.log(`Article "${articleTitle}" already exists, skipping.`);
+      // Check for duplicates or very similar articles
+      let isDuplicate = false;
+      if (existingArticles && existingArticles.length > 0) {
+        for (const existing of existingArticles) {
+          const existingWords = existing.title.toLowerCase().split(' ').filter((word: string) => word.length > 3);
+          const commonWords = titleWords.filter((word: string) => existingWords.includes(word));
+          const similarity = commonWords.length / Math.max(titleWords.length, existingWords.length);
+          
+          // If more than 60% of significant words match, consider it a duplicate
+          if (similarity > 0.6) {
+            console.log(`Similar article found: "${articleTitle}" matches "${existing.title}" (${Math.round(similarity * 100)}% similar)`);
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+
+      if (isDuplicate) {
         skippedCount++;
         continue;
       }
