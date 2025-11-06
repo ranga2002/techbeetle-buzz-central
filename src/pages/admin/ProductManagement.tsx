@@ -8,7 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Loader2, Package, Plus, Edit, Trash2, Eye, Save } from 'lucide-react';
+import { Loader2, Package, Plus, Edit, Trash2, Eye, Save, Star, FileText } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -365,29 +366,31 @@ const ProductManagement = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Package className="w-8 h-8 text-primary" />
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold">Product Management</h1>
-          <p className="text-muted-foreground mt-1">Add and manage your product reviews</p>
+          <h1 className="text-3xl font-bold flex items-center gap-3">
+            <Package className="w-8 h-8 text-primary" />
+            Product Management
+          </h1>
+          <p className="text-muted-foreground mt-1">Create and manage comprehensive product reviews</p>
         </div>
       </div>
 
       {/* Product Fetcher */}
-      <Card>
+      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            Fetch Product from Amazon
+            Amazon Product Fetcher
           </CardTitle>
           <CardDescription>
-            Enter an Amazon product URL to automatically fetch product details
+            Automatically import product details from Amazon India or Amazon.com
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
             <Input
-              placeholder="https://www.amazon.in/dp/..."
+              placeholder="https://www.amazon.in/dp/... or amzn.in/..."
               value={fetchUrl}
               onChange={(e) => setFetchUrl(e.target.value)}
               disabled={isFetching}
@@ -396,6 +399,7 @@ const ProductManagement = () => {
             <Button 
               onClick={handleFetchProduct}
               disabled={isFetching || !fetchUrl.trim()}
+              size="lg"
             >
               {isFetching ? (
                 <>
@@ -403,38 +407,55 @@ const ProductManagement = () => {
                   Fetching...
                 </>
               ) : (
-                'Fetch Details'
+                <>
+                  <Package className="w-4 h-4 mr-2" />
+                  Fetch Product
+                </>
               )}
             </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            Supports Amazon.in, Amazon.com and short links (amzn.in/...)
+            💡 Tip: Paste any Amazon product link to automatically fill the form below
           </p>
         </CardContent>
       </Card>
 
       {/* Product Form */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {editingId ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
-            {editingId ? 'Edit Product' : 'Add New Product'}
-          </CardTitle>
-          <CardDescription>
-            {editingId ? 'Update product details' : 'Fill in the product information or use the fetcher above'}
-          </CardDescription>
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                {editingId ? <Edit className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
+                {editingId ? 'Edit Product Review' : 'Create Product Review'}
+              </CardTitle>
+              <CardDescription className="mt-1">
+                {editingId ? 'Update product details and review content' : 'Add a comprehensive product review with details'}
+              </CardDescription>
+            </div>
+            {editingId && (
+              <Button variant="outline" onClick={resetForm} type="button">
+                Cancel Edit
+              </Button>
+            )}
+          </div>
         </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
+        <CardContent className="pt-6">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Basic Information Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Basic Information</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="title">Product Title *</Label>
                   <Input
                     id="title"
                     value={formData.title}
                     onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="e.g., iPhone 15 Pro Max"
+                    placeholder="e.g., iPhone 15 Pro Max Review"
                     required
                   />
                 </div>
@@ -459,85 +480,63 @@ const ProductManagement = () => {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price (₹)</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      value={formData.price}
-                      onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
-                      placeholder="99999"
-                      step="0.01"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="rating">Rating (0-5)</Label>
-                    <Input
-                      id="rating"
-                      type="number"
-                      min="0"
-                      max="5"
-                      step="0.1"
-                      value={formData.rating}
-                      onChange={(e) => setFormData(prev => ({ ...prev, rating: e.target.value }))}
-                      placeholder="4.5"
-                    />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="brand">Brand</Label>
+                  <Input
+                    id="brand"
+                    value={formData.brand}
+                    onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
+                    placeholder="Apple, Samsung, etc."
+                  />
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="brand">Brand</Label>
-                    <Input
-                      id="brand"
-                      value={formData.brand}
-                      onChange={(e) => setFormData(prev => ({ ...prev, brand: e.target.value }))}
-                      placeholder="Apple, Samsung, etc."
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="model">Model</Label>
-                    <Input
-                      id="model"
-                      value={formData.model}
-                      onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
-                      placeholder="Model number"
-                    />
-                  </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="model">Model Number</Label>
+                  <Input
+                    id="model"
+                    value={formData.model}
+                    onChange={(e) => setFormData(prev => ({ ...prev, model: e.target.value }))}
+                    placeholder="e.g., A2848"
+                  />
                 </div>
               </div>
+            </div>
 
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={formData.description}
-                    onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Enter detailed product description..."
-                    className="min-h-[120px]"
-                  />
-                </div>
+            <Separator />
 
+            {/* Price & Rating Section */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Star className="w-5 h-5 text-primary" />
+                <h3 className="text-lg font-semibold">Price & Rating</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="imageUrl">Product Image URL</Label>
+                  <Label htmlFor="price">Price (₹)</Label>
                   <Input
-                    id="imageUrl"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
-                    placeholder="https://example.com/image.jpg"
+                    id="price"
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData(prev => ({ ...prev, price: e.target.value }))}
+                    placeholder="99999"
+                    step="0.01"
                   />
+                  <p className="text-xs text-muted-foreground">Enter amount in Indian Rupees</p>
                 </div>
-
+                
                 <div className="space-y-2">
-                  <Label htmlFor="productUrl">Purchase Link (Amazon, Flipkart, etc.)</Label>
+                  <Label htmlFor="rating">Overall Rating</Label>
                   <Input
-                    id="productUrl"
-                    value={formData.productUrl}
-                    onChange={(e) => setFormData(prev => ({ ...prev, productUrl: e.target.value }))}
-                    placeholder="https://amazon.in/..."
+                    id="rating"
+                    type="number"
+                    min="0"
+                    max="5"
+                    step="0.1"
+                    value={formData.rating}
+                    onChange={(e) => setFormData(prev => ({ ...prev, rating: e.target.value }))}
+                    placeholder="4.5"
                   />
+                  <p className="text-xs text-muted-foreground">Rate from 0 to 5</p>
                 </div>
 
                 <div className="space-y-2">
@@ -552,25 +551,68 @@ const ProductManagement = () => {
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-4 border-t">
-              {editingId && (
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Cancel
-                </Button>
-              )}
+            <Separator />
+
+            {/* Review Content Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Review Content</h3>
+              <div className="space-y-2">
+                <Label htmlFor="description">Full Review Description</Label>
+                <Textarea
+                  id="description"
+                  value={formData.description}
+                  onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Write a comprehensive review covering design, features, performance, pros, cons, and your final verdict..."
+                  className="min-h-[200px]"
+                />
+                <p className="text-xs text-muted-foreground">Provide detailed insights and analysis</p>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Media & Links Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Product Image & Purchase Link</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="imageUrl">Product Image URL</Label>
+                  <Input
+                    id="imageUrl"
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, imageUrl: e.target.value }))}
+                    placeholder="https://example.com/product-image.jpg"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="productUrl">Purchase Link</Label>
+                  <Input
+                    id="productUrl"
+                    value={formData.productUrl}
+                    onChange={(e) => setFormData(prev => ({ ...prev, productUrl: e.target.value }))}
+                    placeholder="https://amazon.in/dp/..."
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6">
               <Button 
                 type="submit"
                 disabled={saveProductMutation.isPending}
+                size="lg"
+                className="min-w-[180px]"
               >
                 {saveProductMutation.isPending ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Saving...
+                    {editingId ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (
                   <>
                     <Save className="w-4 h-4 mr-2" />
-                    {editingId ? 'Update Product' : 'Create Product'}
+                    {editingId ? 'Update Product Review' : 'Create Product Review'}
                   </>
                 )}
               </Button>
@@ -581,9 +623,18 @@ const ProductManagement = () => {
 
       {/* Products Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>All Products ({products?.length || 0})</CardTitle>
-          <CardDescription>Manage your existing product reviews</CardDescription>
+        <CardHeader className="border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Published Product Reviews</CardTitle>
+              <CardDescription className="mt-1">View and manage all your product reviews</CardDescription>
+            </div>
+            {products && products.length > 0 && (
+              <Badge variant="secondary" className="text-sm">
+                {products.length} {products.length === 1 ? 'Review' : 'Reviews'}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loadingProducts ? (

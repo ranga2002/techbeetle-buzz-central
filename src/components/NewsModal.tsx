@@ -1,14 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Clock, User, MessageCircle, Heart, Share2, ExternalLink, Link2, Twitter, Facebook, Copy } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Clock, User, MessageCircle, Heart, Share2, ExternalLink, Link2, Twitter, Facebook, Copy, LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 interface Comment {
   id: string;
@@ -41,25 +44,79 @@ interface NewsModalProps {
 
 const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   const [comment, setComment] = useState('');
-  const [comments] = useState<Comment[]>([
-    {
-      id: '1',
-      user: { name: 'Tech Enthusiast', avatar: '/placeholder.svg' },
-      content: 'Great article! Very informative and well-written.',
-      timestamp: '2 hours ago',
-      likes: 12
-    },
-    {
-      id: '2',
-      user: { name: 'Gadget Reviewer' },
-      content: 'I had the same experience with this product. Thanks for sharing!',
-      timestamp: '4 hours ago',
-      likes: 8
-    }
-  ]);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [isLiked, setIsLiked] = useState(false);
   const [showSharePanel, setShowSharePanel] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
+  // Fetch comments in real-time
+  useEffect(() => {
+    if (!newsItem?.id || !isOpen) return;
+
+    const fetchComments = async () => {
+      const { data, error } = await supabase
+        .from('comments')
+        .select(`
+          id,
+          comment_text,
+          created_at,
+          likes_count,
+          user_id,
+          profiles:user_id (
+            full_name,
+            username,
+            avatar_url
+          )
+        `)
+        .eq('content_id', newsItem.id)
+        .eq('status', 'approved')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching comments:', error);
+        return;
+      }
+
+      const formattedComments = data.map((c: any) => ({
+        id: c.id,
+        user: {
+          name: c.profiles?.full_name || c.profiles?.username || 'Anonymous',
+          avatar: c.profiles?.avatar_url
+        },
+        content: c.comment_text,
+        timestamp: format(new Date(c.created_at), 'MMM d, yyyy'),
+        likes: c.likes_count || 0
+      }));
+
+      setComments(formattedComments);
+    };
+
+    fetchComments();
+
+    // Subscribe to real-time updates
+    const channel = supabase
+      .channel(`comments-${newsItem.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'comments',
+          filter: `content_id=eq.${newsItem.id}`
+        },
+        () => {
+          fetchComments();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [newsItem?.id, isOpen]);
 
   if (!newsItem) return null;
 
@@ -137,13 +194,45 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     });
   };
 
-  const handleComment = () => {
-    if (comment.trim()) {
+  const handleComment = async () => {
+    if (!user) {
       toast({
-        title: "Comment posted!",
-        description: "Your comment has been added successfully",
+        title: "Authentication Required",
+        description: "Please log in to comment",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!comment.trim()) return;
+
+    setIsSubmitting(true);
+    try {
+      const { error } = await supabase
+        .from('comments')
+        .insert({
+          content_id: newsItem.id,
+          user_id: user.id,
+          comment_text: comment.trim(),
+          status: 'pending'
+        });
+
+      if (error) throw error;
+
+      toast({
+        title: "Comment submitted!",
+        description: "Your comment is pending approval",
       });
       setComment('');
+    } catch (error: any) {
+      console.error('Error posting comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to post comment. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -314,22 +403,37 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                 <h3 className="text-lg font-semibold mb-4">Comments ({comments.length})</h3>
                 
                 {/* Add Comment */}
-                <Card className="mb-6">
-                  <CardContent className="p-4">
-                    <Textarea
-                      placeholder="Share your thoughts..."
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      className="mb-3 resize-none"
-                      rows={3}
-                    />
-                    <div className="flex justify-end">
-                      <Button onClick={handleComment} disabled={!comment.trim()}>
-                        Post Comment
+                {user ? (
+                  <Card className="mb-6">
+                    <CardContent className="p-4">
+                      <Textarea
+                        placeholder="Share your thoughts..."
+                        value={comment}
+                        onChange={(e) => setComment(e.target.value)}
+                        className="mb-3 resize-none"
+                        rows={3}
+                      />
+                      <div className="flex justify-end">
+                        <Button onClick={handleComment} disabled={!comment.trim() || isSubmitting}>
+                          {isSubmitting ? 'Posting...' : 'Post Comment'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <Alert className="mb-6">
+                    <LogIn className="h-4 w-4" />
+                    <AlertDescription className="flex items-center justify-between">
+                      <span>Please log in to comment on this article</span>
+                      <Button size="sm" onClick={() => {
+                        onClose();
+                        navigate('/auth');
+                      }}>
+                        Log In
                       </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
                 {/* Comments List */}
                 <div className="space-y-4">
