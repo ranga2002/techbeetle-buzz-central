@@ -104,28 +104,32 @@ const AdminDashboard = () => {
       value: stats?.totalContent || 0,
       icon: FileText,
       description: `${stats?.publishedContent || 0} published, ${stats?.draftContent || 0} draft`,
-      color: 'text-blue-600',
+      bgColor: 'bg-gradient-to-br from-blue-500/10 to-blue-600/10',
+      iconColor: 'text-blue-600',
     },
     {
       title: 'Total Users',
       value: stats?.totalUsers || 0,
       icon: Users,
       description: 'Registered users',
-      color: 'text-green-600',
+      bgColor: 'bg-gradient-to-br from-green-500/10 to-green-600/10',
+      iconColor: 'text-green-600',
     },
     {
       title: 'Comments',
       value: stats?.totalComments || 0,
       icon: MessageSquare,
       description: `${stats?.pendingComments || 0} pending approval`,
-      color: 'text-orange-600',
+      bgColor: 'bg-gradient-to-br from-orange-500/10 to-orange-600/10',
+      iconColor: 'text-orange-600',
     },
     {
       title: 'Total Views',
       value: stats?.totalViews || 0,
       icon: Eye,
       description: 'All time views',
-      color: 'text-purple-600',
+      bgColor: 'bg-gradient-to-br from-purple-500/10 to-purple-600/10',
+      iconColor: 'text-purple-600',
     },
   ];
 
@@ -136,14 +140,16 @@ const AdminDashboard = () => {
         {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={stat.title}>
+            <Card key={stat.title} className={`border-0 shadow-sm ${stat.bgColor}`}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                <Icon className={`h-4 w-4 ${stat.color}`} />
+                <div className={`p-2 rounded-lg bg-white shadow-sm`}>
+                  <Icon className={`h-5 w-5 ${stat.iconColor}`} />
+                </div>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+                <div className="text-3xl font-bold">{stat.value.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
               </CardContent>
             </Card>
           );
@@ -151,38 +157,43 @@ const AdminDashboard = () => {
       </div>
 
       {/* Recent Content */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Content</CardTitle>
+      <Card className="shadow-sm">
+        <CardHeader className="border-b bg-muted/20">
+          <CardTitle className="text-lg">Recent Content</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           {loadingRecent ? (
             <div className="space-y-3">
               {[...Array(5)].map((_, i) => (
-                <Skeleton key={i} className="h-12" />
+                <Skeleton key={i} className="h-16" />
               ))}
             </div>
-          ) : (
+          ) : recentContent && recentContent.length > 0 ? (
             <div className="space-y-3">
-              {recentContent?.map((content) => (
-                <div key={content.id} className="flex items-center justify-between p-3 border rounded-lg">
-                  <div>
-                    <h3 className="font-medium">{content.title}</h3>
+              {recentContent.map((content) => (
+                <div key={content.id} className="flex items-center justify-between p-4 border rounded-lg hover:shadow-md transition-shadow bg-card">
+                  <div className="flex-1">
+                    <h3 className="font-semibold text-base mb-1">{content.title}</h3>
                     <p className="text-sm text-muted-foreground">
                       by {content.profiles?.full_name || 'Unknown'} • {new Date(content.created_at).toLocaleDateString()}
                     </p>
                   </div>
-                  <span className={`px-2 py-1 text-xs rounded-full ${
+                  <span className={`px-3 py-1 text-xs font-medium rounded-full whitespace-nowrap ml-4 ${
                     content.status === 'published' 
-                      ? 'bg-green-100 text-green-800'
+                      ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                       : content.status === 'draft'
-                      ? 'bg-gray-100 text-gray-800'
-                      : 'bg-yellow-100 text-yellow-800'
+                      ? 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300'
+                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
                   }`}>
                     {content.status}
                   </span>
                 </div>
               ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              <FileText className="h-12 w-12 mx-auto mb-3 opacity-20" />
+              <p>No content yet. Create your first piece of content!</p>
             </div>
           )}
         </CardContent>

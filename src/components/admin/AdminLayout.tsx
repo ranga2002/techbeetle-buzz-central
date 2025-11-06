@@ -176,11 +176,12 @@ const AdminLayout = () => {
         <div className="p-4 border-t">
           <Button
             variant="ghost"
+            size="sm"
             onClick={() => {
               console.log('Sign out clicked');
               signOut();
             }}
-            className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            className="justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           >
             <LogOut className="w-4 h-4 mr-2" />
             Sign Out
