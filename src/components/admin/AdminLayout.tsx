@@ -130,6 +130,7 @@ const AdminLayout = () => {
     { path: '/admin/tags', icon: Tags, label: 'Tags', roles: ['admin', 'editor'] },
     { path: '/admin/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin'] },
     { path: '/admin/settings', icon: Settings, label: 'Settings', roles: ['admin'] },
+    { path: '/admin/site-settings', icon: Settings, label: 'Site Settings', roles: ['admin'] },
     { path: '/admin/news-test', icon: Rss, label: 'News API Test', roles: ['admin'] },
     { path: '/admin/product-scraper', icon: Package, label: 'Product Management', roles: ['admin', 'editor'] },
   ];
