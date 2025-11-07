@@ -19,7 +19,7 @@ export type Database = {
           content_id: string | null
           created_at: string | null
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           referrer: string | null
           user_agent: string | null
           user_id: string | null
@@ -28,7 +28,7 @@ export type Database = {
           content_id?: string | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           referrer?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -37,7 +37,7 @@ export type Database = {
           content_id?: string | null
           created_at?: string | null
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           referrer?: string | null
           user_agent?: string | null
           user_id?: string | null
@@ -88,6 +88,35 @@ export type Database = {
           slug?: string
         }
         Relationships: []
+      }
+      category_follows: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_follows_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       comments: {
         Row: {
@@ -320,6 +349,39 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_read: boolean | null
+          link: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message: string
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_read?: boolean | null
+          link?: string | null
+          message?: string
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       product_specs: {
         Row: {
           content_id: string | null
@@ -500,6 +562,30 @@ export type Database = {
           },
         ]
       }
+      site_settings: {
+        Row: {
+          id: string
+          key: string
+          updated_at: string | null
+          updated_by: string | null
+          value: Json
+        }
+        Insert: {
+          id?: string
+          key: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value: Json
+        }
+        Update: {
+          id?: string
+          key?: string
+          updated_at?: string | null
+          updated_by?: string | null
+          value?: Json
+        }
+        Relationships: []
+      }
       tags: {
         Row: {
           created_at: string | null
@@ -565,12 +651,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_average_price: {
-        Args: { content_id_param: string }
-        Returns: number
-      }
+      get_average_price: { Args: { content_id_param: string }; Returns: number }
       get_current_user_role: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["user_role"]
       }
       has_role: {
@@ -584,14 +667,8 @@ export type Database = {
         Args: { content_id_param: string }
         Returns: undefined
       }
-      is_admin_user: {
-        Args: { user_id?: string }
-        Returns: boolean
-      }
-      promote_to_admin: {
-        Args: { user_email: string }
-        Returns: undefined
-      }
+      is_admin_user: { Args: { user_id?: string }; Returns: boolean }
+      promote_to_admin: { Args: { user_email: string }; Returns: undefined }
     }
     Enums: {
       comment_status: "pending" | "approved" | "rejected" | "spam"
