@@ -26,6 +26,7 @@ import SettingsManagement from "./pages/admin/SettingsManagement";
 import NewsApiTest from "./pages/admin/NewsApiTest";
 import ReviewGeneration from "./pages/admin/ReviewGeneration";
 import ProductManagement from "./pages/admin/ProductManagement";
+import SiteSettingsManagement from "./pages/admin/SiteSettingsManagement";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
                 <Route path="tags" element={<TagsManagement />} />
                 <Route path="analytics" element={<AnalyticsManagement />} />
                 <Route path="settings" element={<SettingsManagement />} />
+                <Route path="site-settings" element={<SiteSettingsManagement />} />
                 <Route path="news-test" element={<NewsApiTest />} />
                 <Route path="review-generator" element={<ReviewGeneration />} />
                 <Route path="product-scraper" element={<ProductManagement />} />

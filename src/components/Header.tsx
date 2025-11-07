@@ -1,13 +1,18 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import UserMenu from './UserMenu';
 import ThemeToggle from './ThemeToggle';
+import { NotificationBell } from './NotificationBell';
+import { useAuth } from '@/contexts/AuthContext';
 
 const Header = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
   return (
     <header className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 shadow-sm border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
@@ -54,7 +59,8 @@ const Header = () => {
               />
             </div>
             <ThemeToggle />
-            <UserMenu />
+            {user && <NotificationBell />}
+            {user ? <UserMenu /> : <Button onClick={() => navigate('/auth')} size="sm">Sign In</Button>}
           </div>
 
           {/* Mobile menu button */}

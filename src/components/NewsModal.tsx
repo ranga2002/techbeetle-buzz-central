@@ -284,13 +284,22 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                 </div>
               )}
 
+              {/* Excerpt */}
+              {newsItem.excerpt && (
+                <div className="mb-8 p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-l-4 border-primary rounded-r-lg">
+                  <p className="text-lg leading-relaxed italic text-muted-foreground font-light">
+                    {newsItem.excerpt}
+                  </p>
+                </div>
+              )}
+
               {/* Article Content */}
-              <div className="prose max-w-none mb-8">
+              <article className="prose prose-lg dark:prose-invert max-w-none mb-12">
                 <div 
-                  className="text-foreground leading-relaxed text-justify space-y-4"
+                  className="leading-[1.8] space-y-6 text-foreground/90 [&>p]:mb-6 [&>p]:text-base [&>strong]:text-foreground [&>strong]:font-semibold"
                   dangerouslySetInnerHTML={{ __html: formatContent(cleanContent) }}
                 />
-              </div>
+              </article>
 
               {/* Source Information */}
               {(source || originalUrl) && (
