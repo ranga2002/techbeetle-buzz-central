@@ -15,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 
 interface Comment {
   id: string;
+  user_id: string;
   user: {
     name: string;
     avatar?: string;
@@ -22,6 +23,7 @@ interface Comment {
   content: string;
   timestamp: string;
   likes: number;
+  isLikedByUser?: boolean;
 }
 
 interface NewsModalProps {
@@ -80,15 +82,28 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
         return;
       }
 
+      // Fetch user's likes if logged in
+      let userLikes: string[] = [];
+      if (user) {
+        const { data: likesData } = await supabase
+          .from('comment_likes')
+          .select('comment_id')
+          .eq('user_id', user.id);
+        
+        userLikes = likesData?.map(l => l.comment_id) || [];
+      }
+
       const formattedComments = data.map((c: any) => ({
         id: c.id,
+        user_id: c.user_id,
         user: {
           name: c.profiles?.full_name || c.profiles?.username || 'Anonymous',
           avatar: c.profiles?.avatar_url
         },
         content: c.comment_text,
         timestamp: format(new Date(c.created_at), 'MMM d, yyyy'),
-        likes: c.likes_count || 0
+        likes: c.likes_count || 0,
+        isLikedByUser: userLikes.includes(c.id)
       }));
 
       setComments(formattedComments);
@@ -233,6 +248,58 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCommentLike = async (commentId: string, isCurrentlyLiked: boolean) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to like comments",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      if (isCurrentlyLiked) {
+        // Unlike
+        const { error } = await supabase
+          .from('comment_likes')
+          .delete()
+          .eq('comment_id', commentId)
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+      } else {
+        // Like
+        const { error } = await supabase
+          .from('comment_likes')
+          .insert({
+            comment_id: commentId,
+            user_id: user.id
+          });
+
+        if (error) throw error;
+      }
+
+      // Update local state
+      setComments(prev => prev.map(c => 
+        c.id === commentId 
+          ? { 
+              ...c, 
+              likes: c.likes + (isCurrentlyLiked ? -1 : 1),
+              isLikedByUser: !isCurrentlyLiked 
+            }
+          : c
+      ));
+    } catch (error: any) {
+      console.error('Error liking comment:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update like. Please try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -447,24 +514,29 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                 {/* Comments List */}
                 <div className="space-y-4">
                   {comments.map((comment) => (
-                    <Card key={comment.id}>
+                    <Card key={comment.id} className="border-border/50">
                       <CardContent className="p-4">
                         <div className="flex items-start gap-3">
-                          <Avatar className="w-8 h-8">
+                          <Avatar className="w-10 h-10 ring-2 ring-border">
                             <AvatarImage src={comment.user.avatar} />
-                            <AvatarFallback>
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                               {comment.user.name.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-medium text-sm">{comment.user.name}</span>
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="font-semibold text-sm">{comment.user.name}</span>
                               <span className="text-xs text-muted-foreground">{comment.timestamp}</span>
                             </div>
-                            <p className="text-sm text-foreground mb-2">{comment.content}</p>
-                            <Button variant="ghost" size="sm" className="h-6 px-2 text-xs">
-                              <Heart className="w-3 h-3 mr-1" />
-                              {comment.likes}
+                            <p className="text-sm text-foreground leading-relaxed mb-3">{comment.content}</p>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className={`h-8 px-3 text-xs ${comment.isLikedByUser ? 'text-red-500' : ''}`}
+                              onClick={() => handleCommentLike(comment.id, comment.isLikedByUser || false)}
+                            >
+                              <Heart className={`w-3.5 h-3.5 mr-1 ${comment.isLikedByUser ? 'fill-current' : ''}`} />
+                              {comment.likes} {comment.likes === 1 ? 'Like' : 'Likes'}
                             </Button>
                           </div>
                         </div>
