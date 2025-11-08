@@ -59,6 +59,35 @@ export type Database = {
           },
         ]
       }
+      bookmarks: {
+        Row: {
+          content_id: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          content_id: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          content_id?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookmarks_content_id_fkey"
+            columns: ["content_id"]
+            isOneToOne: false
+            referencedRelation: "content"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           color: string | null
@@ -353,6 +382,30 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      newsletter_queue: {
+        Row: {
+          content_ids: string[]
+          id: string
+          recipient_count: number | null
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          content_ids: string[]
+          id?: string
+          recipient_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          content_ids?: string[]
+          id?: string
+          recipient_count?: number | null
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: []
       }
       newsletter_subscriptions: {
         Row: {

@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, LogOut, Shield } from 'lucide-react';
+import { User, Settings, LogOut, Shield, Bookmark } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const UserMenu = () => {
@@ -62,6 +62,18 @@ const UserMenu = () => {
         </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem asChild>
+          <Link to="/bookmarks" className="flex items-center">
+            <Bookmark className="mr-2 h-4 w-4" />
+            My Bookmarks
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/preferences" className="flex items-center">
+            <Settings className="mr-2 h-4 w-4" />
+            Preferences
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
           <Link to="/profile" className="flex items-center">
             <User className="mr-2 h-4 w-4" />
             Profile
@@ -75,12 +87,6 @@ const UserMenu = () => {
             </Link>
           </DropdownMenuItem>
         )}
-        <DropdownMenuItem asChild>
-          <Link to="/settings" className="flex items-center">
-            <Settings className="mr-2 h-4 w-4" />
-            Settings
-          </Link>
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem 
           onClick={() => {

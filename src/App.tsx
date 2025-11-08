@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Index from "./pages/Index";
@@ -13,6 +14,9 @@ import VideosPage from "./pages/VideosPage";
 import HowToPage from "./pages/HowToPage";
 import ComparePage from "./pages/ComparePage";
 import ProductsPage from "./pages/ProductsPage";
+import SearchPage from "./pages/SearchPage";
+import BookmarksPage from "./pages/BookmarksPage";
+import PreferencesPage from "./pages/PreferencesPage";
 import NotFound from "./pages/NotFound";
 import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -33,20 +37,24 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="techbeetle-theme">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<AuthPage />} />
-              <Route path="/news" element={<NewsPage />} />
-              <Route path="/reviews" element={<ReviewsPage />} />
-              <Route path="/videos" element={<VideosPage />} />
-              <Route path="/how-to" element={<HowToPage />} />
-              <Route path="/compare" element={<ComparePage />} />
-              <Route path="/products" element={<ProductsPage />} />
+      <HelmetProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/news" element={<NewsPage />} />
+                <Route path="/reviews" element={<ReviewsPage />} />
+                <Route path="/videos" element={<VideosPage />} />
+                <Route path="/how-to" element={<HowToPage />} />
+                <Route path="/compare" element={<ComparePage />} />
+                <Route path="/products" element={<ProductsPage />} />
+                <Route path="/search" element={<SearchPage />} />
+                <Route path="/bookmarks" element={<BookmarksPage />} />
+                <Route path="/preferences" element={<PreferencesPage />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
@@ -66,10 +74,11 @@ const App = () => (
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
-            </Routes>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+              </Routes>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </HelmetProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

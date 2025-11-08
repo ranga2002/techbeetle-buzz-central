@@ -6,12 +6,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Clock, User, MessageCircle, Heart, Share2, ExternalLink, Link2, Twitter, Facebook, Copy, LogIn } from 'lucide-react';
+import { Clock, User, MessageCircle, Heart, Share2, ExternalLink, Link2, Twitter, Facebook, Copy, LogIn, Bookmark } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { OpenGraphMeta } from '@/components/OpenGraphMeta';
 
 interface Comment {
   id: string;
@@ -53,6 +55,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
 
   // Fetch comments in real-time
   useEffect(() => {
@@ -303,9 +306,36 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     }
   };
 
+  const handleBookmarkToggle = () => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please log in to bookmark articles",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (isBookmarked(newsItem.id)) {
+      removeBookmark.mutate(newsItem.id);
+    } else {
+      addBookmark.mutate(newsItem.id);
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
+    <>
+      <OpenGraphMeta
+        title={newsItem.title}
+        description={newsItem.excerpt || newsItem.title}
+        image={newsItem.featured_image}
+        type="article"
+        publishedTime={newsItem.published_at}
+        author={newsItem.profiles?.full_name || newsItem.profiles?.username}
+        section={newsItem.categories?.name}
+      />
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 flex flex-col">
           <div className="flex flex-col h-full max-h-[90vh]">
           {/* Header */}
           <DialogHeader className="px-6 py-4 border-b flex-shrink-0">
@@ -419,6 +449,15 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                   </span>
                 </div>
                 <div className="flex items-center gap-2 relative">
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleBookmarkToggle}
+                    className={isBookmarked(newsItem.id) ? 'text-primary' : ''}
+                  >
+                    <Bookmark className={`w-4 h-4 mr-1 ${isBookmarked(newsItem.id) ? 'fill-current' : ''}`} />
+                    {isBookmarked(newsItem.id) ? 'Saved' : 'Save'}
+                  </Button>
                   <div className="relative">
                     <Button variant="outline" size="sm" onClick={() => handleShare()}>
                       <Share2 className="w-4 h-4 mr-1" />
@@ -546,10 +585,11 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                 </div>
               </div>
             </div>
+            </div>
           </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
