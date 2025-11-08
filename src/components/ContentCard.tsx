@@ -43,79 +43,77 @@ const ContentCard: React.FC<ContentCardProps> = ({
   onClick,
 }) => {
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={onClick}>
+    <Card className="group overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-border/50" onClick={onClick}>
       {featuredImage && (
-        <div className="aspect-video overflow-hidden">
+        <div className="relative aspect-[16/9] overflow-hidden bg-muted">
           <img
             src={featuredImage}
             alt={title}
-            className="w-full h-full object-cover hover:scale-105 transition-transform"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
           />
-        </div>
-      )}
-      
-      <CardHeader className="space-y-2">
-        <div className="flex items-center gap-2 flex-wrap">
+          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent opacity-60" />
+          
+          {/* Category badge on image */}
           {category && (
-            <Badge variant="secondary" style={{ backgroundColor: category.color + '20', color: category.color }}>
+            <Badge 
+              className="absolute top-4 left-4 shadow-lg" 
+              style={{ backgroundColor: category.color, color: 'white' }}
+            >
               {category.name}
             </Badge>
           )}
-          <Badge variant="outline" className="capitalize">
-            {contentType.replace('_', ' ')}
-          </Badge>
         </div>
-        
-        <h3 className="text-xl font-semibold line-clamp-2 hover:text-primary transition-colors">
+      )}
+      
+      <CardContent className="p-6 space-y-4">
+        {/* Title with better typography */}
+        <h3 className="text-2xl font-bold line-clamp-2 group-hover:text-primary transition-colors leading-tight">
           {title}
         </h3>
         
+        {/* Excerpt with reading-focused styling */}
         {excerpt && (
-          <p className="text-muted-foreground text-sm line-clamp-3">
+          <p className="text-muted-foreground leading-relaxed line-clamp-3 text-base">
             {excerpt}
           </p>
         )}
-      </CardHeader>
 
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <Eye className="w-4 h-4" />
-              <span>{viewsCount.toLocaleString()}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <Heart className="w-4 h-4" />
-              <span>{likesCount}</span>
-            </div>
-            {readingTime && (
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
-                <span>{readingTime} min</span>
+        {/* Metadata bar */}
+        <div className="flex items-center justify-between pt-4 border-t border-border/50">
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            {author && (
+              <div className="flex items-center gap-2">
+                {author.avatar_url ? (
+                  <img
+                    src={author.avatar_url}
+                    alt={author.full_name}
+                    className="w-7 h-7 rounded-full ring-2 ring-border"
+                  />
+                ) : (
+                  <div className="w-7 h-7 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="text-xs font-semibold text-primary">
+                      {author.full_name?.[0]?.toUpperCase()}
+                    </span>
+                  </div>
+                )}
+                <span className="font-medium text-foreground">{author.full_name}</span>
               </div>
             )}
           </div>
-        </div>
-
-        <div className="flex items-center justify-between">
-          {author && (
-            <div className="flex items-center gap-2">
-              {author.avatar_url && (
-                <img
-                  src={author.avatar_url}
-                  alt={author.full_name}
-                  className="w-6 h-6 rounded-full"
-                />
-              )}
-              <span className="text-sm font-medium">{author.full_name}</span>
-            </div>
-          )}
           
-          {publishedAt && (
-            <span className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(publishedAt), { addSuffix: true })}
-            </span>
-          )}
+          <div className="flex items-center gap-3 text-sm text-muted-foreground">
+            {readingTime && (
+              <div className="flex items-center gap-1">
+                <Clock className="w-3.5 h-3.5" />
+                <span>{readingTime} min</span>
+              </div>
+            )}
+            {publishedAt && (
+              <span className="text-xs">
+                {formatDistanceToNow(new Date(publishedAt), { addSuffix: true })}
+              </span>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
