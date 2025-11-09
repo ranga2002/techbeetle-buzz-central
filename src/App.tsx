@@ -28,6 +28,7 @@ import TagsManagement from "./pages/admin/TagsManagement";
 import AnalyticsManagement from "./pages/admin/AnalyticsManagement";
 import SettingsManagement from "./pages/admin/SettingsManagement";
 import NewsApiTest from "./pages/admin/NewsApiTest";
+import ReadingHistoryPage from "@/pages/ReadingHistoryPage";
 import ReviewGeneration from "./pages/admin/ReviewGeneration";
 import ProductManagement from "./pages/admin/ProductManagement";
 import SiteSettingsManagement from "./pages/admin/SiteSettingsManagement";
@@ -53,8 +54,9 @@ const App = () => (
                 <Route path="/compare" element={<ComparePage />} />
                 <Route path="/products" element={<ProductsPage />} />
                 <Route path="/search" element={<SearchPage />} />
-                <Route path="/bookmarks" element={<BookmarksPage />} />
-                <Route path="/preferences" element={<PreferencesPage />} />
+          <Route path="/bookmarks" element={<BookmarksPage />} />
+          <Route path="/preferences" element={<PreferencesPage />} />
+          <Route path="/reading-history" element={<ReadingHistoryPage />} />
               
               {/* Admin Routes */}
               <Route path="/admin" element={<AdminLayout />}>
