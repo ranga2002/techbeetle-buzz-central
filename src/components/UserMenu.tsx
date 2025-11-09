@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { User, Settings, LogOut, Shield, Bookmark } from 'lucide-react';
+import { User, Settings, LogOut, Shield, Bookmark, History } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const UserMenu = () => {
@@ -65,6 +65,12 @@ const UserMenu = () => {
           <Link to="/bookmarks" className="flex items-center">
             <Bookmark className="mr-2 h-4 w-4" />
             My Bookmarks
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/reading-history" className="flex items-center">
+            <History className="mr-2 h-4 w-4" />
+            Reading History
           </Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
