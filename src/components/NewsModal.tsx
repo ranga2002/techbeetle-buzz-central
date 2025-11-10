@@ -13,6 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { OpenGraphMeta } from '@/components/OpenGraphMeta';
 import { Separator } from '@/components/ui/separator';
+import { ShareButtons } from '@/components/ShareButtons';
+import { RelatedArticles } from '@/components/RelatedArticles';
 
 interface NewsModalProps {
   isOpen: boolean;
@@ -166,7 +168,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] overflow-hidden p-0 bg-background">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 bg-background">
         <OpenGraphMeta 
           title={title}
           description={excerpt}
@@ -174,7 +176,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
           url={slug ? `${window.location.origin}/news/${slug}` : window.location.href}
         />
         
-        <div className="relative overflow-y-auto max-h-[95vh]">
+        <div className="relative overflow-y-auto max-h-[90vh]">
           {/* Close Button */}
           <Button
             variant="ghost"
@@ -187,7 +189,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
 
           {/* Hero Section with Image */}
           {featuredImage && (
-            <div className="relative w-full h-[500px] overflow-hidden">
+            <div className="relative w-full h-[400px] overflow-hidden">
               <img 
                 src={featuredImage} 
                 alt={title}
@@ -207,62 +209,62 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
           )}
 
           {/* Article Content */}
-          <div className="px-4 sm:px-8 md:px-16 lg:px-24 py-8 -mt-32 relative z-10">
+          <div className="px-6 sm:px-10 md:px-16 py-8 -mt-24 relative z-10">
             {/* Title Card with elegant design */}
             <Card className="mb-8 border-none shadow-2xl bg-background">
-              <CardContent className="p-8 md:p-12">
-                <h1 className="text-3xl md:text-5xl font-bold mb-6 leading-tight bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent">
+              <CardContent className="p-6 md:p-10">
+                <h1 className="text-2xl md:text-4xl font-bold mb-5 leading-tight text-foreground">
                   {title}
                 </h1>
                 
                 {/* Author and Meta */}
-                <div className="flex flex-wrap items-center gap-4 text-sm mb-6">
+                <div className="flex flex-wrap items-center gap-3 text-sm mb-5">
                   {author && (
-                    <div className="flex items-center gap-3">
-                      <Avatar className="w-12 h-12 ring-2 ring-border">
-                        <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="w-10 h-10 ring-2 ring-border">
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                           {author.full_name?.[0]?.toUpperCase() || 'A'}
                         </AvatarFallback>
                       </Avatar>
                       <div>
-                        <p className="font-semibold text-base text-foreground">{author.full_name || 'Anonymous'}</p>
+                        <p className="font-semibold text-foreground">{author.full_name || 'Anonymous'}</p>
                         {author.username && <p className="text-xs text-muted-foreground">@{author.username}</p>}
                       </div>
                     </div>
                   )}
                   
-                  <Separator orientation="vertical" className="h-10" />
+                  <Separator orientation="vertical" className="h-8" />
                   
-                  <div className="flex flex-wrap items-center gap-4 text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-3 text-muted-foreground">
                     {publishedAt && (
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4" />
-                        <span>{formatDistanceToNow(new Date(publishedAt), { addSuffix: true })}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5" />
+                        <span className="text-xs">{formatDistanceToNow(new Date(publishedAt), { addSuffix: true })}</span>
                       </div>
                     )}
                     {readingTime && (
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4" />
-                        <span>{readingTime} min read</span>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5" />
+                        <span className="text-xs">{readingTime} min read</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Engagement Bar */}
-                <div className="flex flex-wrap items-center gap-3 pt-6 border-t border-border/50">
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <Eye className="w-4 h-4" />
+                <div className="flex flex-wrap items-center gap-2 pt-5 border-t border-border/50">
+                  <Button variant="ghost" size="sm" className="gap-1.5 h-8 text-xs">
+                    <Eye className="w-3.5 h-3.5" />
                     <span className="font-medium">{viewsCount || 0}</span>
                   </Button>
                   
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <Heart className="w-4 h-4" />
+                  <Button variant="ghost" size="sm" className="gap-1.5 h-8 text-xs">
+                    <Heart className="w-3.5 h-3.5" />
                     <span className="font-medium">{likesCount || 0}</span>
                   </Button>
                   
-                  <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="gap-2">
-                    <MessageSquare className="w-4 h-4" />
+                  <Button variant="ghost" size="sm" onClick={() => setShowComments(!showComments)} className="gap-1.5 h-8 text-xs">
+                    <MessageSquare className="w-3.5 h-3.5" />
                     <span className="font-medium">{comments.length}</span>
                   </Button>
 
@@ -274,56 +276,70 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                       size="sm"
                       onClick={handleBookmarkToggle}
                       disabled={isTogglingBookmark}
-                      className="gap-2"
+                      className="gap-1.5 h-8 text-xs"
                     >
-                      <Bookmark className={`w-4 h-4 ${isBookmarked(id) ? 'fill-current' : ''}`} />
+                      <Bookmark className={`w-3.5 h-3.5 ${isBookmarked(id) ? 'fill-current' : ''}`} />
                       {isBookmarked(id) ? 'Saved' : 'Save'}
                     </Button>
                   )}
 
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </Button>
+                  <ShareButtons 
+                    title={title}
+                    description={excerpt}
+                    url={slug ? `/news/${slug}` : window.location.pathname}
+                    image={featuredImage}
+                  />
                 </div>
               </CardContent>
             </Card>
 
             {/* Excerpt - Magazine style */}
             {excerpt && (
-              <div className="mb-10">
-                <p className="text-2xl md:text-3xl text-muted-foreground leading-relaxed font-serif italic border-l-4 border-primary pl-8 py-4">
+              <div className="mb-8">
+                <p className="text-xl md:text-2xl text-muted-foreground leading-relaxed font-serif italic border-l-4 border-primary pl-6 py-3">
                   {excerpt}
                 </p>
               </div>
             )}
 
             {/* Article Body */}
-            <article className="mb-12">
+            <article className="mb-10">
               <div 
-                className="prose prose-lg md:prose-xl dark:prose-invert max-w-none
+                className="prose prose-base md:prose-lg dark:prose-invert max-w-none
                   prose-headings:font-bold prose-headings:text-foreground
-                  prose-h2:text-3xl prose-h2:mt-12 prose-h2:mb-6
-                  prose-h3:text-2xl prose-h3:mt-8 prose-h3:mb-4
-                  prose-p:text-lg prose-p:leading-relaxed prose-p:text-foreground/90 prose-p:mb-6
+                  prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+                  prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+                  prose-p:text-base prose-p:leading-relaxed prose-p:text-foreground/90 prose-p:mb-4
                   prose-strong:text-foreground prose-strong:font-semibold
                   prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                  prose-img:rounded-xl prose-img:shadow-lg"
-                dangerouslySetInnerHTML={{ __html: cleanContent?.replace(/\n\n/g, '</p><p>').replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') || '' }}
-              />
+                  prose-img:rounded-lg prose-img:shadow-md
+                  prose-ul:my-4 prose-ol:my-4 prose-li:my-1"
+              >
+                {cleanContent?.split('\n\n').map((paragraph, index) => {
+                  if (!paragraph.trim()) return null;
+                  
+                  const formattedParagraph = paragraph
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\n/g, '<br />');
+                  
+                  return (
+                    <p key={index} dangerouslySetInnerHTML={{ __html: formattedParagraph }} />
+                  );
+                })}
+              </div>
             </article>
 
             {/* Source Info */}
             {sourceUrl && (
-              <Card className="mb-10 border-2 border-primary/20 bg-gradient-to-br from-primary/5 via-primary/3 to-background">
-                <CardContent className="p-8">
-                  <div className="flex items-start gap-6">
+              <Card className="mb-8 border border-primary/20 bg-gradient-to-br from-primary/5 to-background">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-4">
                     <div className="flex-1">
-                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-2 font-semibold">Original Source</p>
-                      <p className="text-xl font-bold mb-4 text-foreground">{sourceName || 'External Article'}</p>
-                      <Button asChild variant="default" size="lg" className="gap-3 shadow-lg">
+                      <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5 font-semibold">Original Source</p>
+                      <p className="text-lg font-bold mb-3 text-foreground">{sourceName || 'External Article'}</p>
+                      <Button asChild variant="default" size="default" className="gap-2">
                         <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-5 h-5" />
+                          <ExternalLink className="w-4 h-4" />
                           Read Full Article
                         </a>
                       </Button>
@@ -333,38 +349,41 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
               </Card>
             )}
 
+            {/* Related Articles */}
+            <RelatedArticles currentArticleId={id} categoryId={category?.slug} />
+
             {/* Comments Section */}
             {showComments && (
-              <Card className="border-border/50 shadow-xl">
-                <CardContent className="p-8">
-                  <h3 className="text-3xl font-bold mb-8 flex items-center gap-3">
-                    <MessageSquare className="w-8 h-8 text-primary" />
+              <Card className="mt-8 border-border/50 shadow-lg">
+                <CardContent className="p-6">
+                  <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                    <MessageSquare className="w-6 h-6 text-primary" />
                     Comments ({comments.length})
                   </h3>
                   
                   {user ? (
-                    <form onSubmit={handleCommentSubmit} className="mb-10">
+                    <form onSubmit={handleCommentSubmit} className="mb-8">
                       <Textarea
                         value={newComment}
                         onChange={(e) => setNewComment(e.target.value)}
                         placeholder="Share your thoughts on this article..."
-                        rows={4}
-                        className="resize-none text-base mb-4"
+                        rows={3}
+                        className="resize-none text-sm mb-3"
                       />
-                      <Button type="submit" disabled={isSubmitting || !newComment.trim()} size="lg">
+                      <Button type="submit" disabled={isSubmitting || !newComment.trim()}>
                         {isSubmitting ? 'Posting...' : 'Post Comment'}
                       </Button>
                     </form>
                   ) : (
-                    <Card className="mb-10 bg-muted/30 border-dashed">
-                      <CardContent className="p-8 text-center">
-                        <p className="text-lg text-muted-foreground mb-4">Sign in to join the conversation</p>
-                        <Button variant="default" size="lg">Sign In</Button>
+                    <Card className="mb-8 bg-muted/30 border-dashed">
+                      <CardContent className="p-6 text-center">
+                        <p className="text-base text-muted-foreground mb-3">Sign in to join the conversation</p>
+                        <Button variant="default">Sign In</Button>
                       </CardContent>
                     </Card>
                   )}
                   
-                  <div className="space-y-6">
+                  <div className="space-y-4">
                     {comments.map((comment) => (
                       <CommentItem 
                         key={comment.id} 
@@ -455,26 +474,26 @@ const CommentItem = ({ comment, onReply, depth = 0, userId }: CommentItemProps) 
   };
 
   return (
-    <div className={`${depth > 0 ? 'ml-16 mt-6' : 'mb-8'}`}>
-      <Card className={`border-border/40 ${depth > 0 ? 'bg-muted/20' : 'shadow-md'}`}>
-        <CardContent className="p-6">
-          <div className="flex gap-4">
-            <Avatar className="w-12 h-12 ring-2 ring-border flex-shrink-0">
-              <AvatarFallback className="bg-primary/10 text-primary font-bold text-lg">
+    <div className={`${depth > 0 ? 'ml-12 mt-4' : 'mb-6'}`}>
+      <Card className={`border-border/40 ${depth > 0 ? 'bg-muted/20' : 'shadow-sm'}`}>
+        <CardContent className="p-4">
+          <div className="flex gap-3">
+            <Avatar className="w-10 h-10 ring-2 ring-border flex-shrink-0">
+              <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                 {comment.profiles?.full_name?.[0] || 'U'}
               </AvatarFallback>
             </Avatar>
             
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="font-bold text-base">{comment.profiles?.full_name || 'Anonymous'}</span>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="font-semibold text-sm">{comment.profiles?.full_name || 'Anonymous'}</span>
                 <span className="text-xs text-muted-foreground">•</span>
                 <span className="text-xs text-muted-foreground">
                   {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                 </span>
               </div>
               
-              <p className="text-base leading-relaxed mb-4 text-foreground/90">{comment.comment_text}</p>
+              <p className="text-sm leading-relaxed mb-3 text-foreground/90">{comment.comment_text}</p>
               
               <div className="flex items-center gap-2">
                 <Button 
@@ -482,10 +501,10 @@ const CommentItem = ({ comment, onReply, depth = 0, userId }: CommentItemProps) 
                   size="sm" 
                   onClick={handleLikeToggle}
                   disabled={isLiking}
-                  className={`h-9 ${isLiked ? 'text-primary' : 'text-muted-foreground'}`}
+                  className={`h-8 text-xs ${isLiked ? 'text-primary' : 'text-muted-foreground'}`}
                 >
-                  <ThumbsUp className={`w-4 h-4 mr-2 ${isLiked ? 'fill-current' : ''}`} />
-                  <span className="font-semibold">{likesCount}</span>
+                  <ThumbsUp className={`w-3.5 h-3.5 mr-1.5 ${isLiked ? 'fill-current' : ''}`} />
+                  <span className="font-medium">{likesCount}</span>
                 </Button>
                 
                 {depth < maxDepth && (
@@ -493,22 +512,22 @@ const CommentItem = ({ comment, onReply, depth = 0, userId }: CommentItemProps) 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => setShowReplyForm(!showReplyForm)}
-                    className="h-9 text-muted-foreground"
+                    className="h-8 text-xs text-muted-foreground"
                   >
-                    <MessageSquare className="w-4 h-4 mr-2" />
+                    <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
                     Reply
                   </Button>
                 )}
               </div>
               
               {showReplyForm && (
-                <div className="mt-6 space-y-3">
+                <div className="mt-4 space-y-2">
                   <Textarea
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Write your reply..."
-                    rows={3}
-                    className="resize-none"
+                    rows={2}
+                    className="resize-none text-sm"
                   />
                   <div className="flex gap-2">
                     <Button 
@@ -537,7 +556,7 @@ const CommentItem = ({ comment, onReply, depth = 0, userId }: CommentItemProps) 
       </Card>
       
       {comment.replies && comment.replies.length > 0 && (
-        <div className="mt-4">
+        <div className="mt-3">
           {comment.replies.map((reply: any) => (
             <CommentItem 
               key={reply.id} 
