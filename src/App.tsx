@@ -32,6 +32,9 @@ import ReadingHistoryPage from "@/pages/ReadingHistoryPage";
 import ReviewGeneration from "./pages/admin/ReviewGeneration";
 import ProductManagement from "./pages/admin/ProductManagement";
 import SiteSettingsManagement from "./pages/admin/SiteSettingsManagement";
+import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
+import TermsPage from "./pages/TermsPage";
+
 
 const queryClient = new QueryClient();
 
@@ -74,7 +77,10 @@ const App = () => (
                 <Route path="review-generator" element={<ReviewGeneration />} />
                 <Route path="product-scraper" element={<ProductManagement />} />
               </Route>
-              
+                
+         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+         <Route path="/terms" element={<TermsPage />} />
+
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
               </Routes>
