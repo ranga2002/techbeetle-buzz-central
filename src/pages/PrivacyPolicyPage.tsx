@@ -9,53 +9,92 @@ const PrivacyPolicyPage = () => {
         <title>Privacy Policy | Tech Beetle</title>
         <meta
           name="description"
-          content="Learn how Tech Beetle collects, uses, and protects your personal information. Your privacy and data security are our top priorities."
+          content="Tech Beetle's Privacy Policy explains how we collect, use, store, and protect Google user data and other personal information."
         />
         <meta name="robots" content="index, follow" />
-        <link
-          rel="canonical"
-          href="https://techbeetle.org/privacy-policy"
-        />
+        <link rel="canonical" href="https://techbeetle.org/privacy-policy" />
       </Helmet>
 
       <Header />
       <main className="container mx-auto px-4 py-8 prose prose-lg">
         <h1>Privacy Policy</h1>
+
         <p>
-          Welcome to <strong>Tech Beetle</strong>. We value your privacy and are
-          committed to protecting your personal information. This Privacy Policy
-          explains how we collect, use, and safeguard the data you provide while
-          using our platform.
+          This Privacy Policy describes how <strong>Tech Beetle</strong> (“we”,
+          “our”, or “us”) collects, uses, and protects information from users
+          (“you”) who access our website and services. By using Tech Beetle, you
+          agree to the practices described in this policy.
         </p>
 
-        <h2>Information We Collect</h2>
+        <h2>1. Information We Collect</h2>
         <p>
-          We collect only the information necessary to provide you with a secure
-          and personalized experience, such as your name, email address, and
-          account preferences when you sign in through trusted providers like
-          Google.
+          We collect information that you provide directly to us or that we
+          obtain from trusted third-party authentication providers such as
+          <strong> Google Sign-In</strong>.
+        </p>
+        <ul>
+          <li>
+            <strong>Google User Data:</strong> When you choose to sign in with
+            Google, we receive your basic profile information (name, email
+            address, and profile picture) from Google.
+          </li>
+          <li>
+            <strong>Usage Data:</strong> We collect limited analytics data (such
+            as pages visited and interaction time) to improve the user
+            experience.
+          </li>
+        </ul>
+
+        <h2>2. How We Use Google User Data</h2>
+        <p>Google User Data obtained via Google Sign-In is used only to:</p>
+        <ul>
+          <li>Authenticate your account on Tech Beetle</li>
+          <li>Personalize your experience (display your name or profile photo)</li>
+          <li>Maintain session integrity and security</li>
+        </ul>
+        <p>
+          We do <strong>not</strong> use Google User Data for advertising,
+          marketing, or data resale.
         </p>
 
-        <h2>How We Use Information</h2>
+        <h2>3. Sharing and Disclosure</h2>
         <p>
-          Your data is used solely for authentication, improving our services,
-          and providing relevant content. We never sell or share your personal
-          information with third parties without your consent.
+          We do <strong>not</strong> share, sell, or transfer Google User Data
+          or any personal information to third parties except:
+        </p>
+        <ul>
+          <li>As required by law or legal request</li>
+          <li>To service providers strictly necessary to operate the website
+              (for example, hosting and authentication infrastructure)</li>
+        </ul>
+
+        <h2>4. Data Storage, Retention, and Deletion</h2>
+        <p>
+          Your information is securely stored by our backend provider,
+          <strong> Supabase</strong>. We retain Google User Data only for as
+          long as your account remains active. You may request deletion of your
+          account and all associated data at any time by contacting{" "}
+          <a href="mailto:support@techbeetle.org">support@techbeetle.org</a>.
         </p>
 
-        <h2>Data Security</h2>
+        <h2>5. Data Protection and Security</h2>
         <p>
-          We employ modern encryption and secure data-storage methods through
-          Supabase and other cloud providers to protect your information from
-          unauthorized access.
+          We use HTTPS, access-controlled servers, and encryption to protect all
+          stored data. Only authorized personnel may access production systems.
         </p>
 
-        <h2>Contact Us</h2>
+        <h2>6. Changes to This Policy</h2>
         <p>
-          For questions or data-access requests, contact us at{" "}
-          <a href="mailto:support@techbeetle.org">
-            support@techbeetle.org
-          </a>.
+          We may update this Privacy Policy periodically to reflect operational,
+          legal, or regulatory changes. We will notify users of significant
+          updates via our website.
+        </p>
+
+        <h2>7. Contact Us</h2>
+        <p>
+          For questions or concerns regarding this Privacy Policy or data
+          handling, please email{" "}
+          <a href="mailto:support@techbeetle.org">support@techbeetle.org</a>.
         </p>
 
         <p>Last updated: November 2025</p>
