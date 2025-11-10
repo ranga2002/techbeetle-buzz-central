@@ -1,30 +1,52 @@
-
-import React, { useState } from 'react';
-import { useContent } from '@/hooks/useContent';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import ContentCard from '@/components/ContentCard';
-import NewsModal from '@/components/NewsModal';
-import { Skeleton } from '@/components/ui/skeleton';
+import React, { useState, useEffect } from "react";
+import { useContent } from "@/hooks/useContent";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import ContentCard from "@/components/ContentCard";
+import NewsModal from "@/components/NewsModal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 
 const NewsPage = () => {
+  const navigate = useNavigate();
+  const { slug } = useParams<{ slug?: string }>();
+  const location = useLocation();
+
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(!!slug);
+
   const { useContentQuery } = useContent();
   const { data: newsContent, isLoading } = useContentQuery({
-    contentType: 'news',
+    contentType: "news",
     limit: 20,
   });
 
+  // 🔹 When user clicks a card
   const handleNewsClick = (newsItem: any) => {
     setSelectedNewsItem(newsItem);
     setIsModalOpen(true);
+    // Update the URL to /news/{slug}
+    navigate(`/news/${newsItem.slug}`, { replace: false });
   };
 
+  // 🔹 When modal closes
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedNewsItem(null);
+    // Return to /news
+    navigate("/news");
   };
+
+  // 🔹 When page loads with a slug in the URL (e.g., shared link)
+  useEffect(() => {
+    if (slug && newsContent && newsContent.length > 0) {
+      const article = newsContent.find((item) => item.slug === slug);
+      if (article) {
+        setSelectedNewsItem(article);
+        setIsModalOpen(true);
+      }
+    }
+  }, [slug, newsContent]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -69,8 +91,8 @@ const NewsPage = () => {
             ))}
           </div>
         )}
-        
-        <NewsModal 
+
+        <NewsModal
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           newsItem={selectedNewsItem}
