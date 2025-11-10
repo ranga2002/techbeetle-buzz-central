@@ -56,6 +56,11 @@ export const OpenGraphMeta = ({
       <meta property="twitter:title" content={title} />
       <meta property="twitter:description" content={description} />
       <meta property="twitter:image" content={image || defaultImage} />
+
+      {/* WhatsApp / LinkedIn / Reddit - uses OG tags */}
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:locale" content="en_US" />
     </Helmet>
   );
 };
