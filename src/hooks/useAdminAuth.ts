@@ -6,43 +6,61 @@ import { supabase } from '@/integrations/supabase/client';
 export const useAdminAuth = () => {
   const { user, loading: authLoading } = useAuth();
 
-  const { data: profile, isLoading, error } = useQuery({
-    queryKey: ['admin-profile', user?.id],
+  const { data: userRole, isLoading, error } = useQuery({
+    queryKey: ['user-role', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
       
-      console.log('Fetching profile for user:', user.id);
+      console.log('Fetching roles for user:', user.id);
       
-      const { data, error } = await supabase
+      // Fetch user's roles from user_roles table
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id);
+      
+      if (rolesError) {
+        console.error('Roles fetch error:', rolesError);
+        throw rolesError;
+      }
+      
+      // Get profile data
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('role, full_name, username')
+        .select('full_name, username')
         .eq('id', user.id)
         .single();
       
-      if (error) {
-        console.error('Profile fetch error:', error);
-        throw error;
+      if (profileError) {
+        console.error('Profile fetch error:', profileError);
       }
       
-      console.log('Profile data:', data);
-      return data;
+      // Determine highest priority role
+      const roleMap = roles?.map(r => r.role) || [];
+      const role = roleMap.includes('admin') ? 'admin' 
+        : roleMap.includes('editor') ? 'editor'
+        : roleMap.includes('author') ? 'author'
+        : 'user';
+      
+      console.log('User roles:', roleMap, 'Highest:', role);
+      return { role, full_name: profile?.full_name, username: profile?.username };
     },
     enabled: !!user?.id && !authLoading,
     retry: 1,
   });
 
-  const isAdmin = profile?.role === 'admin';
-  const isEditor = profile?.role === 'editor';
-  const isAuthor = profile?.role === 'author';
-  const hasAdminAccess = ['admin', 'editor'].includes(profile?.role || '');
-  const hasContentAccess = ['admin', 'editor', 'author'].includes(profile?.role || '');
+  const isAdmin = userRole?.role === 'admin';
+  const isEditor = userRole?.role === 'editor';
+  const isAuthor = userRole?.role === 'author';
+  const hasAdminAccess = ['admin', 'editor'].includes(userRole?.role || '');
+  const hasContentAccess = ['admin', 'editor', 'author'].includes(userRole?.role || '');
 
   console.log('Admin auth state:', {
     user: !!user,
     userId: user?.id,
     userEmail: user?.email,
-    profile,
-    profileError: error,
+    userRole,
+    roleError: error,
     isAdmin,
     isEditor,
     isAuthor,
@@ -50,12 +68,12 @@ export const useAdminAuth = () => {
     hasContentAccess,
     isLoading: isLoading || authLoading,
     authLoading,
-    profileLoading: isLoading
+    roleLoading: isLoading
   });
 
   return {
     user,
-    profile,
+    profile: userRole,
     isLoading: isLoading || authLoading,
     error,
     isAdmin,
