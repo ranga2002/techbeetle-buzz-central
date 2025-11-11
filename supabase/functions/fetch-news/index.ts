@@ -35,7 +35,11 @@ serve(async (req) => {
     console.log('Search query:', searchQuery, 'Is search request:', isSearchRequest);
 
     // The Guardian API
-    const guardianApiKey = '63b2f513-266b-4341-b855-0dac0f908fca';
+    // Get Guardian API key from secrets
+    const guardianApiKey = Deno.env.get('GUARDIAN_API_KEY');
+    if (!guardianApiKey) {
+      throw new Error('Guardian API key not configured');
+    }
     
     if (!guardianApiKey) {
       throw new Error('GUARDIAN_API_KEY not configured');

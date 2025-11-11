@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import UserFilters from '@/components/admin/users/UserFilters';
 import UserTable from '@/components/admin/users/UserTable';
-import type { Tables, Database } from '@/integrations/supabase/types';
+import type { Database } from '@/integrations/supabase/types';
 
 type UserRole = Database['public']['Enums']['user_role'];
 
@@ -20,32 +20,61 @@ const UserManagement = () => {
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users', searchTerm, roleFilter],
     queryFn: async () => {
-      let query = supabase
+      // Fetch profiles with their roles from user_roles table
+      let profileQuery = supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (searchTerm) {
-        query = query.or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
-      }
-      if (roleFilter !== 'all') {
-        query = query.eq('role', roleFilter as UserRole);
+        profileQuery = profileQuery.or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data;
+      const { data: profiles, error: profilesError } = await profileQuery;
+      if (profilesError) throw profilesError;
+
+      // Fetch roles for each user
+      const userIds = profiles?.map(p => p.id) || [];
+      const { data: roles } = await supabase
+        .from('user_roles' as any)
+        .select('user_id, role')
+        .in('user_id', userIds);
+
+      // Merge profiles with their roles
+      const usersWithRoles = profiles?.map(profile => {
+        const userRoles = (roles as any[])?.filter((r: any) => r.user_id === profile.id) || [];
+        const primaryRole = userRoles.find((r: any) => ['admin', 'editor', 'author'].includes(r.role))?.role || 'user';
+        return {
+          ...profile,
+          role: primaryRole
+        };
+      }) || [];
+
+      // Apply role filter
+      if (roleFilter !== 'all') {
+        return usersWithRoles.filter(u => u.role === roleFilter);
+      }
+
+      return usersWithRoles;
     },
   });
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
-      const { error } = await supabase
-        .from('profiles')
-        .update({ role: role })
-        .eq('id', userId);
-      
-      if (error) throw error;
+      // Delete existing roles for this user
+      const { error: deleteError } = await supabase
+        .from('user_roles' as any)
+        .delete()
+        .eq('user_id', userId);
+
+      if (deleteError) throw deleteError;
+
+      // Insert new role
+      const { error: insertError } = await supabase
+        .from('user_roles' as any)
+        .insert({ user_id: userId, role });
+
+      if (insertError) throw insertError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -54,10 +83,10 @@ const UserManagement = () => {
         description: "User role has been updated successfully.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to update user role. Please try again.",
+        description: error.message || "Failed to update user role. Please try again.",
         variant: "destructive",
       });
     },

@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,7 +14,7 @@ export const useAdminAuth = () => {
       
       // Fetch user's roles from user_roles table
       const { data: roles, error: rolesError } = await supabase
-        .from('user_roles')
+        .from('user_roles' as any)
         .select('role')
         .eq('user_id', user.id);
       
@@ -36,7 +35,7 @@ export const useAdminAuth = () => {
       }
       
       // Determine highest priority role
-      const roleMap = roles?.map(r => r.role) || [];
+      const roleMap = (roles as any[])?.map((r: any) => r.role) || [];
       const role = roleMap.includes('admin') ? 'admin' 
         : roleMap.includes('editor') ? 'editor'
         : roleMap.includes('author') ? 'author'
