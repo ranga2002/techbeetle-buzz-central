@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import { Outlet, Navigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,7 @@ import {
   Tags,
   FolderOpen,
   LogOut,
+  Rss,
   Package
 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -130,6 +131,7 @@ const AdminLayout = () => {
     { path: '/admin/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin'] },
     { path: '/admin/settings', icon: Settings, label: 'Settings', roles: ['admin'] },
     { path: '/admin/site-settings', icon: Settings, label: 'Site Settings', roles: ['admin'] },
+    { path: '/admin/news-test', icon: Rss, label: 'News API Test', roles: ['admin'] },
     { path: '/admin/product-scraper', icon: Package, label: 'Product Management', roles: ['admin', 'editor'] },
   ];
 

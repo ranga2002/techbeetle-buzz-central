@@ -1,4 +1,4 @@
-
+﻿
 project_id = "mnlgianmqlcndjyovlxj"
 
 [api]
@@ -34,6 +34,9 @@ additional_redirect_urls = ["https://mnlgianmqlcndjyovlxj.supabase.co"]
 jwt_expiry = 3600
 refresh_token_rotation_enabled = true
 security_update_password_require_reauthentication = true
+
+[functions.fetch-news]
+verify_jwt = true
 
 [functions.scrape-product-data]
 verify_jwt = true

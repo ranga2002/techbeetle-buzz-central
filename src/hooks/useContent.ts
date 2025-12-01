@@ -1,4 +1,4 @@
-
+﻿
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -73,7 +73,6 @@ export const useContent = () => {
         profiles(*)
       `)
       .eq('status', 'published')
-      .in('content_type', ['review', 'video', 'how_to', 'comparison'])
       .eq('is_featured', true)
       .order('published_at', { ascending: false })
       .limit(5);

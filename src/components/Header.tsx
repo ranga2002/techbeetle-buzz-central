@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Search, Menu } from 'lucide-react';
@@ -11,6 +11,7 @@ import { NotificationBell } from './NotificationBell';
 import { useAuth } from '@/contexts/AuthContext';
 
 const navLinks = [
+  { label: 'News', to: '/news' },
   { label: 'Reviews', to: '/reviews' },
   { label: 'Videos', to: '/videos' },
   { label: 'How-To', to: '/how-to' },

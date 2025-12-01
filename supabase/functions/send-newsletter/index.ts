@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from 'npm:resend@2.0.0';
 
@@ -157,19 +157,19 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
                     <table cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td style="padding-right: 16px;">
-                          <span style="color: #9ca3af; font-size: 13px;">📖 ${article.reading_time || 5} min read</span>
+                          <span style="color: #9ca3af; font-size: 13px;">≡ƒôû ${article.reading_time || 5} min read</span>
                         </td>
                         <td style="padding-right: 16px;">
-                          <span style="color: #9ca3af; font-size: 13px;">👁️ ${article.views_count || 0} views</span>
+                          <span style="color: #9ca3af; font-size: 13px;">≡ƒæü∩╕Å ${article.views_count || 0} views</span>
                         </td>
                         <td>
-                          <span style="color: #9ca3af; font-size: 13px;">❤️ ${article.likes_count || 0} likes</span>
+                          <span style="color: #9ca3af; font-size: 13px;">Γ¥ñ∩╕Å ${article.likes_count || 0} likes</span>
                         </td>
                       </tr>
                     </table>
                     <div style="margin-top: 20px;">
-                      <a href="https://mnlgianmqlcndjyovlxj.supabase.co/content/${article.slug}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
-                        Read Article →
+                      <a href="https://mnlgianmqlcndjyovlxj.supabase.co/news/${article.slug}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        Read Article ΓåÆ
                       </a>
                     </div>
                   </td>
@@ -199,7 +199,7 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
                 <tr>
                   <td style="text-align: center; padding: 0 0 32px 0;">
                     <h1 style="margin: 0; font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                      🐞 TechBeetle
+                      ≡ƒÉ₧ TechBeetle
                     </h1>
                     <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 18px; font-weight: 500;">
                       Your Weekly Tech Digest
@@ -221,11 +221,11 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
                     </p>
                     <p style="margin: 0; color: #9ca3af; font-size: 13px;">
                       <a href="https://mnlgianmqlcndjyovlxj.supabase.co/preferences" style="color: #667eea; text-decoration: none; font-weight: 500;">Manage preferences</a>
-                      <span style="margin: 0 8px; color: #d1d5db;">•</span>
+                      <span style="margin: 0 8px; color: #d1d5db;">ΓÇó</span>
                       <a href="https://mnlgianmqlcndjyovlxj.supabase.co/preferences" style="color: #667eea; text-decoration: none; font-weight: 500;">Unsubscribe</a>
                     </p>
                     <p style="margin: 16px 0 0 0; color: #9ca3af; font-size: 12px;">
-                      © ${new Date().getFullYear()} TechBeetle. All rights reserved.
+                      ┬⌐ ${new Date().getFullYear()} TechBeetle. All rights reserved.
                     </p>
                   </td>
                 </tr>

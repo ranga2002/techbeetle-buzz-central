@@ -1,4 +1,4 @@
-
+﻿
 -- Add purchase links table for storing multiple purchase options per product
 CREATE TABLE public.purchase_links (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -31,7 +31,7 @@ CREATE TABLE public.content_sources (
   content_id UUID REFERENCES public.content(id) ON DELETE CASCADE,
   source_url TEXT NOT NULL,
   source_name TEXT NOT NULL,
-  source_type TEXT DEFAULT 'review', -- 'review', 'specs', 'price'
+  source_type TEXT DEFAULT 'review', -- 'review', 'specs', 'news', 'price'
   scraped_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

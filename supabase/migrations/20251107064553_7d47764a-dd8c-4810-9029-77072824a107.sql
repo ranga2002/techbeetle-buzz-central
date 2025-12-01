@@ -1,4 +1,4 @@
--- Create notifications table
+﻿-- Create notifications table
 CREATE TABLE IF NOT EXISTS public.notifications (
   id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -87,7 +87,7 @@ BEGIN
         'comment_reply',
         'New reply to your comment',
         'Someone replied to your comment on "' || content_title || '"',
-        '/content/' || NEW.content_id
+        '/news/' || NEW.content_id
       );
     END IF;
   END IF;

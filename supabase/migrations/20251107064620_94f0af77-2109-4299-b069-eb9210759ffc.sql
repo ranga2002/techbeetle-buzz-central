@@ -1,4 +1,4 @@
--- Fix search_path for notification functions
+﻿-- Fix search_path for notification functions
 CREATE OR REPLACE FUNCTION notify_comment_reply()
 RETURNS TRIGGER 
 LANGUAGE plpgsql
@@ -25,7 +25,7 @@ BEGIN
         'comment_reply',
         'New reply to your comment',
         'Someone replied to your comment on "' || content_title || '"',
-        '/content/' || NEW.content_id
+        '/news/' || NEW.content_id
       );
     END IF;
   END IF;

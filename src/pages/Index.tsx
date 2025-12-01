@@ -1,9 +1,9 @@
-
+﻿
 import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
-import LatestInsights from "@/components/LatestInsights";
+import LatestNews from "@/components/LatestNews";
 import ProductsSection from "@/components/ProductsSection";
 import TrendingArticles from "@/components/TrendingArticles";
 import { Button } from "@/components/ui/button";
@@ -80,7 +80,7 @@ const Index = () => {
         <section className="container mx-auto px-4 pb-12">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 space-y-12">
-              <LatestInsights />
+              <LatestNews />
               <ProductsSection />
               <Card className="border-dashed">
                 <CardContent className="p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -88,7 +88,7 @@ const Index = () => {
                     <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">New</p>
                     <h3 className="text-2xl font-semibold">Guided gadget picks</h3>
                     <p className="text-muted-foreground">
-                      Start with the gadget type, drill into OS, brand, and specs. We’ll hand you the right how-to.
+                      Start with the gadget type, drill into OS, brand, and specs. WeΓÇÖll hand you the right how-to.
                     </p>
                   </div>
                   <Button asChild size="lg">

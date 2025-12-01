@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+﻿import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ContentCard from '@/components/ContentCard';
+import NewsModal from '@/components/NewsModal';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Search, Filter, Calendar as CalendarIcon, X } from 'lucide-react';
@@ -19,7 +21,8 @@ const SearchPage = () => {
   const [query, setQuery] = useState(searchParams.get('q') || '');
   const [results, setResults] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
+  const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   
   // Filters
   const [categoryFilter, setCategoryFilter] = useState(searchParams.get('category') || 'all');
@@ -117,6 +120,21 @@ const SearchPage = () => {
     setDateTo(undefined);
   };
 
+  const handleNewsClick = (newsItem: any) => {
+    setSelectedNewsItem(newsItem);
+    setIsModalOpen(true);
+  };
+
+  const highlightText = (text: string) => {
+    if (!query) return text;
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === query.toLowerCase() ? 
+        <mark key={i} className="bg-yellow-300 dark:bg-yellow-700">{part}</mark> : 
+        part
+    );
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -128,7 +146,7 @@ const SearchPage = () => {
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
               <Input
                 type="text"
-                placeholder="Search articles, reviews, guides..."
+                placeholder="Search articles, reviews, news..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="pl-10"
@@ -177,10 +195,10 @@ const SearchPage = () => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All types</SelectItem>
+                      <SelectItem value="news">News</SelectItem>
                       <SelectItem value="review">Reviews</SelectItem>
                       <SelectItem value="how_to">How To</SelectItem>
                       <SelectItem value="video">Videos</SelectItem>
-                      <SelectItem value="comparison">Comparisons</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -279,7 +297,7 @@ const SearchPage = () => {
                     likesCount={content.likes_count || 0}
                     readingTime={content.reading_time}
                     publishedAt={content.published_at}
-                    onClick={() => navigate(`/content/${content.slug || content.id}`)}
+                    onClick={() => handleNewsClick(content)}
                   />
                 ))}
               </div>
@@ -295,6 +313,12 @@ const SearchPage = () => {
             ) : null}
           </div>
         </div>
+
+        <NewsModal 
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          newsItem={selectedNewsItem}
+        />
       </main>
       <Footer />
     </div>

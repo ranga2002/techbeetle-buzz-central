@@ -1,4 +1,4 @@
-
+﻿
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -28,6 +28,7 @@ const SettingsManagement = () => {
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="news-api">News API</TabsTrigger>
           <TabsTrigger value="email">Email</TabsTrigger>
           <TabsTrigger value="seo">SEO</TabsTrigger>
         </TabsList>
@@ -44,7 +45,7 @@ const SettingsManagement = () => {
               </div>
               <div>
                 <Label htmlFor="site-description">Site Description</Label>
-                <Textarea id="site-description" defaultValue="Your premier destination for hands-on tech reviews and buying guidance" />
+                <Textarea id="site-description" defaultValue="Your premier destination for tech news and reviews" />
               </div>
               <div>
                 <Label htmlFor="contact-email">Contact Email</Label>
@@ -55,6 +56,33 @@ const SettingsManagement = () => {
                 <Label htmlFor="maintenance-mode">Maintenance Mode</Label>
               </div>
               <Button onClick={handleSave}>Save Changes</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="news-api" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>News API Configuration</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="news-api-key">News API Key</Label>
+                <Input id="news-api-key" type="password" placeholder="Enter your News API key" />
+              </div>
+              <div>
+                <Label htmlFor="api-endpoint">API Endpoint</Label>
+                <Input id="api-endpoint" defaultValue="https://newsapi.org/v2/everything" />
+              </div>
+              <div>
+                <Label htmlFor="update-interval">Update Interval (minutes)</Label>
+                <Input id="update-interval" type="number" defaultValue="10" />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch id="auto-publish" />
+                <Label htmlFor="auto-publish">Auto-publish fetched news</Label>
+              </div>
+              <Button onClick={handleSave}>Save API Settings</Button>
             </CardContent>
           </Card>
         </TabsContent>
@@ -98,15 +126,15 @@ const SettingsManagement = () => {
             <CardContent className="space-y-4">
               <div>
                 <Label htmlFor="meta-title">Default Meta Title</Label>
-                <Input id="meta-title" defaultValue="TechBeetle - Tech Reviews & Guides" />
+                <Input id="meta-title" defaultValue="TechBeetle - Latest Tech News & Reviews" />
               </div>
               <div>
                 <Label htmlFor="meta-description">Default Meta Description</Label>
-                <Textarea id="meta-description" defaultValue="Stay updated with the latest technology reviews, buying guides, and curated picks at TechBeetle." />
+                <Textarea id="meta-description" defaultValue="Stay updated with the latest technology news, reviews, and insights at TechBeetle." />
               </div>
               <div>
                 <Label htmlFor="meta-keywords">Meta Keywords</Label>
-                <Input id="meta-keywords" defaultValue="tech reviews, technology, guides, gadgets, smartphones" />
+                <Input id="meta-keywords" defaultValue="tech news, technology, reviews, gadgets, smartphones" />
               </div>
               <div>
                 <Label htmlFor="google-analytics">Google Analytics ID</Label>
