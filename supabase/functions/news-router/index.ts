@@ -9,7 +9,8 @@ const corsHeaders = {
 
 // Simple in-memory cache (per cold start); use short TTL to avoid staleness.
 const cache = new Map<string, { expiresAt: number; payload: any }>();
-const CACHE_TTL_MS = 15 * 60 * 1000; // 15 minutes
+// Keep cache under the scheduled refresh cadence (10 min). Set to 9 minutes.
+const CACHE_TTL_MS = 9 * 60 * 1000;
 
 type NormalizedArticle = {
   id: string;
@@ -24,6 +25,11 @@ type NormalizedArticle = {
   why_it_matters?: string;
   takeaways?: string[];
   slug?: string;
+  seo_title?: string;
+  seo_description?: string;
+  content?: string;
+  content_raw?: string;
+  key_points?: string[];
 };
 
 const safeEnv = (key: string) => Deno.env.get(key) ?? "";
@@ -60,6 +66,27 @@ const rewriteArticle = (article: NormalizedArticle): NormalizedArticle => {
     `Published: ${article.published_at || "recent"}`,
     `Region: ${article.source_country || "global"}`,
   ];
+  const keyPoints = [
+    `${article.title}`,
+    `Published ${article.published_at ? formatDate(article.published_at) : "recently"}`,
+    `From ${article.source_name}`,
+  ];
+  const seoTitle = `${article.title} | TechBeetle Brief`;
+  const seoDescription =
+    article.summary?.slice(0, 150) ||
+    `Latest on ${article.source_name}: ${article.title}`;
+  const synthesizedContent = [
+    article.content_raw,
+    article.summary || "",
+    `Originally from ${article.source_name}${
+      article.source_country ? ` (${article.source_country.toUpperCase()})` : ""
+    }, curated for TechBeetle readers.`,
+    "Key takeaways:",
+    ...keyPoints.map((p) => `- ${p}`),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
   return {
     ...article,
     why_it_matters: why,
@@ -68,7 +95,19 @@ const rewriteArticle = (article: NormalizedArticle): NormalizedArticle => {
       article.summary ||
       `A fresh update from ${article.source_name} on recent technology developments.`,
     slug: toSlug(article.title),
+    seo_title: seoTitle,
+    seo_description: seoDescription,
+    content: synthesizedContent,
+    key_points: keyPoints,
   };
+};
+
+const formatDate = (value: string) => {
+  try {
+    return new Date(value).toISOString().split("T")[0];
+  } catch (_e) {
+    return value;
+  }
 };
 
 const dedupe = (items: NormalizedArticle[]): NormalizedArticle[] => {
@@ -104,6 +143,7 @@ const fetchNewsData = async (country: string, limit = 10) => {
     source_name: item.source_id || "NewsData",
     source_country: item.country?.[0] || country,
     provider: "newsdata",
+    content_raw: item.content || item.description || "",
   })) as NormalizedArticle[];
 };
 
@@ -119,13 +159,14 @@ const fetchGNews = async (country: string, limit = 10) => {
   return (json.articles || []).map((item: any) => ({
     id: item.url,
     title: item.title,
-    summary: item.description || "",
+    summary: item.description || item.content || "",
     url: item.url,
     image: item.image,
     published_at: item.publishedAt,
     source_name: item.source?.name || "GNews",
     source_country: country,
     provider: "gnews",
+    content_raw: item.content || item.description || "",
   })) as NormalizedArticle[];
 };
 
@@ -148,6 +189,7 @@ const fetchMediaStack = async (country: string, limit = 10) => {
     source_name: item.source || "mediastack",
     source_country: item.country || country,
     provider: "mediastack",
+    content_raw: item.description || "",
   })) as NormalizedArticle[];
 };
 
@@ -162,13 +204,14 @@ const fetchGuardian = async (limit = 10) => {
   return (json.response?.results || []).map((item: any) => ({
     id: item.id,
     title: item.webTitle,
-    summary: item.fields?.trailText || "",
+    summary: item.fields?.trailText || item.fields?.bodyText || "",
     url: item.webUrl,
     image: item.fields?.thumbnail,
     published_at: item.webPublicationDate,
     source_name: "The Guardian",
     source_country: "gb",
     provider: "guardian",
+    content_raw: item.fields?.bodyText || item.fields?.trailText || "",
   })) as NormalizedArticle[];
 };
 

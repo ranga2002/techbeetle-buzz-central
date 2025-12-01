@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useContent } from '@/hooks/useContent';
-import ContentCard from './ContentCard';
+import NewsCard from './NewsCard';
 import NewsModal from './NewsModal';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,7 @@ const LatestNews = () => {
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [location, setLocation] = useState<string>('');
+  const [country, setCountry] = useState<string>('us');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -47,17 +48,26 @@ const LatestNews = () => {
             if (data.city) {
               setLocation(data.city);
             }
+            if (data.countryCode) {
+              setCountry(data.countryCode.toLowerCase());
+            }
           }, (error) => {
             console.log('Location detection failed:', error);
             // Fallback to a default city
             setLocation('Toronto');
+            const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
+            setCountry(langCountry || 'ca');
           });
         } else {
           setLocation('Toronto');
+          const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
+          setCountry(langCountry || 'ca');
         }
       } catch (error) {
         console.log('Location detection error:', error);
         setLocation('Toronto');
+        const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
+        setCountry(langCountry || 'us');
       }
     };
 
@@ -90,7 +100,7 @@ const LatestNews = () => {
 
       // Call the news-router edge function (geo + multi-provider)
       const { data, error } = await supabase.functions.invoke('news-router', {
-        headers: { 'x-country': 'ca' },
+        headers: { 'x-country': country || 'us' },
         body: { query }
       });
 
@@ -228,19 +238,15 @@ const LatestNews = () => {
           searchResults?.length ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {searchResults.map((item, index) => (
-                <ContentCard
+                <NewsCard
                   key={`search-${index}`}
-                  id={item.id || `search-${index}`}
                   title={item.title}
                   excerpt={item.description || item.excerpt || undefined}
-                  featuredImage={item.urlToImage || item.featured_image || undefined}
-                  contentType="news"
-                  category={null}
-                  author={null}
-                  viewsCount={0}
-                  likesCount={0}
-                  readingTime={undefined}
-                  publishedAt={item.publishedAt || item.published_at || undefined}
+                  category={item.source?.name || 'Tech'}
+                  author={item.author || 'TechBeetle'}
+                  publishTime={item.publishedAt || item.published_at || 'Recently'}
+                  readTime={item.reading_time ? `${item.reading_time} min read` : '5 min read'}
+                  image={item.urlToImage || item.featured_image || ''}
                   onClick={() => handleNewsClick(item)}
                 />
               ))}
@@ -255,19 +261,15 @@ const LatestNews = () => {
           content?.length ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {content.map((item) => (
-                <ContentCard
+                <NewsCard
                   key={item.id}
-                  id={item.id}
                   title={item.title}
                   excerpt={item.excerpt || undefined}
-                  featuredImage={item.featured_image || undefined}
-                  contentType={item.content_type}
-                  category={item.categories as any}
-                  author={item.profiles as any}
-                  viewsCount={item.views_count || 0}
-                  likesCount={item.likes_count || 0}
-                  readingTime={item.reading_time || undefined}
-                  publishedAt={item.published_at || undefined}
+                  category={item.categories?.name || 'Tech'}
+                  author={item.profiles?.full_name || item.profiles?.username || 'TechBeetle'}
+                  publishTime={item.published_at || 'Recently'}
+                  readTime={item.reading_time ? `${item.reading_time} min read` : '5 min read'}
+                  image={item.featured_image || ''}
                   onClick={() => handleNewsClick(item)}
                 />
               ))}

@@ -3,6 +3,7 @@ import { Clock, User, MessageCircle, Heart, ArrowRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface NewsCardProps {
+  className?: string;
   title: string;
   excerpt: string;
   category: string;
@@ -17,6 +18,7 @@ interface NewsCardProps {
 }
 
 const NewsCard = ({ 
+  className,
   title, 
   excerpt, 
   category, 
@@ -30,33 +32,43 @@ const NewsCard = ({
   onClick
 }: NewsCardProps) => {
   const fallbackImage = "https://placehold.co/800x450?text=Tech+Beetle";
+  const safeExcerpt = excerpt || "Catch the latest on gadgets, AI, and the next big thing.";
 
   return (
     <article
       className={cn(
-        "bg-card rounded-2xl border border-border overflow-hidden card-hover group shadow-sm",
-        featured && "lg:col-span-2"
+        "bg-card rounded-2xl border border-border overflow-hidden card-hover group shadow-sm transition-all",
+        featured && "lg:col-span-2",
+        className
       )}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : -1}
     >
-      <div className={`${featured ? 'lg:flex lg:items-center' : ''}`}>
-        <div className={`relative overflow-hidden ${featured ? 'lg:w-1/2' : 'aspect-[16/10]'}`}>
+      <div className={featured ? 'lg:flex lg:items-center' : ''}>
+        <div className={cn(
+          "relative overflow-hidden",
+          featured ? "lg:w-1/2" : "aspect-[4/3]"
+        )}>
           <img
             src={image || fallbackImage}
             alt={title}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${featured ? 'aspect-[16/10] lg:aspect-auto lg:h-80' : ''}`}
+            className={cn(
+              "w-full h-full object-cover transition-transform duration-500",
+              featured ? "lg:aspect-auto lg:h-80" : "",
+              "group-hover:scale-105"
+            )}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
-          <div className="absolute top-4 left-4">
-            <Badge variant="secondary" className="bg-primary/90 text-primary-foreground shadow">
-              {category}
-            </Badge>
-          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent" />
+          <Badge
+            variant="secondary"
+            className="absolute top-4 left-4 bg-primary/90 text-primary-foreground shadow rounded-full px-3 py-1 text-xs"
+          >
+            {category}
+          </Badge>
           {featured && (
             <div className="absolute top-4 right-4">
-              <Badge variant="secondary" className="bg-accent/90 text-accent-foreground shadow">
+              <Badge variant="secondary" className="bg-accent/90 text-accent-foreground shadow rounded-full px-3 py-1 text-xs">
                 Featured
               </Badge>
             </div>
@@ -64,12 +76,18 @@ const NewsCard = ({
         </div>
         
         <div className={`p-6 ${featured ? 'lg:w-1/2' : ''}`}>
-          <h3 className={`font-bold mb-3 line-clamp-2 group-hover:text-primary transition-colors ${featured ? 'text-2xl lg:text-3xl' : 'text-lg'}`}>
+          <h3 className={cn(
+            "font-bold mb-2 line-clamp-2 group-hover:text-primary transition-colors",
+            featured ? "text-2xl lg:text-3xl" : "text-lg"
+          )}>
             {title}
           </h3>
           
-          <p className={`text-muted-foreground mb-4 line-clamp-3 ${featured ? 'text-base lg:text-lg' : 'text-sm'}`}>
-            {excerpt}
+          <p className={cn(
+            "text-muted-foreground mb-4 line-clamp-3",
+            featured ? "text-base lg:text-lg" : "text-sm"
+          )}>
+            {safeExcerpt}
           </p>
           
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">
@@ -90,11 +108,11 @@ const NewsCard = ({
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <MessageCircle className="w-4 h-4" />
-                {comments}
+                {comments ?? 0}
               </div>
               <div className="flex items-center gap-1">
                 <Heart className="w-4 h-4" />
-                {likes}
+                {likes ?? 0}
               </div>
             </div>
             <span className="inline-flex items-center gap-1 text-primary font-medium group-hover:underline">

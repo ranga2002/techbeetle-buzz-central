@@ -3,40 +3,46 @@ import { useAuth } from "@/contexts/AuthContext";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import HeroSection from "@/components/HeroSection";
-import ProductsSection from "@/components/ProductsSection";
-import CategoryTabs from "@/components/CategoryTabs";
-import FeaturedSection from "@/components/FeaturedSection";
 import LatestNews from "@/components/LatestNews";
+import ProductsSection from "@/components/ProductsSection";
 import TrendingArticles from "@/components/TrendingArticles";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
+import { Sparkles, MousePointerClick, SlidersHorizontal, BookOpenCheck } from "lucide-react";
 
 const Index = () => {
   const { user } = useAuth();
-  const quickLinks = [
-    {
-      title: "Newsroom",
-      description: "Fresh drops and daily briefs straight from the tech desk.",
-      to: "/news",
-      tone: "from-primary/10 via-primary/5 to-accent/10",
-    },
-    {
-      title: "Review Lab",
-      description: "Deep dives on gear that matters, tested and rated.",
-      to: "/reviews",
-      tone: "from-accent/10 via-primary/5 to-muted/40",
-    },
+
+  const pathways = [
     {
       title: "How-To Studio",
-      description: "Step-by-steps that turn tricky setups into easy wins.",
+      description: "Step-by-step flows to pick the right laptop, phone, or accessory.",
       to: "/how-to",
-      tone: "from-muted/40 via-primary/5 to-accent/10",
+      icon: <BookOpenCheck className="w-5 h-5" />,
+      pill: "Guided",
     },
     {
       title: "Compare Deck",
-      description: "Side-by-side breakdowns so you can choose fast.",
+      description: "Line up devices side-by-side and choose in minutes.",
       to: "/compare",
-      tone: "from-primary/5 via-muted/30 to-accent/10",
+      icon: <SlidersHorizontal className="w-5 h-5" />,
+      pill: "Fast pick",
+    },
+    {
+      title: "Review Lab",
+      description: "Tested takes on gear that matters with real pros/cons.",
+      to: "/reviews",
+      icon: <Sparkles className="w-5 h-5" />,
+      pill: "Trusted",
+    },
+    {
+      title: "Products",
+      description: "Curated gadgets with links, specs, and buying advice.",
+      to: "/products",
+      icon: <MousePointerClick className="w-5 h-5" />,
+      pill: "Shop-ready",
     },
   ];
 
@@ -45,19 +51,20 @@ const Index = () => {
       <Header />
       <main className="space-y-12">
         <HeroSection />
-        <section className="container mx-auto px-4 -mt-10">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {quickLinks.map((item) => (
+
+        <section className="container mx-auto px-4 -mt-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            {pathways.map((item) => (
               <Link
                 key={item.title}
                 to={item.to}
-                className={`group relative overflow-hidden rounded-2xl border bg-gradient-to-br ${item.tone} p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/10`}
+                className="group relative overflow-hidden rounded-2xl border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
               >
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                    Shortcut
-                  </p>
-                  <span className="text-sm font-semibold text-primary">→</span>
+                <div className="flex items-center justify-between mb-3">
+                  <Badge variant="secondary" className="rounded-full text-xs px-3 py-1">
+                    {item.pill}
+                  </Badge>
+                  <span className="text-sm font-semibold text-primary">{item.icon}</span>
                 </div>
                 <h3 className="text-xl font-semibold mb-2 group-hover:text-primary">
                   {item.title}
@@ -73,9 +80,22 @@ const Index = () => {
         <section className="container mx-auto px-4 pb-12">
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
             <div className="xl:col-span-2 space-y-12">
-              <FeaturedSection />
               <LatestNews />
               <ProductsSection />
+              <Card className="border-dashed">
+                <CardContent className="p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="space-y-2">
+                    <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">New</p>
+                    <h3 className="text-2xl font-semibold">Guided gadget picks</h3>
+                    <p className="text-muted-foreground">
+                      Start with the gadget type, drill into OS, brand, and specs. We’ll hand you the right how-to.
+                    </p>
+                  </div>
+                  <Button asChild size="lg">
+                    <Link to="/how-to">Launch How-To Flow</Link>
+                  </Button>
+                </CardContent>
+              </Card>
             </div>
             <aside className="xl:col-span-1 space-y-6">
               <div className="sticky top-24 space-y-6">
