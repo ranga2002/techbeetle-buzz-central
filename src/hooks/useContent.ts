@@ -19,6 +19,7 @@ export const useContent = () => {
     contentType?: string;
     status?: string;
     limit?: number;
+    slug?: string;
   }): Promise<Content[]> => {
     let query = supabase
       .from('content')
@@ -29,6 +30,9 @@ export const useContent = () => {
       `)
       .order('published_at', { ascending: false });
 
+    if (filters?.slug) {
+      query = query.eq('slug', filters.slug);
+    }
     if (filters?.category) {
       query = query.eq('categories.slug', filters.category);
     }
