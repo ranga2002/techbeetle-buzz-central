@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { useContent } from "@/hooks/useContent";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsModal from "@/components/NewsModal";
@@ -9,7 +8,8 @@ import { useNavigate, useParams } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw } from "lucide-react";
+import { Sparkles, RefreshCw, ArrowUp } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 const NewsPage = () => {
   const navigate = useNavigate();
@@ -17,12 +17,11 @@ const NewsPage = () => {
 
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(!!slug);
-
-  const { useContentQuery } = useContent();
-  const { data: newsContent, isLoading } = useContentQuery({
-    contentType: "news",
-    limit: 30,
-  });
+  const [articles, setArticles] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState(9);
+  const [showScrollTop, setShowScrollTop] = useState(false);
 
   const handleNewsClick = (newsItem: any) => {
     setSelectedNewsItem(newsItem);
@@ -37,17 +36,48 @@ const NewsPage = () => {
   };
 
   useEffect(() => {
-    if (slug && newsContent && newsContent.length > 0) {
-      const article = newsContent.find((item) => item.slug === slug);
-      if (article) {
-        setSelectedNewsItem(article);
-        setIsModalOpen(true);
-      } else {
-        setSelectedNewsItem(null);
-        setIsModalOpen(false);
+    const fetchNews = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const browserCountry =
+          typeof navigator !== "undefined" && navigator.language
+            ? navigator.language.split("-")[1]?.toLowerCase()
+            : "us";
+
+        const { data, error: fnError } = await supabase.functions.invoke("news-router", {
+          headers: { "x-country": browserCountry || "us" },
+        });
+
+        if (fnError) throw fnError;
+        const items = data?.items || [];
+        setArticles(items);
+
+        if (slug) {
+          const match = items.find((item: any) => item.slug === slug);
+          if (match) {
+            setSelectedNewsItem(match);
+            setIsModalOpen(true);
+          }
+        }
+      } catch (err: any) {
+        console.error("Error loading news:", err);
+        setError("Unable to load the latest tech news right now.");
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, [slug, newsContent]);
+    };
+
+    fetchNews();
+  }, [slug]);
+
+  useEffect(() => {
+    const onScroll = () => {
+      setShowScrollTop(window.scrollY > 400);
+    };
+    window.addEventListener("scroll", onScroll);
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -76,9 +106,11 @@ const NewsPage = () => {
     </div>
   );
 
-  const cards = newsContent?.map((content, idx) => {
-    const category = content.categories?.name || "Tech";
-    const author = content.profiles?.full_name || content.profiles?.username || "TechBeetle";
+  const visibleArticles = articles.slice(0, visibleCount);
+
+  const cards = visibleArticles.map((content: any, idx: number) => {
+    const category = content.categories?.name || content.source_name || "Tech";
+    const author = content.author || "TechBeetle";
     const publishedAt = content.published_at
       ? formatDistanceToNow(new Date(content.published_at), { addSuffix: true })
       : "Just now";
@@ -91,12 +123,12 @@ const NewsPage = () => {
       <NewsCard
         key={content.id}
         title={content.title}
-        excerpt={content.excerpt || "Catch the latest on gadgets, AI, and the next big thing."}
+        excerpt={content.summary || content.excerpt || "Catch the latest on gadgets, AI, and the next big thing."}
         category={category}
         author={author}
         publishTime={publishedAt}
         readTime={readTime}
-        image={content.featured_image || "https://placehold.co/800x450?text=Tech+Beetle"}
+        image={content.image || content.featured_image || "https://placehold.co/800x450?text=Tech+Beetle"}
         comments={comments}
         likes={likes}
         featured={featured}
@@ -121,10 +153,25 @@ const NewsPage = () => {
           </div>
         </section>
 
-        {isLoading ? renderSkeleton() : cards && cards.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {cards}
+        {error && (
+          <div className="bg-destructive/10 text-destructive border border-destructive/30 rounded-2xl p-4">
+            {error}
           </div>
+        )}
+
+        {isLoading ? renderSkeleton() : cards && cards.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {cards}
+            </div>
+            {visibleCount < articles.length && (
+              <div className="text-center">
+                <Button variant="outline" onClick={() => setVisibleCount((c) => c + 9)}>
+                  Load more
+                </Button>
+              </div>
+            )}
+          </>
         ) : (
           renderEmpty()
         )}
@@ -136,6 +183,15 @@ const NewsPage = () => {
         />
       </main>
       <Footer />
+      {showScrollTop && (
+        <button
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          className="fixed bottom-6 right-6 p-3 rounded-full bg-primary text-primary-foreground shadow-lg hover:shadow-xl transition-shadow"
+          aria-label="Back to top"
+        >
+          <ArrowUp className="w-5 h-5" />
+        </button>
+      )}
     </div>
   );
 };
