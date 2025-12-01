@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useContent } from '@/hooks/useContent';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
