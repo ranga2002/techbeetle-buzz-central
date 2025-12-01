@@ -17,10 +17,10 @@ const NewsApiFetcher = () => {
     setResult(null);
 
     try {
-      console.log('Calling fetch-news edge function...');
+      console.log('Calling news-router edge function...');
       
-      const { data, error: functionError } = await supabase.functions.invoke('fetch-news', {
-        body: {}
+      const { data, error: functionError } = await supabase.functions.invoke('news-router', {
+        body: { query: 'technology gadgets ai' }
       });
 
       if (functionError) {
@@ -76,9 +76,7 @@ const NewsApiFetcher = () => {
               <div className="space-y-2">
                 <div><strong>Success:</strong> {result.success ? 'Yes' : 'No'}</div>
                 <div><strong>Message:</strong> {result.message}</div>
-                {result.totalFetched && <div><strong>Total Fetched:</strong> {result.totalFetched}</div>}
-                {result.inserted && <div><strong>Inserted:</strong> {result.inserted}</div>}
-                {result.skipped && <div><strong>Skipped:</strong> {result.skipped}</div>}
+                {result.count && <div><strong>Count:</strong> {result.count}</div>}
               </div>
             </AlertDescription>
           </Alert>

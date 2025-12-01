@@ -88,8 +88,9 @@ const LatestNews = () => {
 
       console.log('Searching with query:', query);
 
-      // Call the fetch-news edge function
-      const { data, error } = await supabase.functions.invoke('fetch-news', {
+      // Call the news-router edge function (geo + multi-provider)
+      const { data, error } = await supabase.functions.invoke('news-router', {
+        headers: { 'x-country': 'ca' },
         body: { query }
       });
 
@@ -104,7 +105,7 @@ const LatestNews = () => {
       }
 
       // Parse the response data
-      const articles = data?.articles || [];
+      const articles = data?.items || data?.articles || [];
       
       setSearchResults(articles);
       setHasSearched(true);
