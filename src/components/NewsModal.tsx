@@ -152,9 +152,19 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   } = newsItem;
 
   const displayImage = image || featuredImage || "https://placehold.co/1200x630?text=Tech+Beetle";
-  const description = summary || excerpt || "Latest insights from the tech and gadget world.";
+
+  const sanitizeText = (value: string) => {
+    return value
+      .replace(/\[\+?\d+\s*chars?\]/gi, "")
+      .replace(/\[.*?chars?\]/gi, "")
+      .replace(/\.\.\.\s*$/, "")
+      .trim();
+  };
+
+  const description = sanitizeText(summary || excerpt || "Latest insights from the tech and gadget world.");
   const cleanedExcerpt = description;
-  const contentBody = content_raw || content || description || "";
+  const contentBodyRaw = content_raw || content || description || "";
+  const contentBody = sanitizeText(contentBodyRaw);
   const paragraphs = contentBody.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
   const publishedLabel = publishedAt
     ? formatDistanceToNow(new Date(publishedAt), { addSuffix: true })
@@ -229,7 +239,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden p-0 bg-background">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 bg-background">
         <OpenGraphMeta 
           title={title}
           description={cleanedExcerpt}
@@ -247,7 +257,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
             <X className="h-5 w-5" />
           </Button>
 
-          <div className="relative w-full h-[320px] overflow-hidden">
+          <div className="relative w-full h-[360px] overflow-hidden">
             <img 
               src={displayImage} 
               alt={title}
@@ -272,9 +282,9 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
             )}
           </div>
 
-          <div className="px-6 sm:px-10 md:px-12 py-8">
-            <Card className="mb-8 border-border/50 shadow-lg">
-              <CardContent className="p-6 md:p-8 space-y-4">
+          <div className="px-6 sm:px-10 md:px-12 py-8 bg-gradient-to-b from-background via-background to-muted/20">
+            <Card className="mb-8 border-border/60 shadow-lg bg-card/90 backdrop-blur">
+              <CardContent className="p-6 md:p-8 space-y-5">
                 <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
                   {sourceCountry && (
                     <span className="inline-flex items-center gap-2">
@@ -362,7 +372,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
 
             {cleanedExcerpt && (
               <div className="mb-8">
-                <p className="text-lg md:text-xl text-muted-foreground leading-relaxed font-serif italic border-l-4 border-primary pl-6 py-3">
+                <p className="text-lg md:text-xl text-foreground/90 leading-relaxed font-serif border-l-4 border-primary pl-6 py-3 bg-card/50 rounded-r-2xl">
                   {cleanedExcerpt}
                 </p>
               </div>
@@ -398,30 +408,34 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
             )}
 
             <article className="mb-10">
-              <div 
-                className="prose prose-base md:prose-lg dark:prose-invert max-w-none
-                  prose-headings:font-bold prose-headings:text-foreground
-                  prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
-                  prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
-                  prose-p:text-base prose-p:leading-relaxed prose-p:text-foreground/90 prose-p:mb-4
-                  prose-strong:text-foreground prose-strong:font-semibold
-                  prose-a:text-primary prose-a:no-underline hover:prose-a:underline
-                  prose-img:rounded-lg prose-img:shadow-md
-                  prose-ul:my-4 prose-ol:my-4 prose-li:my-1"
-              >
-                {paragraphs.length > 0
-                  ? paragraphs.map((paragraph: string, index: number) => (
-                      <p
-                        key={index}
-                        dangerouslySetInnerHTML={{
-                          __html: paragraph
-                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                            .replace(/\n/g, '<br />'),
-                        }}
-                      />
-                    ))
-                  : cleanedExcerpt}
-              </div>
+              <Card className="border-border/60 bg-card/80 backdrop-blur">
+                <CardContent className="p-6 md:p-8">
+                  <div 
+                    className="prose prose-base md:prose-lg dark:prose-invert max-w-none
+                      prose-headings:font-bold prose-headings:text-foreground
+                      prose-h2:text-2xl prose-h2:mt-10 prose-h2:mb-4
+                      prose-h3:text-xl prose-h3:mt-6 prose-h3:mb-3
+                      prose-p:text-base prose-p:leading-relaxed prose-p:text-foreground/90 prose-p:mb-4
+                      prose-strong:text-foreground prose-strong:font-semibold
+                      prose-a:text-primary prose-a:no-underline hover:prose-a:underline
+                      prose-img:rounded-lg prose-img:shadow-md
+                      prose-ul:my-4 prose-ol:my-4 prose-li:my-1"
+                  >
+                    {paragraphs.length > 0
+                      ? paragraphs.map((paragraph: string, index: number) => (
+                          <p
+                            key={index}
+                            dangerouslySetInnerHTML={{
+                              __html: paragraph
+                                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                                .replace(/\n/g, '<br />'),
+                            }}
+                          />
+                        ))
+                      : cleanedExcerpt}
+                  </div>
+                </CardContent>
+              </Card>
             </article>
 
             {sourceUrl && (
