@@ -18,6 +18,7 @@ export const useTrendingArticles = () => {
         categories(*)
       `)
       .eq('status', 'published')
+      .in('content_type', ['review', 'video', 'how_to', 'comparison'])
       .gte('published_at', oneWeekAgo.toISOString())
       .order('views_count', { ascending: false })
       .limit(5);

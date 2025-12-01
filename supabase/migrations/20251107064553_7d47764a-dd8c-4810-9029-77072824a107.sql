@@ -87,7 +87,7 @@ BEGIN
         'comment_reply',
         'New reply to your comment',
         'Someone replied to your comment on "' || content_title || '"',
-        '/news/' || NEW.content_id
+        '/content/' || NEW.content_id
       );
     END IF;
   END IF;

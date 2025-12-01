@@ -3,9 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Eye, Heart, Clock } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 const TrendingArticles = () => {
   const { data: trending, isLoading } = useTrendingArticles();
+  const navigate = useNavigate();
 
   if (isLoading) {
     return (
@@ -40,7 +42,7 @@ const TrendingArticles = () => {
           <div
             key={article.id}
             className="group flex gap-4 p-3 rounded-lg border border-border/50 bg-background/50 hover:bg-accent/50 hover:border-primary/50 transition-all cursor-pointer"
-            onClick={() => window.location.href = `/news/${article.slug}`}
+            onClick={() => navigate(`/content/${article.slug || article.id}`)}
           >
             <div className="flex-shrink-0">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">

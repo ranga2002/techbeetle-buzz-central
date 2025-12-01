@@ -64,10 +64,10 @@ const ContentFilters: React.FC<ContentFiltersProps> = ({
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Types</SelectItem>
-              <SelectItem value="news">News</SelectItem>
               <SelectItem value="review">Review</SelectItem>
               <SelectItem value="video">Video</SelectItem>
               <SelectItem value="how_to">How To</SelectItem>
+              <SelectItem value="comparison">Comparison</SelectItem>
             </SelectContent>
           </Select>
         </div>

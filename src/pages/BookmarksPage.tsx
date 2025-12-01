@@ -1,9 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ContentCard from '@/components/ContentCard';
-import NewsModal from '@/components/NewsModal';
 import { useBookmarks } from '@/hooks/useBookmarks';
 import { useAuth } from '@/contexts/AuthContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -15,8 +14,6 @@ const BookmarksPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { bookmarks, isLoading } = useBookmarks();
-  const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!user) {
     return (
@@ -38,11 +35,6 @@ const BookmarksPage = () => {
       </div>
     );
   }
-
-  const handleNewsClick = (newsItem: any) => {
-    setSelectedNewsItem(newsItem);
-    setIsModalOpen(true);
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -84,7 +76,7 @@ const BookmarksPage = () => {
                 likesCount={bookmark.content.likes_count || 0}
                 readingTime={bookmark.content.reading_time}
                 publishedAt={bookmark.content.published_at}
-                onClick={() => handleNewsClick(bookmark.content)}
+                onClick={() => navigate(`/content/${bookmark.content.slug || bookmark.content.id}`)}
               />
             ))}
           </div>
@@ -100,12 +92,6 @@ const BookmarksPage = () => {
             </CardContent>
           </Card>
         )}
-
-        <NewsModal 
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          newsItem={selectedNewsItem}
-        />
       </main>
       <Footer />
     </div>

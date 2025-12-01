@@ -82,7 +82,7 @@ const AuthPage = () => {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold">TechBeetle</h2>
-          <p className="mt-2 text-muted-foreground">Your source for latest tech news</p>
+          <p className="mt-2 text-muted-foreground">Your guide for honest reviews and smarter picks</p>
         </div>
 
         <Tabs defaultValue="signin" className="w-full">

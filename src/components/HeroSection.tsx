@@ -32,22 +32,21 @@ const HeroSection = () => {
             <div className="space-y-4">
               <h1 className="text-4xl sm:text-5xl xl:text-6xl font-bold leading-tight">
                 Navigate the noise,
-                <span className="text-gradient block">get the signal in tech.</span>
+                <span className="text-gradient block">make faster gear decisions.</span>
               </h1>
               <p className="text-lg sm:text-xl text-muted-foreground leading-relaxed max-w-3xl">
-                Curated headlines, hands-on reviews, and comparisons built for people who want
-                to decide faster, whether you are tracking AI, wearables, or the next drop.
+                Hands-on reviews, guided workflows, and comparison decks built for people who want clarity on the next laptop, phone, or accessory.
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <Button size="lg" className="group" asChild>
-                <Link to="/news">
-                  Dive into today's briefing
+                <Link to="/reviews">
+                  See the latest reviews
                   <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
               <Button variant="outline" size="lg" asChild>
-                <Link to="/products">See our gear picks</Link>
+                <Link to="/how-to">Start a guided pick</Link>
               </Button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -100,7 +99,7 @@ const HeroSection = () => {
                     {mainStory.excerpt}
                   </p>
                   <Button variant="ghost" className="p-0 h-auto font-semibold" asChild>
-                    <Link to={`/news/${mainStory.slug || ""}`} className="inline-flex items-center gap-2">
+                    <Link to={`/content/${mainStory.slug || ""}`} className="inline-flex items-center gap-2">
                       Read the story
                       <ArrowRight className="w-4 h-4" />
                     </Link>

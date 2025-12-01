@@ -31,7 +31,7 @@ CREATE TABLE public.content_sources (
   content_id UUID REFERENCES public.content(id) ON DELETE CASCADE,
   source_url TEXT NOT NULL,
   source_name TEXT NOT NULL,
-  source_type TEXT DEFAULT 'review', -- 'review', 'specs', 'news', 'price'
+  source_type TEXT DEFAULT 'review', -- 'review', 'specs', 'price'
   scraped_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   last_updated TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

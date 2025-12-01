@@ -34,7 +34,7 @@ const CategoryTabs = () => {
         </div>
         <div className="flex flex-wrap gap-3 justify-center">
           {categories?.map((category) => (
-            <Link key={category.id} to={`/news?category=${category.slug}`}>
+            <Link key={category.id} to={`/search?category=${category.slug}`}>
               <Badge 
                 variant="outline" 
                 className="px-4 py-2 text-sm hover:bg-primary hover:text-primary-foreground transition-colors cursor-pointer"

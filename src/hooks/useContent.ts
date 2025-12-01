@@ -73,6 +73,7 @@ export const useContent = () => {
         profiles(*)
       `)
       .eq('status', 'published')
+      .in('content_type', ['review', 'video', 'how_to', 'comparison'])
       .eq('is_featured', true)
       .order('published_at', { ascending: false })
       .limit(5);

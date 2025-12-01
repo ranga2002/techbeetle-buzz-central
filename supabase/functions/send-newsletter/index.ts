@@ -168,7 +168,7 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
                       </tr>
                     </table>
                     <div style="margin-top: 20px;">
-                      <a href="https://mnlgianmqlcndjyovlxj.supabase.co/news/${article.slug}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                      <a href="https://mnlgianmqlcndjyovlxj.supabase.co/content/${article.slug}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
                         Read Article →
                       </a>
                     </div>

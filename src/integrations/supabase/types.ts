@@ -755,7 +755,7 @@ export type Database = {
     Enums: {
       comment_status: "pending" | "approved" | "rejected" | "spam"
       content_status: "draft" | "pending" | "published" | "archived"
-      content_type: "news" | "review" | "video" | "how_to" | "comparison"
+      content_type: "review" | "video" | "how_to" | "comparison"
       user_role: "user" | "author" | "editor" | "admin"
     }
     CompositeTypes: {
@@ -886,7 +886,7 @@ export const Constants = {
     Enums: {
       comment_status: ["pending", "approved", "rejected", "spam"],
       content_status: ["draft", "pending", "published", "archived"],
-      content_type: ["news", "review", "video", "how_to", "comparison"],
+      content_type: ["review", "video", "how_to", "comparison"],
       user_role: ["user", "author", "editor", "admin"],
     },
   },

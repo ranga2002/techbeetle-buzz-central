@@ -1,6 +1,6 @@
 
 -- Create enum types for better data integrity
-CREATE TYPE public.content_type AS ENUM ('news', 'review', 'video', 'how_to', 'comparison');
+CREATE TYPE public.content_type AS ENUM ('review', 'video', 'how_to', 'comparison');
 CREATE TYPE public.content_status AS ENUM ('draft', 'pending', 'published', 'archived');
 CREATE TYPE public.user_role AS ENUM ('admin', 'editor', 'author', 'user');
 CREATE TYPE public.comment_status AS ENUM ('pending', 'approved', 'rejected', 'spam');
@@ -228,7 +228,7 @@ INSERT INTO public.categories (name, slug, description, color) VALUES
 ('Gadgets', 'gadgets', 'Cool gadgets and tech accessories', '#F59E0B'),
 ('Gaming', 'gaming', 'Gaming hardware and reviews', '#EF4444'),
 ('Apps', 'apps', 'Mobile and web applications', '#06B6D4'),
-('Startups', 'startups', 'Tech startup news and funding', '#84CC16'),
+('Startups', 'startups', 'Tech startup launches and funding', '#84CC16'),
 ('Reviews', 'reviews', 'In-depth product reviews', '#F97316');
 
 -- Create function to handle new user signup

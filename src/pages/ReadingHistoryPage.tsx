@@ -6,10 +6,12 @@ import ContentCard from "@/components/ContentCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { History, Sparkles } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const ReadingHistoryPage = () => {
   const { user } = useAuth();
   const { useReadingHistoryQuery, useRecommendationsQuery } = useReadingHistory(user?.id);
+  const navigate = useNavigate();
   
   const { data: history, isLoading: historyLoading } = useReadingHistoryQuery();
   const { data: recommendations, isLoading: recommendationsLoading } = useRecommendationsQuery();
@@ -66,7 +68,7 @@ const ReadingHistoryPage = () => {
                       likesCount={article.likes_count || 0}
                       readingTime={article.reading_time || 5}
                       publishedAt={article.published_at || ''}
-                      onClick={() => window.location.href = `/news/${article.slug}`}
+                      onClick={() => navigate(`/content/${article.slug || article.id}`)}
                     />
                   ))}
                 </div>
@@ -114,7 +116,7 @@ const ReadingHistoryPage = () => {
                       likesCount={article.likes_count || 0}
                       readingTime={article.reading_time || 5}
                       publishedAt={article.published_at || ''}
-                      onClick={() => window.location.href = `/news/${article.slug}`}
+                      onClick={() => navigate(`/content/${article.slug || article.id}`)}
                     />
                   ))}
                 </div>

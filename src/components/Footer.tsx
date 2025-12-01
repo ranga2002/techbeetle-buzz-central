@@ -19,7 +19,7 @@ const Footer = () => {
               <span className="text-xl font-bold">TechBeetle</span>
             </div>
             <p className="text-muted-foreground">
-              Your trusted source for the latest tech news, reviews, and insights.
+              Your trusted source for hands-on reviews, buying guides, and curated gear picks.
             </p>
             <div className="flex space-x-2">
               <Button variant="ghost" size="icon">
@@ -41,11 +41,11 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              <li><Link to="/news" className="text-muted-foreground hover:text-primary transition-colors">News</Link></li>
               <li><Link to="/reviews" className="text-muted-foreground hover:text-primary transition-colors">Reviews</Link></li>
-              <li><Link to="/videos" className="text-muted-foreground hover:text-primary transition-colors">Videos</Link></li>
-              <li><Link to="/how-to" className="text-muted-foreground hover:text-primary transition-colors">How-To</Link></li>
+              <li><Link to="/how-to" className="text-muted-foreground hover:text-primary transition-colors">How-To Guides</Link></li>
               <li><Link to="/compare" className="text-muted-foreground hover:text-primary transition-colors">Compare</Link></li>
+              <li><Link to="/products" className="text-muted-foreground hover:text-primary transition-colors">Products</Link></li>
+              <li><Link to="/videos" className="text-muted-foreground hover:text-primary transition-colors">Videos</Link></li>
             </ul>
           </div>
 
@@ -53,11 +53,11 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold mb-4">Categories</h3>
             <ul className="space-y-2">
-              <li><Link to="/news?category=mobile" className="text-muted-foreground hover:text-primary transition-colors">Mobile</Link></li>
-              <li><Link to="/news?category=laptops" className="text-muted-foreground hover:text-primary transition-colors">Laptops</Link></li>
-              <li><Link to="/news?category=ai" className="text-muted-foreground hover:text-primary transition-colors">AI</Link></li>
-              <li><Link to="/news?category=gaming" className="text-muted-foreground hover:text-primary transition-colors">Gaming</Link></li>
-              <li><Link to="/news?category=startups" className="text-muted-foreground hover:text-primary transition-colors">Startups</Link></li>
+              <li><Link to="/products?category=mobile" className="text-muted-foreground hover:text-primary transition-colors">Mobile</Link></li>
+              <li><Link to="/products?category=laptops" className="text-muted-foreground hover:text-primary transition-colors">Laptops</Link></li>
+              <li><Link to="/compare" className="text-muted-foreground hover:text-primary transition-colors">AI & Productivity</Link></li>
+              <li><Link to="/how-to" className="text-muted-foreground hover:text-primary transition-colors">Guides</Link></li>
+              <li><Link to="/reviews" className="text-muted-foreground hover:text-primary transition-colors">Reviews</Link></li>
             </ul>
           </div>
 
@@ -82,7 +82,7 @@ const Footer = () => {
             © 2024 TechBeetle. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <Link to="/privacy" className="text-muted-foreground hover:text-primary text-sm transition-colors">
+            <Link to="/privacy-policy" className="text-muted-foreground hover:text-primary text-sm transition-colors">
               Privacy Policy
             </Link>
             <Link to="/terms" className="text-muted-foreground hover:text-primary text-sm transition-colors">
