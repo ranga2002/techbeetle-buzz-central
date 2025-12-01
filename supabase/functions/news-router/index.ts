@@ -87,7 +87,9 @@ const fetchNewsData = async (country: string, limit = 10) => {
   if (!NEWS_DATA_KEY) return [] as NormalizedArticle[];
   const url =
     `https://newsdata.io/api/1/news?apikey=${NEWS_DATA_KEY}` +
-    `&category=technology&language=en&country=${country}&page=1`;
+    `&category=technology&language=en&country=${country}` +
+    `&q=technology OR gadget OR smartphone OR laptop OR AI` +
+    `&page=1`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -109,7 +111,8 @@ const fetchGNews = async (country: string, limit = 10) => {
   if (!GNEWS_KEY) return [] as NormalizedArticle[];
   const url =
     `https://gnews.io/api/v4/top-headlines?token=${GNEWS_KEY}` +
-    `&topic=technology&lang=en&country=${country}&max=${limit}`;
+    `&topic=technology&lang=en&country=${country}&max=${limit}` +
+    `&q=technology+OR+gadget+OR+smartphone+OR+laptop+OR+AI`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -130,7 +133,8 @@ const fetchMediaStack = async (country: string, limit = 10) => {
   if (!MEDIASTACK_KEY) return [] as NormalizedArticle[];
   const url =
     `http://api.mediastack.com/v1/news?access_key=${MEDIASTACK_KEY}` +
-    `&categories=technology&countries=${country}&languages=en&limit=${limit}`;
+    `&categories=technology&countries=${country}&languages=en&limit=${limit}` +
+    `&keywords=technology,gadget,smartphone,laptop,ai`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -150,7 +154,7 @@ const fetchMediaStack = async (country: string, limit = 10) => {
 const fetchGuardian = async (limit = 10) => {
   if (!GUARDIAN_KEY) return [] as NormalizedArticle[];
   const url =
-    `https://content.guardianapis.com/search?q=technology&section=technology` +
+    `https://content.guardianapis.com/search?q=technology%20OR%20gadget%20OR%20smartphone%20OR%20laptop%20OR%20AI&section=technology` +
     `&order-by=newest&show-fields=trailText,thumbnail&api-key=${GUARDIAN_KEY}&page-size=${limit}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];

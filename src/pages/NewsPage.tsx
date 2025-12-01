@@ -2,15 +2,18 @@ import React, { useState, useEffect } from "react";
 import { useContent } from "@/hooks/useContent";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import ContentCard from "@/components/ContentCard";
 import NewsModal from "@/components/NewsModal";
+import NewsCard from "@/components/NewsCard";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { formatDistanceToNow } from "date-fns";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Sparkles, RefreshCw } from "lucide-react";
 
 const NewsPage = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug?: string }>();
-  const location = useLocation();
 
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(!!slug);
@@ -18,78 +21,112 @@ const NewsPage = () => {
   const { useContentQuery } = useContent();
   const { data: newsContent, isLoading } = useContentQuery({
     contentType: "news",
-    limit: 20,
+    limit: 30,
   });
 
-  // 🔹 When user clicks a card
   const handleNewsClick = (newsItem: any) => {
     setSelectedNewsItem(newsItem);
     setIsModalOpen(true);
-    // Update the URL to /news/{slug}
     navigate(`/news/${newsItem.slug}`, { replace: false });
   };
 
-  // 🔹 When modal closes
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedNewsItem(null);
-    // Return to /news
     navigate("/news");
   };
 
-  // 🔹 When page loads with a slug in the URL (e.g., shared link)
   useEffect(() => {
     if (slug && newsContent && newsContent.length > 0) {
       const article = newsContent.find((item) => item.slug === slug);
       if (article) {
         setSelectedNewsItem(article);
         setIsModalOpen(true);
+      } else {
+        setSelectedNewsItem(null);
+        setIsModalOpen(false);
       }
     }
   }, [slug, newsContent]);
 
+  const renderSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {[...Array(9)].map((_, i) => (
+        <div key={i} className="space-y-4">
+          <Skeleton className="aspect-video rounded-2xl" />
+          <Skeleton className="h-6 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      ))}
+    </div>
+  );
+
+  const renderEmpty = () => (
+    <div className="bg-card border rounded-2xl p-10 text-center space-y-3">
+      <Sparkles className="w-10 h-10 text-primary mx-auto" />
+      <h3 className="text-xl font-semibold">No tech news yet</h3>
+      <p className="text-muted-foreground">
+        Stay tuned while we pull fresh gadget launches, AI drops, and product updates.
+      </p>
+      <Button variant="outline" onClick={() => window.location.reload()} className="inline-flex items-center gap-2">
+        <RefreshCw className="w-4 h-4" />
+        Reload feed
+      </Button>
+    </div>
+  );
+
+  const cards = newsContent?.map((content, idx) => {
+    const category = content.categories?.name || "Tech";
+    const author = content.profiles?.full_name || content.profiles?.username || "TechBeetle";
+    const publishedAt = content.published_at
+      ? formatDistanceToNow(new Date(content.published_at), { addSuffix: true })
+      : "Just now";
+    const readTime = content.reading_time ? `${content.reading_time} min read` : "5 min read";
+    const comments = content.comments_count || 0;
+    const likes = content.likes_count || 0;
+    const featured = idx === 0;
+
+    return (
+      <NewsCard
+        key={content.id}
+        title={content.title}
+        excerpt={content.excerpt || "Catch the latest on gadgets, AI, and the next big thing."}
+        category={category}
+        author={author}
+        publishTime={publishedAt}
+        readTime={readTime}
+        image={content.featured_image || "https://placehold.co/800x450?text=Tech+Beetle"}
+        comments={comments}
+        likes={likes}
+        featured={featured}
+        onClick={() => handleNewsClick(content)}
+      />
+    );
+  });
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">Latest Tech News</h1>
-          <p className="text-muted-foreground text-lg">
-            Stay updated with the latest happenings in the tech world
-          </p>
-        </div>
+      <main className="container mx-auto px-4 py-10 space-y-8">
+        <section className="rounded-3xl border bg-card/60 backdrop-blur px-6 py-8 shadow-sm">
+          <div className="flex flex-col gap-3">
+            <Badge variant="secondary" className="w-fit">
+              Technology & Gadgets
+            </Badge>
+            <h1 className="text-4xl font-bold leading-tight">Latest Tech Briefing</h1>
+            <p className="text-muted-foreground text-lg max-w-3xl">
+              Curated drops on gadgets, AI, laptops, and the launches that matter. Updated frequently for your region.
+            </p>
+          </div>
+        </section>
 
-        {isLoading ? (
+        {isLoading ? renderSkeleton() : cards && cards.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(9)].map((_, i) => (
-              <div key={i} className="space-y-4">
-                <Skeleton className="aspect-video" />
-                <Skeleton className="h-6 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            ))}
+            {cards}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {newsContent?.map((content) => (
-              <ContentCard
-                key={content.id}
-                id={content.id}
-                title={content.title}
-                excerpt={content.excerpt || undefined}
-                featuredImage={content.featured_image || undefined}
-                contentType={content.content_type}
-                category={content.categories as any}
-                author={content.profiles as any}
-                viewsCount={content.views_count || 0}
-                likesCount={content.likes_count || 0}
-                readingTime={content.reading_time || undefined}
-                publishedAt={content.published_at || undefined}
-                onClick={() => handleNewsClick(content)}
-              />
-            ))}
-          </div>
+          renderEmpty()
         )}
 
         <NewsModal

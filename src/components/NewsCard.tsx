@@ -1,6 +1,5 @@
-
 import { Badge } from '@/components/ui/badge';
-import { Clock, User, MessageCircle, Heart } from 'lucide-react';
+import { Clock, User, MessageCircle, Heart, ArrowRight } from 'lucide-react';
 
 interface NewsCardProps {
   title: string;
@@ -13,6 +12,7 @@ interface NewsCardProps {
   comments?: number;
   likes?: number;
   featured?: boolean;
+  onClick?: () => void;
 }
 
 const NewsCard = ({ 
@@ -25,12 +25,17 @@ const NewsCard = ({
   image, 
   comments = 0, 
   likes = 0, 
-  featured = false 
+  featured = false,
+  onClick
 }: NewsCardProps) => {
   return (
-    <article className={`bg-card rounded-xl border border-border overflow-hidden card-hover group ${featured ? 'lg:col-span-2' : ''}`}>
+    <article
+      className={`bg-card rounded-2xl border border-border overflow-hidden card-hover group ${featured ? 'lg:col-span-2' : ''}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : -1}
+    >
       <div className={`${featured ? 'lg:flex lg:items-center' : ''}`}>
-        {/* Image */}
         <div className={`relative overflow-hidden ${featured ? 'lg:w-1/2' : 'aspect-[16/10]'}`}>
           <img
             src={image}
@@ -45,13 +50,12 @@ const NewsCard = ({
           {featured && (
             <div className="absolute top-4 right-4">
               <Badge variant="secondary" className="bg-accent/90 text-accent-foreground">
-                ⭐ Featured
+                Featured
               </Badge>
             </div>
           )}
         </div>
         
-        {/* Content */}
         <div className={`p-6 ${featured ? 'lg:w-1/2' : ''}`}>
           <h3 className={`font-bold mb-3 line-clamp-2 group-hover:text-primary transition-colors ${featured ? 'text-2xl lg:text-3xl' : 'text-lg'}`}>
             {title}
@@ -61,7 +65,6 @@ const NewsCard = ({
             {excerpt}
           </p>
           
-          {/* Meta Info */}
           <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
             <div className="flex items-center gap-1">
               <User className="w-4 h-4" />
@@ -74,7 +77,6 @@ const NewsCard = ({
             <span>{readTime}</span>
           </div>
           
-          {/* Engagement */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
@@ -86,8 +88,9 @@ const NewsCard = ({
                 {likes}
               </div>
             </div>
-            <span className="text-primary font-medium group-hover:underline cursor-pointer">
-              Read more →
+            <span className="inline-flex items-center gap-1 text-primary font-medium group-hover:underline">
+              Read more
+              <ArrowRight className="w-4 h-4" />
             </span>
           </div>
         </div>
