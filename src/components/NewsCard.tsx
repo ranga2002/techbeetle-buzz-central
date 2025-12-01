@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Clock, User, MessageCircle, Heart, ArrowRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface NewsCardProps {
   title: string;
@@ -28,9 +29,14 @@ const NewsCard = ({
   featured = false,
   onClick
 }: NewsCardProps) => {
+  const fallbackImage = "https://placehold.co/800x450?text=Tech+Beetle";
+
   return (
     <article
-      className={`bg-card rounded-2xl border border-border overflow-hidden card-hover group ${featured ? 'lg:col-span-2' : ''}`}
+      className={cn(
+        "bg-card rounded-2xl border border-border overflow-hidden card-hover group shadow-sm",
+        featured && "lg:col-span-2"
+      )}
       onClick={onClick}
       role={onClick ? 'button' : undefined}
       tabIndex={onClick ? 0 : -1}
@@ -38,18 +44,19 @@ const NewsCard = ({
       <div className={`${featured ? 'lg:flex lg:items-center' : ''}`}>
         <div className={`relative overflow-hidden ${featured ? 'lg:w-1/2' : 'aspect-[16/10]'}`}>
           <img
-            src={image}
+            src={image || fallbackImage}
             alt={title}
             className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ${featured ? 'aspect-[16/10] lg:aspect-auto lg:h-80' : ''}`}
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent" />
           <div className="absolute top-4 left-4">
-            <Badge variant="secondary" className="bg-primary/90 text-primary-foreground">
+            <Badge variant="secondary" className="bg-primary/90 text-primary-foreground shadow">
               {category}
             </Badge>
           </div>
           {featured && (
             <div className="absolute top-4 right-4">
-              <Badge variant="secondary" className="bg-accent/90 text-accent-foreground">
+              <Badge variant="secondary" className="bg-accent/90 text-accent-foreground shadow">
                 Featured
               </Badge>
             </div>
@@ -65,16 +72,18 @@ const NewsCard = ({
             {excerpt}
           </p>
           
-          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-4">
-            <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">
+            <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              {author}
+              <span className="font-medium text-foreground">{author}</span>
             </div>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
-              {publishTime}
+              <span>{publishTime}</span>
             </div>
-            <span>{readTime}</span>
+            <Badge variant="outline" className="text-xs px-2 py-1 rounded-full">
+              {readTime}
+            </Badge>
           </div>
           
           <div className="flex items-center justify-between">
