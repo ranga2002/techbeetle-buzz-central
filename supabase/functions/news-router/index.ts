@@ -197,14 +197,16 @@ const fetchGuardian = async (limit = 10) => {
   if (!GUARDIAN_KEY) return [] as NormalizedArticle[];
   const url =
     `https://content.guardianapis.com/search?q=technology%20OR%20gadget%20OR%20smartphone%20OR%20laptop%20OR%20AI&section=technology` +
-    `&order-by=newest&show-fields=trailText,thumbnail&api-key=${GUARDIAN_KEY}&page-size=${limit}`;
+    `&order-by=newest&show-fields=trailText,bodyText,thumbnail&api-key=${GUARDIAN_KEY}&page-size=${limit}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
   return (json.response?.results || []).map((item: any) => ({
     id: item.id,
     title: item.webTitle,
-    summary: item.fields?.trailText || item.fields?.bodyText || "",
+    summary:
+      item.fields?.trailText ||
+      (item.fields?.bodyText ? item.fields.bodyText.slice(0, 300) : ""),
     url: item.webUrl,
     image: item.fields?.thumbnail,
     published_at: item.webPublicationDate,

@@ -163,7 +163,13 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
 
   const description = sanitizeText(summary || excerpt || "Latest insights from the tech and gadget world.");
   const cleanedExcerpt = description;
-  const contentBodyRaw = content_raw || content || description || "";
+  const hasMeaningfulBody = (value?: string | null) => {
+    if (!value) return false;
+    return value.replace(/\s+/g, "").length >= 400;
+  };
+
+  const preferredBody = hasMeaningfulBody(content_raw) ? content_raw : content;
+  const contentBodyRaw = preferredBody || description || "";
   const contentBody = sanitizeText(contentBodyRaw);
   const paragraphs = contentBody.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
   const publishedLabel = publishedAt
