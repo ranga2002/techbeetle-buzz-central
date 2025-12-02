@@ -41,6 +41,7 @@ const GUARDIAN_KEY = safeEnv("GUARDIAN_API_KEY");
 
 const supabaseUrl = safeEnv("SUPABASE_URL");
 const supabaseServiceKey = safeEnv("SUPABASE_SERVICE_ROLE_KEY");
+const defaultAuthorId = safeEnv("DEFAULT_AUTHOR_ID"); // Set to a valid profiles.id for attribution
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -238,16 +239,116 @@ const collectArticles = async (country: string, needed = 20) => {
   return dedupe(results).slice(0, needed).map(rewriteArticle);
 };
 
+const truncate = (value: string, max = 200) =>
+  value.length > max ? `${value.slice(0, max - 3)}...` : value;
+
+const ensureCategory = async (slug: string, name: string) => {
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    console.error("Category lookup failed", error);
+    return null;
+  }
+  if (data?.id) return data.id;
+
+  const { data: created, error: insertError } = await supabase
+    .from("categories")
+    .insert({
+      name,
+      slug,
+      is_active: true,
+      description: "Auto-created by news-router",
+      color: "#3B82F6",
+    })
+    .select("id")
+    .single();
+
+  if (insertError) {
+    console.error("Category insert failed", insertError);
+    return null;
+  }
+  return created?.id ?? null;
+};
+
+const persistArticles = async (items: NormalizedArticle[]) => {
+  if (!defaultAuthorId) {
+    console.warn("DEFAULT_AUTHOR_ID is not set; skipping persistence to content.");
+    return;
+  }
+
+  const categoryId = await ensureCategory("technology", "Technology");
+
+  for (const article of items) {
+    try {
+      const insertPayload = {
+        title: article.title,
+        slug: article.slug || toSlug(article.title),
+        excerpt: truncate(article.summary || "", 200),
+        content: article.content || article.summary || "",
+        featured_image: article.image ?? null,
+        content_type: "news",
+        status: "published",
+        author_id: defaultAuthorId,
+        category_id: categoryId,
+        published_at: article.published_at ?? new Date().toISOString(),
+        meta_title: article.seo_title ?? truncate(article.title, 60),
+        meta_description: article.seo_description ?? truncate(article.summary || article.title, 160),
+        is_featured: false,
+        reading_time: 5,
+        views_count: 0,
+        likes_count: 0,
+      };
+
+      const { error: upsertError } = await supabase
+        .from("content")
+        .upsert(insertPayload, { onConflict: "slug" });
+
+      if (upsertError) {
+        console.error("Content upsert failed", { slug: insertPayload.slug, upsertError });
+        continue;
+      }
+
+      // Best-effort source metadata
+      await supabase.from("content_sources").upsert({
+        source_url: article.url,
+        source_name: article.source_name,
+        source_type: article.provider,
+        last_updated: new Date().toISOString(),
+        scraped_at: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error("Failed to persist article", article.slug, e);
+    }
+  }
+};
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Optional body and flags
+  let body: any = null;
+  let bypassCache = false;
+  try {
+    body = await req.json();
+    bypassCache = Boolean(body?.refresh || body?.bypass_cache || body?.triggered_at);
+  } catch (_e) {
+    // no-op; body might be empty
+  }
+  if (req.headers.get("x-bypass-cache") === "true") {
+    bypassCache = true;
   }
 
   const country = parseCountry(req);
   const cacheKey = `news-${country}`;
   const cached = cache.get(cacheKey);
   const now = Date.now();
-  if (cached && cached.expiresAt > now) {
+  if (!bypassCache && cached && cached.expiresAt > now) {
     return new Response(JSON.stringify(cached.payload), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
@@ -256,6 +357,9 @@ serve(async (req: Request) => {
 
   try {
     const items = await collectArticles(country, 20);
+
+    // Persist to content table (best effort; will skip if DEFAULT_AUTHOR_ID is not configured)
+    await persistArticles(items);
 
     // Optional: record pull usage (no-op if table missing)
     try {
