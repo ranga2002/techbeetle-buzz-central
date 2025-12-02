@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -28,11 +27,14 @@ interface ProductCardProps {
   publishedAt?: string;
   rating?: number;
   price?: number;
+  priceCurrency?: string;
+  formattedPrice?: string;
   purchaseLinks?: Array<{
     retailer_name: string;
     product_url: string;
     price: number;
     is_primary: boolean;
+    currency?: string;
   }>;
   onClick?: () => void;
 }
@@ -50,10 +52,18 @@ const ProductCard: React.FC<ProductCardProps> = ({
   publishedAt,
   rating,
   price,
+  priceCurrency = 'USD',
+  formattedPrice,
   purchaseLinks,
   onClick,
 }) => {
   const primaryLink = purchaseLinks?.find(link => link.is_primary) || purchaseLinks?.[0];
+  const formatter = new Intl.NumberFormat(undefined, {
+    style: 'currency',
+    currency: priceCurrency || 'USD',
+    maximumFractionDigits: 0,
+  });
+  const displayPrice = formattedPrice || (price !== undefined ? formatter.format(price) : undefined);
 
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer group" onClick={onClick}>
@@ -100,10 +110,10 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </p>
         )}
 
-        {price && (
+        {displayPrice && (
           <div className="flex items-center justify-between">
             <div className="text-lg font-bold text-green-600">
-              ₹{price.toLocaleString()}
+              {displayPrice}
             </div>
             {primaryLink && (
               <Button 
@@ -177,7 +187,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                     window.open(link.product_url, '_blank');
                   }}
                 >
-                  {link.retailer_name}: ₹{link.price}
+                  {link.retailer_name}: {formatter.format(link.price || 0)}
                 </Button>
               ))}
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useProducts } from '@/hooks/useProducts';
 import ProductCard from '@/components/ProductCard';
 import Header from '@/components/Header';
@@ -15,9 +15,54 @@ const ProductsPage = () => {
     minRating: 0,
     maxPrice: 5000,
   });
+  const [currency, setCurrency] = useState<'USD' | 'CAD' | 'INR'>('USD');
+  const [rates, setRates] = useState<{ [k: string]: number }>({ USD: 1 });
+  const [loadingRates, setLoadingRates] = useState(false);
 
   const { useProductReviewsQuery } = useProducts();
   const { data: products, isLoading } = useProductReviewsQuery(filters);
+
+  useEffect(() => {
+    const region = (Intl.DateTimeFormat().resolvedOptions().locale.split('-')[1] || 'US').toUpperCase();
+    const mappedCurrency = region === 'CA' ? 'CAD' : region === 'IN' ? 'INR' : 'USD';
+    setCurrency(mappedCurrency as any);
+  }, []);
+
+  useEffect(() => {
+    const fetchRates = async () => {
+      setLoadingRates(true);
+      try {
+        const res = await fetch('https://api.exchangerate.host/latest?base=USD&symbols=USD,CAD,INR');
+        const json = await res.json();
+        if (json?.rates) {
+          setRates(json.rates);
+        }
+      } catch (e) {
+        console.error('Failed to load rates', e);
+      } finally {
+        setLoadingRates(false);
+      }
+    };
+    fetchRates();
+  }, []);
+
+  const convertedProducts = useMemo(() => {
+    if (!products) return [];
+    const rate = rates[currency] || 1;
+    return products.map((p) => {
+      const basePrice = p.review_details?.[0]?.price || (p.purchase_links?.[0]?.price ?? undefined);
+      const convertedPrice = basePrice !== undefined ? basePrice * rate : undefined;
+      const formattedPrice =
+        convertedPrice !== undefined
+          ? new Intl.NumberFormat(undefined, {
+              style: 'currency',
+              currency: currency,
+              maximumFractionDigits: 0,
+            }).format(convertedPrice)
+          : undefined;
+      return { ...p, convertedPrice, formattedPrice };
+    });
+  }, [products, rates, currency]);
 
   const handleCategoryChange = (category: string) => {
     setFilters(prev => ({ ...prev, category: category === 'all' ? '' : category }));
@@ -123,16 +168,18 @@ const ProductsPage = () => {
                 </div>
               ))}
             </div>
-          ) : products && products.length > 0 ? (
+          ) : convertedProducts && convertedProducts.length > 0 ? (
             <>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{products.length} Products Found</Badge>
+                  <Badge variant="secondary">{convertedProducts.length} Products Found</Badge>
+                  <Badge variant="outline">Currency: {currency}</Badge>
+                  {loadingRates && <span className="text-xs text-muted-foreground">Updating rates…</span>}
                 </div>
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {products.map((product) => (
+                {convertedProducts.map((product) => (
                   <ProductCard
                     key={product.id}
                     id={product.id}
@@ -147,7 +194,9 @@ const ProductsPage = () => {
                     readingTime={product.reading_time || undefined}
                     publishedAt={product.published_at || undefined}
                     rating={product.review_details?.[0]?.overall_rating}
-                    price={product.review_details?.[0]?.price}
+                    price={product.convertedPrice}
+                    priceCurrency={currency}
+                    formattedPrice={product.formattedPrice}
                     purchaseLinks={product.purchase_links || []}
                     onClick={() => {
                       console.log('Navigate to product:', product.slug);
