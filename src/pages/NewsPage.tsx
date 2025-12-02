@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsModal from "@/components/NewsModal";
@@ -9,19 +9,31 @@ import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, RefreshCw, ArrowUp } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { useContent } from "@/hooks/useContent";
 
 const NewsPage = () => {
   const navigate = useNavigate();
   const { slug } = useParams<{ slug?: string }>();
+  const { useContentQuery } = useContent();
 
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(!!slug);
   const [articles, setArticles] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [visibleCount, setVisibleCount] = useState(9);
   const [showScrollTop, setShowScrollTop] = useState(false);
+
+  const country = useMemo(() => {
+    if (typeof navigator === "undefined") return "us";
+    const parts = navigator.language?.split("-") || [];
+    return (parts[1] || "us").toLowerCase();
+  }, []);
+
+  const { data: newsData = [], isLoading } = useContentQuery({
+    contentType: "news",
+    category: `news-${country}`,
+    limit: 60,
+  });
 
   const handleNewsClick = (newsItem: any) => {
     setSelectedNewsItem(newsItem);
@@ -36,45 +48,26 @@ const NewsPage = () => {
   };
 
   useEffect(() => {
-    const fetchNews = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const browserCountry =
-          typeof navigator !== "undefined" && navigator.language
-            ? navigator.language.split("-")[1]?.toLowerCase()
-            : "us";
+    try {
+      const sorted = [...(newsData || [])].sort((a, b) => {
+        const aDate = new Date(a.published_at || "").getTime() || 0;
+        const bDate = new Date(b.published_at || "").getTime() || 0;
+        return bDate - aDate;
+      });
+      setArticles(sorted);
 
-        const { data, error: fnError } = await supabase.functions.invoke("news-router", {
-          headers: { "x-country": browserCountry || "us" },
-        });
-
-        if (fnError) throw fnError;
-        const items = data?.items || [];
-        const sorted = [...items].sort((a, b) => {
-          const aDate = new Date(a.published_at || a.publishedAt || "").getTime() || 0;
-          const bDate = new Date(b.published_at || b.publishedAt || "").getTime() || 0;
-          return bDate - aDate;
-        });
-        setArticles(sorted);
-
-        if (slug) {
-          const match = sorted.find((item: any) => item.slug === slug);
-          if (match) {
-            setSelectedNewsItem(match);
-            setIsModalOpen(true);
-          }
+      if (slug) {
+        const match = sorted.find((item: any) => item.slug === slug);
+        if (match) {
+          setSelectedNewsItem(match);
+          setIsModalOpen(true);
         }
-      } catch (err: any) {
-        console.error("Error loading news:", err);
-        setError("Unable to load the latest tech news right now.");
-      } finally {
-        setIsLoading(false);
       }
-    };
-
-    fetchNews();
-  }, [slug]);
+    } catch (err: any) {
+      console.error("Error processing news data:", err);
+      setError("Unable to load the latest tech news right now.");
+    }
+  }, [newsData, slug]);
 
   useEffect(() => {
     const onScroll = () => {
@@ -115,7 +108,7 @@ const NewsPage = () => {
 
   const cards = visibleArticles.map((content: any, idx: number) => {
     const category = content.categories?.name || content.source_name || "Tech";
-    const author = content.author || "TechBeetle";
+    const author = content.profiles?.full_name || content.profiles?.username || "TechBeetle";
     const publishedAt = content.published_at
       ? formatDistanceToNow(new Date(content.published_at), { addSuffix: true })
       : "Just now";
@@ -202,3 +195,4 @@ const NewsPage = () => {
 };
 
 export default NewsPage;
+

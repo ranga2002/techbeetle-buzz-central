@@ -274,13 +274,16 @@ const ensureCategory = async (slug: string, name: string) => {
   return created?.id ?? null;
 };
 
-const persistArticles = async (items: NormalizedArticle[]) => {
+const persistArticles = async (items: NormalizedArticle[], country: string) => {
   if (!defaultAuthorId) {
     console.warn("DEFAULT_AUTHOR_ID is not set; skipping persistence to content.");
     return;
   }
 
-  const categoryId = await ensureCategory("technology", "Technology");
+  const regionSlug = `news-${country.toLowerCase()}`;
+  const categoryId =
+    (await ensureCategory(regionSlug, `News (${country.toUpperCase()})`)) ||
+    (await ensureCategory("technology", "Technology"));
 
   for (const article of items) {
     try {
@@ -359,7 +362,7 @@ serve(async (req: Request) => {
     const items = await collectArticles(country, 20);
 
     // Persist to content table (best effort; will skip if DEFAULT_AUTHOR_ID is not configured)
-    await persistArticles(items);
+    await persistArticles(items, country);
 
     // Optional: record pull usage (no-op if table missing)
     try {
