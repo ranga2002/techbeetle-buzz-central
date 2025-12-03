@@ -9,8 +9,10 @@ const corsHeaders = {
 
 // Simple in-memory cache (per cold start); use short TTL to avoid staleness.
 const cache = new Map<string, { expiresAt: number; payload: any }>();
-// Keep cache under the scheduled refresh cadence (10 min). Set to 9 minutes.
-const CACHE_TTL_MS = 9 * 60 * 1000;
+// Keep cache comfortably under the scheduler cadence (5 min). Set to 4 minutes.
+const CACHE_TTL_MS = 4 * 60 * 1000;
+
+const DEFAULT_QUERY_TERMS = "technology OR gadget OR smartphone OR laptop OR AI";
 
 type NormalizedArticle = {
   id: string;
@@ -44,6 +46,64 @@ const supabaseServiceKey = safeEnv("SUPABASE_SERVICE_ROLE_KEY");
 const defaultAuthorId = safeEnv("DEFAULT_AUTHOR_ID"); // Set to a valid profiles.id for attribution
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+const resolveAuthorId = async (): Promise<string | null> => {
+  if (defaultAuthorId) return defaultAuthorId;
+
+  // Prefer an existing admin/editor profile
+  const { data: adminProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("is_active", true)
+    .in("role", ["admin", "editor"])
+    .limit(1)
+    .maybeSingle();
+  if (adminProfile?.id) return adminProfile.id;
+
+  // Fallback: any active profile
+  const { data: anyProfile } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("is_active", true)
+    .limit(1)
+    .maybeSingle();
+  if (anyProfile?.id) return anyProfile.id;
+
+  // Last resort: create a system user to own ingested news
+  try {
+    const email = "news-bot@techbeetle.local";
+    const password = crypto.randomUUID();
+    const { data, error } = await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+    });
+    if (error || !data?.user) {
+      console.error("Failed to create system news user", error);
+      return null;
+    }
+    const systemId = data.user.id;
+    await supabase.from("profiles").upsert({
+      id: systemId,
+      full_name: "TechBeetle News Bot",
+      username: "news-bot",
+      role: "admin",
+      is_active: true,
+    });
+    return systemId;
+  } catch (err) {
+    console.error("Could not resolve or create author", err);
+    return null;
+  }
+};
+
+const purgeExistingNews = async () => {
+  const { error } = await supabase.from("content").delete().eq("content_type", "news");
+  if (error) {
+    console.error("Failed to purge existing news", error);
+    throw error;
+  }
+};
 
 const parseCountry = (req: Request): string => {
   const url = new URL(req.url);
@@ -124,12 +184,13 @@ const dedupe = (items: NormalizedArticle[]): NormalizedArticle[] => {
   return result;
 };
 
-const fetchNewsData = async (country: string, limit = 10) => {
+const fetchNewsData = async (country: string, limit = 10, query?: string) => {
   if (!NEWS_DATA_KEY) return [] as NormalizedArticle[];
+  const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
   const url =
     `https://newsdata.io/api/1/news?apikey=${NEWS_DATA_KEY}` +
     `&category=technology&language=en&country=${country}` +
-    `&q=technology OR gadget OR smartphone OR laptop OR AI` +
+    `&q=${search}` +
     `&page=1`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
@@ -149,12 +210,13 @@ const fetchNewsData = async (country: string, limit = 10) => {
   })) as NormalizedArticle[];
 };
 
-const fetchGNews = async (country: string, limit = 10) => {
+const fetchGNews = async (country: string, limit = 10, query?: string) => {
   if (!GNEWS_KEY) return [] as NormalizedArticle[];
-  const url =
-    `https://gnews.io/api/v4/top-headlines?token=${GNEWS_KEY}` +
-    `&topic=technology&lang=en&country=${country}&max=${limit}` +
-    `&q=technology+OR+gadget+OR+smartphone+OR+laptop+OR+AI`;
+  const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
+  const base = query
+    ? `https://gnews.io/api/v4/search?token=${GNEWS_KEY}&lang=en&country=${country}`
+    : `https://gnews.io/api/v4/top-headlines?token=${GNEWS_KEY}&topic=technology&lang=en&country=${country}`;
+  const url = `${base}&max=${limit}&q=${search}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -172,12 +234,13 @@ const fetchGNews = async (country: string, limit = 10) => {
   })) as NormalizedArticle[];
 };
 
-const fetchMediaStack = async (country: string, limit = 10) => {
+const fetchMediaStack = async (country: string, limit = 10, query?: string) => {
   if (!MEDIASTACK_KEY) return [] as NormalizedArticle[];
+  const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
   const url =
     `http://api.mediastack.com/v1/news?access_key=${MEDIASTACK_KEY}` +
     `&categories=technology&countries=${country}&languages=en&limit=${limit}` +
-    `&keywords=technology,gadget,smartphone,laptop,ai`;
+    `&keywords=${search.replace(/%20/g, ",")}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -195,10 +258,11 @@ const fetchMediaStack = async (country: string, limit = 10) => {
   })) as NormalizedArticle[];
 };
 
-const fetchGuardian = async (limit = 10) => {
+const fetchGuardian = async (limit = 10, query?: string) => {
   if (!GUARDIAN_KEY) return [] as NormalizedArticle[];
+  const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
   const url =
-    `https://content.guardianapis.com/search?q=technology%20OR%20gadget%20OR%20smartphone%20OR%20laptop%20OR%20AI&section=technology` +
+    `https://content.guardianapis.com/search?q=${search}&section=technology` +
     `&order-by=newest&show-fields=trailText,bodyText,thumbnail&api-key=${GUARDIAN_KEY}&page-size=${limit}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
@@ -219,12 +283,12 @@ const fetchGuardian = async (limit = 10) => {
   })) as NormalizedArticle[];
 };
 
-const collectArticles = async (country: string, needed = 20) => {
+const collectArticles = async (country: string, needed = 20, query?: string) => {
   const providers: Array<() => Promise<NormalizedArticle[]>> = [
-    () => fetchNewsData(country, 10),
-    () => fetchGNews(country, 10),
-    () => fetchMediaStack(country, 10),
-    () => fetchGuardian(10),
+    () => fetchNewsData(country, 10, query),
+    () => fetchGNews(country, 10, query),
+    () => fetchMediaStack(country, 10, query),
+    () => fetchGuardian(10, query),
   ];
 
   const results: NormalizedArticle[] = [];
@@ -237,7 +301,19 @@ const collectArticles = async (country: string, needed = 20) => {
       console.error("Provider failed", err);
     }
   }
-  return dedupe(results).slice(0, needed).map(rewriteArticle);
+  const sorted = dedupe(results)
+    .map((item) => ({
+      ...item,
+      published_at: item.published_at || new Date().toISOString(),
+    }))
+    .sort((a, b) => {
+      const aDate = new Date(a.published_at || "").getTime() || 0;
+      const bDate = new Date(b.published_at || "").getTime() || 0;
+      return bDate - aDate;
+    })
+    .slice(0, needed);
+
+  return sorted.map(rewriteArticle);
 };
 
 const truncate = (value: string, max = 200) =>
@@ -276,8 +352,9 @@ const ensureCategory = async (slug: string, name: string) => {
 };
 
 const persistArticles = async (items: NormalizedArticle[], country: string) => {
-  if (!defaultAuthorId) {
-    console.warn("DEFAULT_AUTHOR_ID is not set; skipping persistence to content.");
+  const authorId = await resolveAuthorId();
+  if (!authorId) {
+    console.warn("No author available; skipping persistence to content.");
     return;
   }
 
@@ -297,7 +374,7 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         featured_image: article.image ?? null,
         content_type: "news",
         status: "published",
-        author_id: defaultAuthorId,
+        author_id: authorId,
         category_id: categoryId,
         published_at: article.published_at ?? new Date().toISOString(),
         meta_title: article.seo_title ?? truncate(article.title, 60),
@@ -310,9 +387,11 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         // created_at intentionally omitted on conflict to preserve original insertion time
       };
 
-      const { error: upsertError } = await supabase
+      const { data: upserted, error: upsertError } = await supabase
         .from("content")
-        .upsert(insertPayload, { onConflict: "slug" });
+        .upsert(insertPayload, { onConflict: "slug" })
+        .select("id")
+        .single();
 
       if (upsertError) {
         console.error("Content upsert failed", { slug: insertPayload.slug, upsertError });
@@ -320,13 +399,21 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
       }
 
       // Best-effort source metadata
-      await supabase.from("content_sources").upsert({
-        source_url: article.url,
-        source_name: article.source_name,
-        source_type: article.provider,
-        last_updated: new Date().toISOString(),
-        scraped_at: new Date().toISOString(),
-      });
+      const contentId = upserted?.id;
+      if (contentId) {
+        const now = new Date().toISOString();
+        const { error: sourceError } = await supabase.from("content_sources").upsert({
+          content_id: contentId,
+          source_url: article.url,
+          source_name: article.source_name,
+          source_type: article.provider,
+          last_updated: now,
+          scraped_at: now,
+        });
+        if (sourceError) {
+          console.error("content_sources upsert failed", { slug: insertPayload.slug, sourceError });
+        }
+      }
     } catch (e) {
       console.error("Failed to persist article", article.slug, e);
     }
@@ -341,9 +428,13 @@ serve(async (req: Request) => {
   // Optional body and flags
   let body: any = null;
   let bypassCache = false;
+  let purgeExisting = false;
+  let query: string | undefined;
   try {
     body = await req.json();
     bypassCache = Boolean(body?.refresh || body?.bypass_cache || body?.triggered_at);
+    purgeExisting = Boolean(body?.purge);
+    query = typeof body?.query === "string" ? body.query.trim() : undefined;
   } catch (_e) {
     // no-op; body might be empty
   }
@@ -351,8 +442,20 @@ serve(async (req: Request) => {
     bypassCache = true;
   }
 
+  const url = new URL(req.url);
+  if (!query) {
+    const qp = url.searchParams.get("q");
+    query = qp ? qp.trim() : undefined;
+  }
+  if (query) {
+    // Keep search responses fresh
+    bypassCache = true;
+  }
+
   const country = parseCountry(req);
-  const cacheKey = `news-${country}`;
+  const cacheKey = query
+    ? `news-${country}-${query.toLowerCase()}`
+    : `news-${country}`;
   const cached = cache.get(cacheKey);
   const now = Date.now();
   if (!bypassCache && cached && cached.expiresAt > now) {
@@ -363,7 +466,11 @@ serve(async (req: Request) => {
   }
 
   try {
-    const items = await collectArticles(country, 20);
+    if (purgeExisting) {
+      await purgeExistingNews();
+    }
+
+    const items = await collectArticles(country, 20, query);
 
     // Persist to content table (best effort; will skip if DEFAULT_AUTHOR_ID is not configured)
     await persistArticles(items, country);
@@ -383,6 +490,7 @@ serve(async (req: Request) => {
     const payload = {
       success: true,
       country,
+      query: query || null,
       count: items.length,
       items,
       generated_at: new Date().toISOString(),

@@ -103,10 +103,20 @@ export const useContent = () => {
   });
 
   return {
-    useContentQuery: (filters?: Parameters<typeof fetchContent>[0]) =>
+    useContentQuery: (
+      filters?: Parameters<typeof fetchContent>[0],
+      options?: {
+        refetchInterval?: number;
+        staleTime?: number;
+        refetchOnWindowFocus?: boolean;
+      },
+    ) =>
       useQuery({
         queryKey: ['content', filters],
         queryFn: () => fetchContent(filters),
+        staleTime: options?.staleTime ?? 60_000,
+        refetchInterval: options?.refetchInterval,
+        refetchOnWindowFocus: options?.refetchOnWindowFocus ?? false,
       }),
     
     useCategoriesQuery: () =>

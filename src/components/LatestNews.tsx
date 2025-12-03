@@ -27,6 +27,10 @@ const LatestNews = () => {
     category: selectedCategory === 'All' ? undefined : selectedCategory,
     contentType: 'news',
     limit: 10,
+  }, {
+    refetchInterval: 120000, // keep homepage fresh every 2 minutes
+    refetchOnWindowFocus: true,
+    staleTime: 60000,
   });
   
   const { data: categories } = useCategoriesQuery();
@@ -250,19 +254,28 @@ const LatestNews = () => {
         {hasSearched ? (
           searchResults?.length ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {searchResults.map((item, index) => (
-                <NewsCard
-                  key={`search-${index}`}
-                  title={item.title}
-                  excerpt={item.description || item.excerpt || undefined}
-                  category={item.source?.name || 'Tech'}
-                  author={item.author || 'TechBeetle'}
-                  publishTime={item.publishedAt || item.published_at || 'Recently'}
-                  readTime={item.reading_time ? `${item.reading_time} min read` : '5 min read'}
-                  image={item.urlToImage || item.featured_image || ''}
-                  onClick={() => handleNewsClick(item)}
-                />
-              ))}
+              {searchResults.map((item, index) => {
+                const excerpt = item.summary || item.description || item.excerpt || "";
+                const categoryLabel = item.source_name || item.source?.name || 'Tech';
+                const authorLabel = item.author || item.source_name || 'TechBeetle';
+                const publishTime = item.publishedAt || item.published_at || 'Recently';
+                const readTime = item.reading_time ? `${item.reading_time} min read` : '5 min read';
+                const image = item.image || item.urlToImage || item.featured_image || '';
+
+                return (
+                  <NewsCard
+                    key={`search-${index}`}
+                    title={item.title}
+                    excerpt={excerpt}
+                    category={categoryLabel}
+                    author={authorLabel}
+                    publishTime={publishTime}
+                    readTime={readTime}
+                    image={image}
+                    onClick={() => handleNewsClick(item)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">

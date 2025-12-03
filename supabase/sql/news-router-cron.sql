@@ -6,11 +6,11 @@ select vault.create_secret('anon_key', 'YOUR_SUPABASE_ANON_KEY');
 -- Optional: set a preferred country for scheduled pulls
 select vault.create_secret('news_country', 'us');
 
--- Schedule the news-router edge function every 10 minutes
+-- Schedule the news-router edge function every 5 minutes
 select
   cron.schedule(
-    'invoke-news-router-every-10min',
-    '*/10 * * * *', -- every 10 minutes
+    'invoke-news-router-every-5min',
+    '*/5 * * * *', -- every 5 minutes
     $$
     select
       net.http_post(
@@ -18,13 +18,14 @@ select
         headers := jsonb_build_object(
           'Content-type', 'application/json',
           'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'anon_key'),
-          'x-country', coalesce((select decrypted_secret from vault.decrypted_secrets where name = 'news_country'), 'us')
+          'x-country', coalesce((select decrypted_secret from vault.decrypted_secrets where name = 'news_country'), 'us'),
+          'x-bypass-cache', 'true'
         ),
-        body := jsonb_build_object('triggered_at', now())
+        body := jsonb_build_object('triggered_at', now(), 'bypass_cache', true)
       ) as request_id;
     $$
   );
 
 -- Requirements: pg_net and pg_cron extensions enabled in your database.
 -- To remove the schedule:
--- select cron.unschedule('invoke-news-router-every-10min');
+-- select cron.unschedule('invoke-news-router-every-5min');

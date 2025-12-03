@@ -20,12 +20,18 @@ const NewsPage = () => {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(!!slug);
   const [articles, setArticles] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [visibleCount, setVisibleCount] = useState(9);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  const { data: newsData = [], isLoading } = useContentQuery({
-    contentType: "news",
-  });
+  const { data: newsData = [], isLoading } = useContentQuery(
+    {
+      contentType: "news",
+    },
+    {
+      refetchInterval: 120000, // refresh every 2 minutes
+      refetchOnWindowFocus: true,
+      staleTime: 60000,
+    }
+  );
 
   const handleNewsClick = (newsItem: any) => {
     setSelectedNewsItem(newsItem);
@@ -96,9 +102,7 @@ const NewsPage = () => {
     </div>
   );
 
-  const visibleArticles = articles.slice(0, visibleCount);
-
-  const cards = visibleArticles.map((content: any, idx: number) => {
+  const cards = articles.map((content: any, idx: number) => {
     const category = content.categories?.name || content.source_name || "Tech";
     const author = content.profiles?.full_name || content.profiles?.username || "TechBeetle";
     const publishedAt = content.published_at
@@ -150,18 +154,9 @@ const NewsPage = () => {
         )}
 
         {isLoading ? renderSkeleton() : cards && cards.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {cards}
-            </div>
-            {visibleCount < articles.length && (
-              <div className="text-center">
-                <Button variant="outline" onClick={() => setVisibleCount((c) => c + 9)}>
-                  Load more
-                </Button>
-              </div>
-            )}
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {cards}
+          </div>
         ) : (
           renderEmpty()
         )}

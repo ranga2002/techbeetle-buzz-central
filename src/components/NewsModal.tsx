@@ -145,6 +145,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     slug,
     source_name: sourceName,
     source_url: sourceUrl,
+    url: articleUrl,
     source_country: sourceCountry,
     why_it_matters: whyItMatters,
     takeaways,
@@ -152,6 +153,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   } = newsItem;
 
   const displayImage = image || featuredImage || "https://placehold.co/1200x630?text=Tech+Beetle";
+  const originalUrl = sourceUrl || articleUrl;
 
   const sanitizeText = (value: string) => {
     return value
@@ -358,9 +360,9 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                       {isBookmarked(id) ? 'Saved' : 'Save'}
                     </Button>
                   )}
-                  {sourceUrl && (
+                  {originalUrl && (
                     <Button asChild variant="outline" size="sm" className="gap-2">
-                      <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                      <a href={originalUrl} target="_blank" rel="noopener noreferrer">
                         <ExternalLink className="w-4 h-4" />
                         Read original
                       </a>
@@ -444,7 +446,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
               </Card>
             </article>
 
-            {sourceUrl && (
+            {originalUrl && (
               <Card className="mb-8 border border-primary/20 bg-gradient-to-br from-primary/5 to-background">
                 <CardContent className="p-6">
                   <div className="flex items-start gap-4">
@@ -452,7 +454,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                       <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1.5 font-semibold">Original Source</p>
                       <p className="text-lg font-bold mb-3 text-foreground">{sourceName || 'External Article'}</p>
                       <Button asChild variant="default" size="default" className="gap-2">
-                        <a href={sourceUrl} target="_blank" rel="noopener noreferrer">
+                        <a href={originalUrl} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="w-4 h-4" />
                           Read Full Article
                         </a>
