@@ -76,9 +76,12 @@ const rewriteArticle = (article: NormalizedArticle): NormalizedArticle => {
   const seoDescription =
     article.summary?.slice(0, 150) ||
     `Latest on ${article.source_name}: ${article.title}`;
+  const paraphrasedSummary = article.summary
+    ? `Here’s the gist: ${article.summary.replace(/\s+/g, " ").trim()}`
+    : `A fresh update from ${article.source_name} on recent technology developments.`;
   const synthesizedContent = [
+    paraphrasedSummary,
     article.content_raw,
-    article.summary || "",
     `Originally from ${article.source_name}${
       article.source_country ? ` (${article.source_country.toUpperCase()})` : ""
     }, curated for TechBeetle readers.`,
@@ -92,9 +95,7 @@ const rewriteArticle = (article: NormalizedArticle): NormalizedArticle => {
     ...article,
     why_it_matters: why,
     takeaways,
-    summary:
-      article.summary ||
-      `A fresh update from ${article.source_name} on recent technology developments.`,
+    summary: paraphrasedSummary,
     slug: toSlug(article.title),
     seo_title: seoTitle,
     seo_description: seoDescription,
@@ -287,6 +288,7 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
 
   for (const article of items) {
     try {
+      const nowIso = new Date().toISOString();
       const insertPayload = {
         title: article.title,
         slug: article.slug || toSlug(article.title),
@@ -304,6 +306,8 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         reading_time: 5,
         views_count: 0,
         likes_count: 0,
+        updated_at: nowIso,
+        // created_at intentionally omitted on conflict to preserve original insertion time
       };
 
       const { error: upsertError } = await supabase

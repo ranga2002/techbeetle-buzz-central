@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import NewsModal from "@/components/NewsModal";
@@ -23,16 +23,8 @@ const NewsPage = () => {
   const [visibleCount, setVisibleCount] = useState(9);
   const [showScrollTop, setShowScrollTop] = useState(false);
 
-  const country = useMemo(() => {
-    if (typeof navigator === "undefined") return "us";
-    const parts = navigator.language?.split("-") || [];
-    return (parts[1] || "us").toLowerCase();
-  }, []);
-
   const { data: newsData = [], isLoading } = useContentQuery({
     contentType: "news",
-    category: `news-${country}`,
-    limit: 60,
   });
 
   const handleNewsClick = (newsItem: any) => {
@@ -195,4 +187,3 @@ const NewsPage = () => {
 };
 
 export default NewsPage;
-

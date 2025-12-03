@@ -34,7 +34,19 @@ export const useContent = () => {
       query = query.eq('slug', filters.slug);
     }
     if (filters?.category) {
-      query = query.eq('categories.slug', filters.category);
+      // Resolve category slug to id to ensure reliable filtering
+      const { data: categoryLookup } = await supabase
+        .from('categories')
+        .select('id, slug')
+        .eq('slug', filters.category)
+        .maybeSingle();
+
+      if (categoryLookup?.id) {
+        query = query.eq('category_id', categoryLookup.id);
+      } else {
+        // Fallback to attempting relational filter if slug resolution fails
+        query = query.eq('categories.slug', filters.category);
+      }
     }
     if (filters?.contentType) {
       query = query.eq('content_type', filters.contentType as any);

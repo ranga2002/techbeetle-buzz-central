@@ -26,7 +26,7 @@ const LatestNews = () => {
   const { data: content, isLoading } = useContentQuery({
     category: selectedCategory === 'All' ? undefined : selectedCategory,
     contentType: 'news',
-    limit: 12,
+    limit: 10,
   });
   
   const { data: categories } = useCategoriesQuery();
