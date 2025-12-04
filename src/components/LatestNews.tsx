@@ -27,7 +27,7 @@ const LatestNews = () => {
   const { data: content, isLoading } = useContentQuery({
     category: selectedCategory === 'All' ? undefined : selectedCategory,
     contentType: 'news',
-    limit: 10,
+    limit: 9,
   }, {
     refetchInterval: 120000, // keep homepage fresh every 2 minutes
     refetchOnWindowFocus: true,
@@ -170,7 +170,7 @@ const LatestNews = () => {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-8">Latest News</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-6">
             {[...Array(8)].map((_, i) => (
               <div key={i} className="space-y-4">
                 <Skeleton className="aspect-video" />
@@ -254,7 +254,7 @@ const LatestNews = () => {
         {/* Display search results or regular content */}
         {hasSearched ? (
           searchResults?.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {searchResults.map((item, index) => {
                 const excerpt = item.summary || item.description || item.excerpt || "";
                 const categoryLabel = item.source_name || item.source?.name || 'Tech';
@@ -291,27 +291,34 @@ const LatestNews = () => {
           )
         ) : (
           sortedContent?.length ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedContent.map((item) => {
-                const publishedLabel = formatLocalTime(
-                  item.published_at,
-                  pickTimeZone(item.source_country)
-                );
-                return (
-                  <NewsCard
-                    key={item.id}
-                    title={item.title}
-                    excerpt={item.excerpt || undefined}
-                    category={item.categories?.name || 'Tech'}
-                    author={item.profiles?.full_name || item.profiles?.username || 'TechBeetle'}
-                    publishTime={publishedLabel}
-                    readTime={item.reading_time ? `${item.reading_time} min read` : '5 min read'}
-                    image={item.featured_image || ''}
-                    onClick={() => handleNewsClick(item)}
-                  />
-                );
-              })}
-            </div>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+                {sortedContent.map((item) => {
+                  const publishedLabel = formatLocalTime(
+                    item.published_at,
+                    pickTimeZone(item.source_country || item.categories?.country)
+                  );
+                  return (
+                    <NewsCard
+                      key={item.id}
+                      title={item.title}
+                      excerpt={item.excerpt || undefined}
+                      category={item.categories?.name || 'Tech'}
+                      author={item.profiles?.full_name || item.profiles?.username || 'TechBeetle'}
+                      publishTime={publishedLabel}
+                      readTime={item.reading_time ? `${item.reading_time} min read` : '5 min read'}
+                      image={item.featured_image || ''}
+                      onClick={() => handleNewsClick(item)}
+                    />
+                  );
+                })}
+              </div>
+              <div className="mt-6 flex justify-end">
+                <Button asChild>
+                  <a href="/news">View More</a>
+                </Button>
+              </div>
+            </>
           ) : (
             <div className="text-center py-12">
               <p className="text-lg text-muted-foreground">No content available yet.</p>

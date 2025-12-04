@@ -26,6 +26,7 @@ interface ContentCardProps {
   likesCount: number;
   readingTime?: number;
   publishedAt?: string;
+  badgeExtra?: string;
   onClick?: () => void;
 }
 
@@ -40,6 +41,7 @@ const ContentCard: React.FC<ContentCardProps> = ({
   likesCount,
   readingTime,
   publishedAt,
+  badgeExtra,
   onClick,
 }) => {
   return (
@@ -60,6 +62,11 @@ const ContentCard: React.FC<ContentCardProps> = ({
               style={{ backgroundColor: category.color, color: 'white' }}
             >
               {category.name}
+            </Badge>
+          )}
+          {badgeExtra && (
+            <Badge className="absolute top-4 right-4 shadow-lg bg-background/80 text-foreground">
+              {badgeExtra}
             </Badge>
           )}
         </div>

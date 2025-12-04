@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ContentCard from "@/components/ContentCard";
@@ -10,18 +10,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useContent } from "@/hooks/useContent";
 import { formatLocalTime, pickTimeZone } from "@/lib/time";
-import { Filter, RefreshCw, Star, Wand2 } from "lucide-react";
+import { Filter, RefreshCw, Star, Wand2, Search, SortDesc } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const ReviewsPage = () => {
   const navigate = useNavigate();
-  const { slug } = useParams<{ slug?: string }>();
+  const { toast } = useToast();
   const { useContentQuery } = useContent();
   const { data: reviewsContent = [], isLoading } = useContentQuery({
     contentType: "review",
     limit: 50,
   });
-
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"newest" | "top" | "views">("newest");
+  const [search, setSearch] = useState<string>("");
+  const [visibleCount, setVisibleCount] = useState<number>(12);
+  const [ratingsMap, setRatingsMap] = useState<Record<string, number>>({});
 
   const sorted = useMemo(
     () =>
@@ -48,16 +53,64 @@ const ReviewsPage = () => {
       ? sorted
       : sorted.filter((item: any) => item.categories?.slug === selectedCategory);
 
-  const selectedReview = slug ? filtered.find((item: any) => item.slug === slug) : null;
-  const orderedReviews = selectedReview
-    ? [selectedReview, ...filtered.filter((item: any) => item.id !== selectedReview.id)]
-    : filtered;
+  const searched = useMemo(
+    () =>
+      filtered.filter((item: any) => {
+        if (!search) return true;
+        const hay = `${item.title} ${item.excerpt || ""} ${item.categories?.name || ""}`.toLowerCase();
+        return hay.includes(search.toLowerCase());
+      }),
+    [filtered, search]
+  );
+
+  useEffect(() => {
+    const loadRatings = async () => {
+      const ids = filtered.map((item: any) => item.id).filter(Boolean);
+      if (!ids.length) {
+        setRatingsMap({});
+        return;
+      }
+      const { data, error } = await supabase
+        .from("review_details")
+        .select("content_id, overall_rating")
+        .in("content_id", ids);
+      if (error) {
+        toast({
+          title: "Unable to load ratings",
+          description: error.message,
+          duration: 2500,
+        });
+        return;
+      }
+      const map: Record<string, number> = {};
+      (data || []).forEach((row: any) => {
+        if (row.overall_rating) {
+          map[row.content_id] = row.overall_rating;
+        }
+      });
+      setRatingsMap(map);
+    };
+    loadRatings();
+  }, [filtered, toast]);
+
+  const orderedReviews = useMemo(() => {
+    const list = [...searched];
+    if (sortBy === "top") {
+      return list.sort((a, b) => (ratingsMap[b.id] || 0) - (ratingsMap[a.id] || 0));
+    }
+    if (sortBy === "views") {
+      return list.sort((a, b) => (b.views_count || 0) - (a.views_count || 0));
+    }
+    return list;
+  }, [searched, sortBy, ratingsMap]);
+
+  const pageTitle = "Tech Reviews | TechBeetle";
 
   const averageRating =
-    filtered.length > 0
+    searched.length > 0
       ? (
-          filtered.reduce((acc: number, item: any) => acc + (item.rating || 0), 0) /
-          Math.max(filtered.length, 1)
+          searched.reduce((acc: number, item: any) => acc + (item.rating || 0), 0) /
+          Math.max(searched.length, 1)
         ).toFixed(1)
       : "0.0";
 
@@ -91,7 +144,7 @@ const ReviewsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Tech Reviews | TechBeetle</title>
+        <title>{pageTitle}</title>
         <meta
           name="description"
           content="In-depth, fast-turn tech reviews on laptops, phones, audio, and chips. Region-aware timestamps, updated frequently."
@@ -112,6 +165,16 @@ const ReviewsPage = () => {
           content="In-depth, fast-turn tech reviews on laptops, phones, audio, and chips."
         />
         <meta name="twitter:image" content="https://techbeetle.org/favicon.ico" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://techbeetle.org/" },
+              { "@type": "ListItem", position: 2, name: "Reviews", item: "https://techbeetle.org/reviews" },
+            ],
+          })}
+        </script>
       </Helmet>
 
       <Header />
@@ -125,7 +188,7 @@ const ReviewsPage = () => {
               <div className="space-y-2">
                 <h1 className="text-4xl font-bold leading-tight">Verdicts that ship fast</h1>
                 <p className="text-muted-foreground text-lg max-w-3xl">
-                  Concise takes on laptops, phones, audio, and components—region-aware and time-stamped.
+                  Concise takes on laptops, phones, audio, and components — region-aware and time-stamped.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
@@ -140,13 +203,13 @@ const ReviewsPage = () => {
             <div className="grid grid-cols-2 gap-4 text-sm w-full lg:w-auto">
               <div className="rounded-2xl border bg-card px-5 py-4">
                 <p className="text-muted-foreground">Reviews live</p>
-                <p className="text-2xl font-semibold">{filtered.length}</p>
+                <p className="text-2xl font-semibold">{orderedReviews.length}</p>
               </div>
               <div className="rounded-2xl border bg-card px-5 py-4">
                 <p className="text-muted-foreground">Latest publish</p>
                 <p className="text-sm font-semibold">
-                  {filtered[0]?.published_at
-                    ? formatLocalTime(filtered[0].published_at, pickTimeZone(filtered[0].source_country))
+                  {orderedReviews[0]?.published_at
+                    ? formatLocalTime(orderedReviews[0].published_at, pickTimeZone(orderedReviews[0].source_country))
                     : "TBD"}
                 </p>
               </div>
@@ -155,35 +218,68 @@ const ReviewsPage = () => {
           </div>
           
         </section>
-        <div className="flex flex-wrap gap-2 justify-center">
-          <Badge variant={selectedCategory === "all" ? "default" : "outline"} className="cursor-pointer" onClick={() => setSelectedCategory("all")}>
-            All
-          </Badge>
-                      {categories.map((cat) => (
-                        <Badge
-                        key={cat.slug}
-                        variant={selectedCategory === cat.slug ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedCategory(cat.slug)}
-                        >
-                        {cat.name}
-                        </Badge>
-                      ))}
-                      </div>
-
-        {slug && !selectedReview && !isLoading && (
-          <div className="border border-destructive/40 bg-destructive/10 text-destructive rounded-xl p-4">
-            Review not found. Showing latest reviews instead.
+        <div className="mt-6 grid gap-4 md:grid-cols-3 items-center">
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => {
+                setSelectedCategory("all");
+                setVisibleCount(12);
+              }}
+            >
+              All
+            </Badge>
+            {categories.map((cat) => (
+              <Badge
+                key={cat.slug}
+                variant={selectedCategory === cat.slug ? "default" : "outline"}
+                className="cursor-pointer"
+                onClick={() => {
+                  setSelectedCategory(cat.slug);
+                  setVisibleCount(12);
+                }}
+              >
+                {cat.name}
+              </Badge>
+            ))}
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            <SortDesc className="w-4 h-4 text-muted-foreground" />
+            <select
+              className="h-10 rounded-md border bg-background px-3 text-sm"
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value as any);
+                setVisibleCount(12);
+              }}
+            >
+              <option value="newest">Newest</option>
+              <option value="top">Top rated</option>
+              <option value="views">Most viewed</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-2">
+            <Search className="w-4 h-4 text-muted-foreground" />
+            <input
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              placeholder="Search title or brand..."
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setVisibleCount(12);
+              }}
+            />
+          </div>
+        </div>
 
         {isLoading
           ? renderSkeleton()
-          : filtered.length === 0
+          : orderedReviews.length === 0
           ? renderEmpty()
           : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {orderedReviews.map((content: any) => {
+              {orderedReviews.slice(0, visibleCount).map((content: any) => {
                 const publishedAt = formatLocalTime(
                   content.published_at,
                   pickTimeZone(content.source_country || content.categories?.country)
@@ -204,6 +300,9 @@ const ReviewsPage = () => {
                         likesCount={content.likes_count || 0}
                         readingTime={readTime}
                         publishedAt={publishedAt}
+                        badgeExtra={
+                          ratingsMap[content.id] ? `Rating: ${ratingsMap[content.id]}/5` : undefined
+                        }
                         onClick={() => {
                           if (content.slug) {
                             navigate(`/reviews/${content.slug}`);
@@ -216,6 +315,13 @@ const ReviewsPage = () => {
               })}
             </div>
           )}
+        {visibleCount < orderedReviews.length && (
+          <div className="text-center">
+            <Button variant="outline" onClick={() => setVisibleCount((c) => c + 9)}>
+              Load more
+            </Button>
+          </div>
+        )}
       </main>
       <Footer />
     </div>

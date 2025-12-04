@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import React, { Suspense, lazy } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -10,6 +11,7 @@ import Index from "./pages/Index";
 import AuthPage from "./components/auth/AuthPage";
 import NewsPage from "./pages/NewsPage";
 import ReviewsPage from "./pages/ReviewsPage";
+const ReviewDetailPage = lazy(() => import("./pages/ReviewDetailPage"));
 import VideosPage from "./pages/VideosPage";
 import HowToPage from "./pages/HowToPage";
 import ComparePage from "./pages/ComparePage";
@@ -49,44 +51,46 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <AuthProvider>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/auth" element={<AuthPage />} />
-                <Route path="/news" element={<NewsPage />} />
-                <Route path="/news/:slug" element={<NewsPage />} />
-                <Route path="/reviews" element={<ReviewsPage />} />
-                <Route path="/reviews/:slug" element={<ReviewsPage />} />
-                <Route path="/videos" element={<VideosPage />} />
-                <Route path="/how-to" element={<HowToPage />} />
-                <Route path="/compare" element={<ComparePage />} />
-                <Route path="/products" element={<ProductsPage />} />
-                <Route path="/search" element={<SearchPage />} />
-          <Route path="/bookmarks" element={<BookmarksPage />} />
-          <Route path="/preferences" element={<PreferencesPage />} />
-          <Route path="/reading-history" element={<ReadingHistoryPage />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route index element={<AdminDashboard />} />
-                <Route path="content" element={<ContentManagement />} />
-                <Route path="users" element={<UserManagement />} />
-                <Route path="comments" element={<CommentsManagement />} />
-                <Route path="categories" element={<CategoriesManagement />} />
-                <Route path="tags" element={<TagsManagement />} />
-                <Route path="analytics" element={<AnalyticsManagement />} />
-                <Route path="settings" element={<SettingsManagement />} />
-                <Route path="site-settings" element={<SiteSettingsManagement />} />
-                <Route path="news-test" element={<NewsApiTest />} />
-                <Route path="review-generator" element={<ReviewGeneration />} />
-                <Route path="product-scraper" element={<ProductManagement />} />
-              </Route>
-                
-         <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
-         <Route path="/terms" element={<TermsPage />} />
+              <Suspense fallback={<div className="p-6 text-center text-muted-foreground">Loading…</div>}>
+                <Routes>
+                  <Route path="/" element={<Index />} />
+                  <Route path="/auth" element={<AuthPage />} />
+                  <Route path="/news" element={<NewsPage />} />
+                  <Route path="/news/:slug" element={<NewsPage />} />
+                  <Route path="/reviews" element={<ReviewsPage />} />
+                  <Route path="/reviews/:slug" element={<ReviewDetailPage />} />
+                  <Route path="/videos" element={<VideosPage />} />
+                  <Route path="/how-to" element={<HowToPage />} />
+                  <Route path="/compare" element={<ComparePage />} />
+                  <Route path="/products" element={<ProductsPage />} />
+                  <Route path="/search" element={<SearchPage />} />
+                  <Route path="/bookmarks" element={<BookmarksPage />} />
+                  <Route path="/preferences" element={<PreferencesPage />} />
+                  <Route path="/reading-history" element={<ReadingHistoryPage />} />
+                      
+                  {/* Admin Routes */}
+                  <Route path="/admin" element={<AdminLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="content" element={<ContentManagement />} />
+                    <Route path="users" element={<UserManagement />} />
+                    <Route path="comments" element={<CommentsManagement />} />
+                    <Route path="categories" element={<CategoriesManagement />} />
+                    <Route path="tags" element={<TagsManagement />} />
+                    <Route path="analytics" element={<AnalyticsManagement />} />
+                    <Route path="settings" element={<SettingsManagement />} />
+                    <Route path="site-settings" element={<SiteSettingsManagement />} />
+                    <Route path="news-test" element={<NewsApiTest />} />
+                    <Route path="review-generator" element={<ReviewGeneration />} />
+                    <Route path="product-scraper" element={<ProductManagement />} />
+                  </Route>
+                    
+                  <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+                  <Route path="/terms" element={<TermsPage />} />
 
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-              </Routes>
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </AuthProvider>
           </BrowserRouter>
         </TooltipProvider>
