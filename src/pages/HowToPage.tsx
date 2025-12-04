@@ -1,5 +1,4 @@
 import React, { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 import { useContent } from "@/hooks/useContent";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -13,12 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Helmet } from "react-helmet-async";
 import {
   Sparkles,
   Laptop,
   Smartphone,
   Headphones,
-  ChevronsRight,
   Wrench,
   Clock,
   Filter,
@@ -109,7 +109,7 @@ const curatedGuides: LocalGuide[] = [
     prerequisites: ["macOS Sonoma or newer"],
     tools: ["System Settings", "Activity Monitor"],
     steps: [
-      "System Settings → Battery: set Low Power on battery; enable Optimize Battery Charging.",
+      "System Settings > Battery: set Low Power on battery; enable Optimize Battery Charging.",
       "Disable Power Nap and wake for network access on battery.",
       "Reduce display sleep, enable auto-lock, and dim keyboard backlight.",
       "Activity Monitor: sort by Energy Impact; uninstall background-heavy apps.",
@@ -130,7 +130,7 @@ const curatedGuides: LocalGuide[] = [
     tools: ["Permission Manager", "Private DNS"],
     steps: [
       "Set a strong screen lock (PIN >6 digits) and enable biometrics.",
-      "Privacy → Permission Manager: revoke background location/mic/camera for non-essential apps.",
+      "Privacy > Permission Manager: revoke background location/mic/camera for non-essential apps.",
       "Enable Private DNS (Quad9 or Cloudflare).",
       "Disable ad personalization and OEM analytics where possible.",
       "Remove or disable carrier/OEM bloat; keep only needed services.",
@@ -151,7 +151,7 @@ const curatedGuides: LocalGuide[] = [
     tools: ["Screen Time", "iCloud Keychain"],
     steps: [
       "Privacy & Security: disable Significant Locations if not needed.",
-      "Tracking: turn off “Allow Apps to Request to Track”; review existing toggles.",
+      'Tracking: turn off "Allow Apps to Request to Track"; review existing toggles.',
       "Screen Time: set Downtime, app limits, and enable Communication Safety.",
       "iCloud: enable Advanced Data Protection; review app sync settings.",
       "Safari: enable cross-site tracking prevention and hide IP from trackers.",
@@ -182,6 +182,25 @@ const curatedGuides: LocalGuide[] = [
 ];
 
 const tagOptions = ["privacy", "battery", "setup", "performance", "audio", "travel", "security", "maintenance"];
+
+const faqs = [
+  {
+    question: "How often are guides updated?",
+    answer: "We refresh weekly and whenever major OS versions or security changes ship.",
+  },
+  {
+    question: "Can I trust the steps for my exact device?",
+    answer: "Use the device and platform filters to narrow to your hardware; curated notes cover common edge cases.",
+  },
+  {
+    question: "What if I have only 15 minutes?",
+    answer: "Slide the time budget down to 15-20 minutes and pick beginner difficulty to get shorter flows.",
+  },
+  {
+    question: "Can I combine privacy and performance?",
+    answer: "Yes. Select both tags; we rank guides that optimize for both without heavy trade-offs.",
+  },
+];
 
 const HowToPage = () => {
   const { useContentQuery } = useContent();
@@ -255,30 +274,136 @@ const HowToPage = () => {
       `Max time: ${maxTime} min`,
       selectedTags.length ? `Focus: ${selectedTags.join(", ")}` : null,
     ].filter(Boolean);
-    return pieces.join(" • ");
+    return pieces.join(" | ");
   }, [device, os, brand, difficulty, maxTime, selectedTags]);
 
   const handleTagToggle = (tag: string) => {
     setSelectedTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]));
   };
 
+  const howToSchema = selectedGuide
+    ? {
+        "@context": "https://schema.org",
+        "@type": "HowTo",
+        name: selectedGuide.title,
+        description: selectedGuide.summary,
+        totalTime: `PT${selectedGuide.durationMinutes}M`,
+        supply: selectedGuide.tools?.length
+          ? selectedGuide.tools.map((tool) => ({ "@type": "HowToSupply", name: tool }))
+          : undefined,
+        step: selectedGuide.steps.map((step, idx) => ({
+          "@type": "HowToStep",
+          position: idx + 1,
+          name: step.slice(0, 60),
+          text: step,
+        })),
+      }
+    : null;
+
+  const faqSchema = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.question,
+      acceptedAnswer: {
+        "@type": "Answer",
+        text: faq.answer,
+      },
+    })),
+  };
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>How-To Guides | TechBeetle</title>
+        <meta
+          name="description"
+          content="Build ready-to-run tech checklists by device, platform, and time budget. Curated and dynamic how-to guides for laptops, phones, and audio."
+        />
+        <link rel="canonical" href="https://techbeetle.org/how-to" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="How-To Guides | TechBeetle" />
+        <meta
+          property="og:description"
+          content="Build ready-to-run tech checklists by device, platform, and time budget."
+        />
+        <meta property="og:url" content="https://techbeetle.org/how-to" />
+        <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="How-To Guides | TechBeetle" />
+        <meta
+          name="twitter:description"
+          content="Curated and dynamic how-to guides for laptops, phones, and audio."
+        />
+        <meta name="twitter:image" content="https://techbeetle.org/favicon.ico" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "Home",
+                item: "https://techbeetle.org/",
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "How-To",
+                item: "https://techbeetle.org/how-to",
+              },
+            ],
+          })}
+        </script>
+        {howToSchema && (
+          <script type="application/ld+json">{JSON.stringify(howToSchema)}</script>
+        )}
+        {faqs.length > 0 && (
+          <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
+        )}
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-10 space-y-10">
-        <section className="rounded-3xl border bg-card/60 backdrop-blur px-6 py-8 shadow-sm">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div className="flex items-start gap-3">
-              <Badge variant="secondary">How-To Guides</Badge>
-              <div>
-                <h1 className="text-4xl font-bold mb-2">Build your tech playbook</h1>
+        <section className="rounded-3xl border bg-gradient-to-r from-background/70 via-card to-accent/5 backdrop-blur px-6 py-8 shadow-sm">
+          <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div className="space-y-3 max-w-2xl">
+              <Badge variant="outline" className="w-fit">How-To Guides</Badge>
+              <div className="space-y-2">
+                <h1 className="text-4xl font-bold leading-tight">Build your tech playbook</h1>
                 <p className="text-muted-foreground text-lg max-w-3xl">
-                  Choose a device, platform, time budget, and focus area. We’ll assemble a ready-to-run checklist with
-                  steps, tools, and prerequisites.
+                  Choose a device, platform, time budget, and focus area. We'll assemble a ready-to-run checklist with steps, tools, and prerequisites.
                 </p>
               </div>
+              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+                <Badge variant="secondary" className="flex items-center gap-1"><Clock className="w-4 h-4" /> Guided flows</Badge>
+                <Badge variant="secondary" className="flex items-center gap-1"><Sparkles className="w-4 h-4" /> Curated picks</Badge>
+              </div>
             </div>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-2 gap-4 w-full lg:w-auto text-sm">
+              <div className="rounded-2xl border bg-card px-5 py-4">
+                <p className="text-muted-foreground">Guides available</p>
+                <p className="text-2xl font-semibold">{allGuides.length}</p>
+              </div>
+              <div className="rounded-2xl border bg-card px-5 py-4">
+                <p className="text-muted-foreground">Avg. completion time</p>
+                <p className="text-2xl font-semibold">
+                  ~{Math.round(allGuides.reduce((a, g) => a + g.durationMinutes, 0) / Math.max(allGuides.length, 1))} min
+                </p>
+              </div>
+              <div className="rounded-2xl border bg-card px-5 py-4 col-span-2">
+                <p className="text-muted-foreground">Top focuses</p>
+                <div className="flex flex-wrap gap-2 mt-2 text-xs uppercase tracking-wide">
+                  {tagOptions.slice(0, 6).map((tag) => (
+                    <Badge key={tag} variant="secondary">
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2 self-start">
               <Button
                 variant="outline"
                 onClick={() => {
@@ -292,14 +417,11 @@ const HowToPage = () => {
                 }}
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
-                Reset
+                Reset filters
               </Button>
-              <Button asChild>
-                <Link to="/search?q=how%20to">
-                  Open search
-                  <ChevronsRight className="w-4 h-4 ml-2" />
-                </Link>
-              </Button>
+              <p className="text-xs text-muted-foreground max-w-[240px]">
+                Filters update live - no separate search needed.
+              </p>
             </div>
           </div>
         </section>
@@ -311,7 +433,7 @@ const HowToPage = () => {
                 <Filter className="w-5 h-5 text-primary" />
                 Guide builder
               </CardTitle>
-              <p className="text-sm text-muted-foreground">Set your constraints and we’ll surface step-by-step walkthroughs.</p>
+              <p className="text-sm text-muted-foreground">Set your constraints and we'll surface step-by-step walkthroughs.</p>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
@@ -332,6 +454,7 @@ const HowToPage = () => {
                     </Button>
                   ))}
                 </div>
+                <p className="text-xs text-muted-foreground">Switch devices to reveal matching platforms and presets.</p>
               </div>
 
               <div className="space-y-3">
@@ -348,6 +471,7 @@ const HowToPage = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Choose the OS you actually run; results update immediately.</p>
               </div>
 
               <div className="space-y-3">
@@ -364,6 +488,7 @@ const HowToPage = () => {
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Pick your hardware line to surface device-specific tweaks. Leave blank for general guidance.</p>
               </div>
 
               <div className="space-y-3">
@@ -379,6 +504,7 @@ const HowToPage = () => {
                     <SelectItem value="advanced">Advanced</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">Keep Any to see everything, or lock a level to reduce complexity.</p>
               </div>
 
               <div className="space-y-3">
@@ -387,6 +513,7 @@ const HowToPage = () => {
                   <span>{maxTime} min</span>
                 </div>
                 <Slider defaultValue={[45]} value={[maxTime]} max={120} step={5} onValueChange={(val) => setMaxTime(val[0])} />
+                <p className="text-xs text-muted-foreground">Under 30 minutes for quick wins; raise it for deeper flows.</p>
               </div>
 
               <div className="space-y-3">
@@ -399,11 +526,13 @@ const HowToPage = () => {
                     </Label>
                   ))}
                 </div>
+                <p className="text-xs text-muted-foreground">Select up to three tags; we prioritize guides matching all chosen focuses.</p>
               </div>
 
               <div className="space-y-2">
                 <Label className="text-sm text-muted-foreground">Keyword</Label>
                 <Input placeholder="battery, privacy, travel..." value={search} onChange={(e) => setSearch(e.target.value)} />
+                <p className="text-xs text-muted-foreground">Use 1-2 keywords (e.g., battery, privacy) for sharper recommendations.</p>
               </div>
 
               <Card className="bg-muted/40 border-dashed">
@@ -438,7 +567,7 @@ const HowToPage = () => {
                             <div className="space-y-1">
                               <p className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-2">
                                 <BookOpen className="w-4 h-4 text-primary" />
-                                {guide.platform} • {guide.difficulty}
+                                {guide.platform} | {guide.difficulty}
                               </p>
                               <h3 className="text-lg font-semibold leading-tight">{guide.title}</h3>
                               <p className="text-sm text-muted-foreground line-clamp-2">{guide.summary}</p>
@@ -518,6 +647,23 @@ const HowToPage = () => {
                 </CardContent>
               </Card>
             )}
+
+            <Card className="border-border/50 shadow-sm">
+              <CardHeader className="space-y-1">
+                <CardTitle>How-to FAQ</CardTitle>
+                <p className="text-sm text-muted-foreground">Quick answers on cadence, device targeting, and combining filters.</p>
+              </CardHeader>
+              <CardContent>
+                <Accordion type="single" collapsible className="w-full">
+                  {faqs.map((faq, idx) => (
+                    <AccordionItem key={faq.question} value={`faq-${idx}`}>
+                      <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
+                      <AccordionContent className="text-muted-foreground">{faq.answer}</AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+              </CardContent>
+            </Card>
 
             <Card className="border-border/50 shadow-sm">
               <CardHeader>

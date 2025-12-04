@@ -34,6 +34,7 @@ import ProductManagement from "./pages/admin/ProductManagement";
 import SiteSettingsManagement from "./pages/admin/SiteSettingsManagement";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
+import { GlobalSeo } from "./components/GlobalSeo";
 
 
 const queryClient = new QueryClient();
@@ -43,6 +44,7 @@ const App = () => (
     <ThemeProvider defaultTheme="system" storageKey="techbeetle-theme">
       <HelmetProvider>
         <TooltipProvider>
+          <GlobalSeo />
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -53,6 +55,7 @@ const App = () => (
                 <Route path="/news" element={<NewsPage />} />
                 <Route path="/news/:slug" element={<NewsPage />} />
                 <Route path="/reviews" element={<ReviewsPage />} />
+                <Route path="/reviews/:slug" element={<ReviewsPage />} />
                 <Route path="/videos" element={<VideosPage />} />
                 <Route path="/how-to" element={<HowToPage />} />
                 <Route path="/compare" element={<ComparePage />} />

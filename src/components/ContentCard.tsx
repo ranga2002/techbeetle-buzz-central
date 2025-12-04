@@ -108,11 +108,15 @@ const ContentCard: React.FC<ContentCardProps> = ({
                 <span>{readingTime} min</span>
               </div>
             )}
-            {publishedAt && (
-              <span className="text-xs">
-                {formatDistanceToNow(new Date(publishedAt), { addSuffix: true })}
-              </span>
-            )}
+            {publishedAt && (() => {
+              const parsed = new Date(publishedAt);
+              const isValid = !isNaN(parsed.getTime());
+              return (
+                <span className="text-xs">
+                  {isValid ? formatDistanceToNow(parsed, { addSuffix: true }) : publishedAt}
+                </span>
+              );
+            })()}
           </div>
         </div>
       </CardContent>

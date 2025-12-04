@@ -12,3 +12,6 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+Sitemap: https://techbeetle.org/sitemap.xml
+Sitemap: https://techbeetle.org/news-sitemap.xml

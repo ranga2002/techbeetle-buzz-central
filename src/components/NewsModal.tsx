@@ -16,6 +16,7 @@ import { ShareButtons } from '@/components/ShareButtons';
 import { RelatedArticles } from '@/components/RelatedArticles';
 import { cn } from '@/lib/utils';
 import { formatLocalTime, pickTimeZone } from '@/lib/time';
+import { Helmet } from 'react-helmet-async';
 
 interface NewsModalProps {
   isOpen: boolean;
@@ -254,6 +255,34 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 bg-background">
+        <Helmet>
+          <script type="application/ld+json">
+            {JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "NewsArticle",
+              headline: title,
+              description: cleanedExcerpt,
+              datePublished: publishedAt,
+              dateModified: updated_at || publishedAt,
+              mainEntityOfPage: slug
+                ? `https://techbeetle.org/news/${slug}`
+                : window.location.href,
+              image: displayImage,
+              author: {
+                "@type": "Person",
+                name: author?.full_name || author?.username || "TechBeetle",
+              },
+              publisher: {
+                "@type": "Organization",
+                name: "TechBeetle",
+                logo: {
+                  "@type": "ImageObject",
+                  url: "https://techbeetle.org/favicon.ico",
+                },
+              },
+            })}
+          </script>
+        </Helmet>
         <DialogTitle className="sr-only">{title}</DialogTitle>
         <DialogDescription className="sr-only">{cleanedExcerpt}</DialogDescription>
         <OpenGraphMeta 
