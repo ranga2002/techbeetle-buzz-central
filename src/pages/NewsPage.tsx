@@ -5,11 +5,11 @@ import NewsModal from "@/components/NewsModal";
 import NewsCard from "@/components/NewsCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useParams } from "react-router-dom";
-import { formatDistanceToNow } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Sparkles, RefreshCw, ArrowUp } from "lucide-react";
 import { useContent } from "@/hooks/useContent";
+import { formatLocalTime, pickTimeZone } from "@/lib/time";
 
 const NewsPage = () => {
   const navigate = useNavigate();
@@ -105,9 +105,10 @@ const NewsPage = () => {
   const cards = articles.map((content: any, idx: number) => {
     const category = content.categories?.name || content.source_name || "Tech";
     const author = content.profiles?.full_name || content.profiles?.username || "TechBeetle";
-    const publishedAt = content.published_at
-      ? formatDistanceToNow(new Date(content.published_at), { addSuffix: true })
-      : "Just now";
+    const publishedAt = formatLocalTime(
+      content.published_at,
+      pickTimeZone(content.source_country || content.categories?.country)
+    );
     const readTime = content.reading_time ? `${content.reading_time} min read` : "5 min read";
     const comments = content.comments_count || 0;
     const likes = content.likes_count || 0;

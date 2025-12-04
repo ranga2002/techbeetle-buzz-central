@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Search, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { formatLocalTime, pickTimeZone } from '@/lib/time';
 
 const LatestNews = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -262,6 +263,11 @@ const LatestNews = () => {
                 const readTime = item.reading_time ? `${item.reading_time} min read` : '5 min read';
                 const image = item.image || item.urlToImage || item.featured_image || '';
 
+                const publishedLabel = formatLocalTime(
+                  publishTime,
+                  pickTimeZone(item.source_country)
+                );
+
                 return (
                   <NewsCard
                     key={`search-${index}`}
@@ -269,7 +275,7 @@ const LatestNews = () => {
                     excerpt={excerpt}
                     category={categoryLabel}
                     author={authorLabel}
-                    publishTime={publishTime}
+                    publishTime={publishedLabel}
                     readTime={readTime}
                     image={image}
                     onClick={() => handleNewsClick(item)}
@@ -286,19 +292,25 @@ const LatestNews = () => {
         ) : (
           sortedContent?.length ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {sortedContent.map((item) => (
-                <NewsCard
-                  key={item.id}
-                  title={item.title}
-                  excerpt={item.excerpt || undefined}
-                  category={item.categories?.name || 'Tech'}
-                  author={item.profiles?.full_name || item.profiles?.username || 'TechBeetle'}
-                  publishTime={item.published_at || 'Recently'}
-                  readTime={item.reading_time ? `${item.reading_time} min read` : '5 min read'}
-                  image={item.featured_image || ''}
-                  onClick={() => handleNewsClick(item)}
-                />
-              ))}
+              {sortedContent.map((item) => {
+                const publishedLabel = formatLocalTime(
+                  item.published_at,
+                  pickTimeZone(item.source_country)
+                );
+                return (
+                  <NewsCard
+                    key={item.id}
+                    title={item.title}
+                    excerpt={item.excerpt || undefined}
+                    category={item.categories?.name || 'Tech'}
+                    author={item.profiles?.full_name || item.profiles?.username || 'TechBeetle'}
+                    publishTime={publishedLabel}
+                    readTime={item.reading_time ? `${item.reading_time} min read` : '5 min read'}
+                    image={item.featured_image || ''}
+                    onClick={() => handleNewsClick(item)}
+                  />
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-12">

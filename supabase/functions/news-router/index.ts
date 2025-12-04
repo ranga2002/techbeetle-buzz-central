@@ -21,6 +21,7 @@ type NormalizedArticle = {
   url: string;
   image?: string | null;
   published_at?: string | null;
+  source_published_at?: string | null;
   source_name: string;
   source_country?: string | null;
   provider: string;
@@ -121,6 +122,7 @@ const toSlug = (title: string) =>
     .slice(0, 80);
 
 const rewriteArticle = (article: NormalizedArticle): NormalizedArticle => {
+  const ingestedAt = new Date().toISOString();
   const why = `Why it matters: ${article.title.slice(0, 90)}...`;
   const takeaways = [
     `Source: ${article.source_name}`,
@@ -153,6 +155,8 @@ const rewriteArticle = (article: NormalizedArticle): NormalizedArticle => {
 
   return {
     ...article,
+    source_published_at: article.published_at || null,
+    published_at: ingestedAt, // treat ingestion time as the posted time for ordering
     why_it_matters: why,
     takeaways,
     summary: paraphrasedSummary,

@@ -15,6 +15,7 @@ import { OpenGraphMeta } from '@/components/OpenGraphMeta';
 import { ShareButtons } from '@/components/ShareButtons';
 import { RelatedArticles } from '@/components/RelatedArticles';
 import { cn } from '@/lib/utils';
+import { formatLocalTime, pickTimeZone } from '@/lib/time';
 
 interface NewsModalProps {
   isOpen: boolean;
@@ -174,9 +175,12 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   const contentBodyRaw = preferredBody || description || "";
   const contentBody = sanitizeText(contentBodyRaw);
   const paragraphs = contentBody.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
-  const publishedLabel = publishedAt
-    ? formatDistanceToNow(new Date(publishedAt), { addSuffix: true })
-    : "Recently";
+  const sourceTz = pickTimeZone(sourceCountry);
+  const sourcePublishedLabel = source_published_at
+    ? formatLocalTime(source_published_at, sourceTz)
+    : null;
+  const postedLabel = formatLocalTime(publishedAt);
+  const updatedLabel = updated_at ? formatLocalTime(updated_at) : null;
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -315,8 +319,14 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                 <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4" />
-                    <span>{publishedLabel}</span>
+                    <span>{postedLabel}</span>
                   </div>
+                  {sourcePublishedLabel && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground/80">Source</span>
+                      <span>{sourcePublishedLabel}</span>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2">
                     <Clock className="w-4 h-4" />
                     <span>{readingTime ? `${readingTime} min read` : '5 min read'}</span>
@@ -330,6 +340,11 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                     <span>{likesCount || 0}</span>
                   </div>
                 </div>
+                {updatedLabel && (
+                  <p className="text-xs text-muted-foreground">
+                    Updated: {updatedLabel}
+                  </p>
+                )}
 
                 <div className="flex items-center gap-3">
                   <Avatar className="w-12 h-12 ring-2 ring-border">
