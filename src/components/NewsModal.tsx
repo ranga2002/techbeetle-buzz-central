@@ -142,16 +142,18 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     likes_count: likesCount,
     reading_time: readingTime,
     categories: category,
-    profiles: author,
-    slug,
-    source_name: sourceName,
-    source_url: sourceUrl,
-    url: articleUrl,
-    source_country: sourceCountry,
-    why_it_matters: whyItMatters,
-    takeaways,
-    key_points: keyPoints,
-  } = newsItem;
+  profiles: author,
+  slug,
+  source_name: sourceName,
+  source_url: sourceUrl,
+  url: articleUrl,
+  source_country: sourceCountry,
+  source_published_at,
+  why_it_matters: whyItMatters,
+  takeaways,
+  key_points: keyPoints,
+  updated_at,
+} = newsItem;
 
   const displayImage = image || featuredImage || "https://placehold.co/1200x630?text=Tech+Beetle";
   const originalUrl = sourceUrl || articleUrl;
