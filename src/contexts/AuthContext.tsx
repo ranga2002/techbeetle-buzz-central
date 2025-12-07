@@ -52,7 +52,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signUp = async (email: string, password: string, userData?: any) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -68,6 +68,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         variant: "destructive",
       });
     } else {
+      // create profile row eagerly when user is returned
+      if (data.user?.id) {
+        await supabase
+          .from("profiles")
+          .upsert({
+            id: data.user.id,
+            email,
+            full_name: userData?.full_name,
+            username: userData?.username,
+          })
+          .catch(() => null);
+      }
       toast({
         title: "Success!",
         description: "Please check your email to confirm your account.",

@@ -19,13 +19,26 @@ import {
 } from '@/components/ui/select';
 import { Shield, ShieldOff } from 'lucide-react';
 import type { Tables, Database } from '@/integrations/supabase/types';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { useState } from 'react';
 
 type UserRole = Database['public']['Enums']['user_role'];
 
 interface UserTableProps {
   users: Tables<'profiles'>[] | undefined;
   onRoleUpdate: (userId: string, role: UserRole) => void;
-  onStatusToggle: (userId: string, isActive: boolean) => void;
+  onStatusToggle: (args: { userId: string; isActive: boolean; reason?: string; email?: string }) => void;
   isUpdating: boolean;
 }
 
@@ -35,6 +48,9 @@ const UserTable: React.FC<UserTableProps> = ({
   onStatusToggle,
   isUpdating,
 }) => {
+  const [suspendUserId, setSuspendUserId] = useState<string | null>(null);
+  const [suspendReason, setSuspendReason] = useState('');
+
   const getRoleBadge = (role: string) => {
     const variants = {
       admin: 'bg-red-100 text-red-800',
@@ -48,14 +64,15 @@ const UserTable: React.FC<UserTableProps> = ({
   return (
     <Table>
       <TableHeader>
-        <TableRow>
-          <TableHead>User</TableHead>
-          <TableHead>Username</TableHead>
-          <TableHead>Role</TableHead>
-          <TableHead>Status</TableHead>
-          <TableHead>Joined</TableHead>
-          <TableHead>Actions</TableHead>
-        </TableRow>
+          <TableRow>
+            <TableHead>User</TableHead>
+            <TableHead>Username</TableHead>
+            <TableHead>Email</TableHead>
+            <TableHead>Role</TableHead>
+            <TableHead>Status</TableHead>
+            <TableHead>Joined</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
       </TableHeader>
       <TableBody>
         {users?.map((user) => (
@@ -71,6 +88,7 @@ const UserTable: React.FC<UserTableProps> = ({
               </div>
             </TableCell>
             <TableCell>{user.username || 'No username'}</TableCell>
+            <TableCell>{user.email || 'No email'}</TableCell>
             <TableCell>
               <Select
                 value={user.role || 'user'}
@@ -104,7 +122,13 @@ const UserTable: React.FC<UserTableProps> = ({
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={() => onStatusToggle(user.id, user.is_active || false)}
+                onClick={() => {
+                  if (user.is_active) {
+                    setSuspendUserId(user.id);
+                  } else {
+                    onStatusToggle({ userId: user.id, isActive: user.is_active || false, reason: 'Reactivated by admin', email: user.email || undefined });
+                  }
+                }}
                 disabled={isUpdating}
               >
                 {user.is_active ? (
@@ -123,6 +147,48 @@ const UserTable: React.FC<UserTableProps> = ({
           </TableRow>
         ))}
       </TableBody>
+
+      <AlertDialog open={!!suspendUserId} onOpenChange={(open) => {
+        if (!open) {
+          setSuspendUserId(null);
+          setSuspendReason('');
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm suspension</AlertDialogTitle>
+            <AlertDialogDescription>
+              Provide a reason for suspending this user. An email notification will be attempted.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Textarea
+              placeholder="Reason for suspension"
+              value={suspendReason}
+              onChange={(e) => setSuspendReason(e.target.value)}
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                const user = users?.find(u => u.id === suspendUserId);
+                onStatusToggle({
+                  userId: suspendUserId || '',
+                  isActive: user?.is_active || false,
+                  reason: suspendReason || 'No reason provided',
+                  email: user?.email || undefined,
+                });
+                setSuspendReason('');
+                setSuspendUserId(null);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Suspend user
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Table>
   );
 };

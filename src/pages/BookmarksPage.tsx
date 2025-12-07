@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bookmark } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const BookmarksPage = () => {
   const { user } = useAuth();
@@ -21,6 +22,10 @@ const BookmarksPage = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Bookmarks | TechBeetle</title>
+          <meta name="description" content="Sign in to view and manage your saved articles on TechBeetle." />
+        </Helmet>
         <Header />
         <main className="container mx-auto px-4 py-8">
           <Card>
@@ -46,6 +51,10 @@ const BookmarksPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Bookmarks | TechBeetle</title>
+        <meta name="description" content="View and manage the stories you've saved on TechBeetle." />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -84,7 +93,7 @@ const BookmarksPage = () => {
                 likesCount={bookmark.content.likes_count || 0}
                 readingTime={bookmark.content.reading_time}
                 publishedAt={bookmark.content.published_at}
-                onClick={() => handleNewsClick(bookmark.content)}
+                onClick={() => window.location.href = `/news/${bookmark.content.slug || bookmark.content.id}`}
               />
             ))}
           </div>

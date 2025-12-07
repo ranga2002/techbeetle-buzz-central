@@ -6,10 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const ComparePage = () => {
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Compare Products | TechBeetle</title>
+        <meta name="description" content="Line up tech products side by side. Compare specs, features, and prices." />
+        <link rel="canonical" href="https://techbeetle.org/compare" />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8 text-center">

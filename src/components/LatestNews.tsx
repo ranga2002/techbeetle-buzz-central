@@ -24,7 +24,12 @@ const LatestNews = () => {
   const { useContentQuery, useCategoriesQuery } = useContent();
   const { toast } = useToast();
   
-  const { data: content, isLoading } = useContentQuery({
+  const {
+    data: content,
+    isLoading,
+    isError,
+    error,
+  } = useContentQuery({
     category: selectedCategory === 'All' ? undefined : selectedCategory,
     contentType: 'news',
     limit: 9,
@@ -34,7 +39,7 @@ const LatestNews = () => {
     staleTime: 60000,
   });
   
-  const { data: categories } = useCategoriesQuery();
+  const { data: categories, isError: categoriesError } = useCategoriesQuery();
 
   // Auto-detect user's city on component mount
   useEffect(() => {
@@ -185,6 +190,8 @@ const LatestNews = () => {
     );
   }
 
+  const hasError = isError || categoriesError;
+
   const sortedContent = content
     ? [...content].sort((a: any, b: any) => {
         const aDate = new Date(a.published_at || "").getTime() || 0;
@@ -197,6 +204,15 @@ const LatestNews = () => {
     <section className="py-12">
       <div className="container mx-auto px-4">
         <h2 className="text-3xl font-bold text-center mb-8">Latest News</h2>
+
+        {hasError && (
+          <div className="mb-6 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
+            We couldn't load the latest headlines right now. Please retry or check back shortly.
+            {error && typeof error === 'object' && 'message' in error && (
+              <span className="ml-1 text-xs opacity-80">{(error as any).message}</span>
+            )}
+          </div>
+        )}
         
         {/* Location Search Bar */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">

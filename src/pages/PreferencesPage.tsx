@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Settings, Bell, Mail, Bookmark } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const PreferencesPage = () => {
   const { user } = useAuth();
@@ -192,6 +193,10 @@ const PreferencesPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Preferences | TechBeetle</title>
+        <meta name="description" content="Tune your TechBeetle notifications, followed categories, and newsletter preferences." />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="mb-8">

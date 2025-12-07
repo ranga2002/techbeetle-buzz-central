@@ -6,16 +6,47 @@ import ContentCard from "@/components/ContentCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { History, Sparkles } from "lucide-react";
+import { Helmet } from "react-helmet-async";
+import { useNavigate } from "react-router-dom";
 
 const ReadingHistoryPage = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const { useReadingHistoryQuery, useRecommendationsQuery } = useReadingHistory(user?.id);
   
   const { data: history, isLoading: historyLoading } = useReadingHistoryQuery();
   const { data: recommendations, isLoading: recommendationsLoading } = useRecommendationsQuery();
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Helmet>
+          <title>Reading History | TechBeetle</title>
+          <meta name="description" content="Sign in to see your reading history and recommendations." />
+        </Helmet>
+        <Header />
+        <main className="container mx-auto px-4 py-8 text-center space-y-4">
+          <History className="h-12 w-12 mx-auto text-muted-foreground" />
+          <h1 className="text-3xl font-bold">Sign in to view your reading history</h1>
+          <p className="text-muted-foreground">Track what you have read and get personalized picks.</p>
+          <button
+            className="inline-flex items-center justify-center rounded-md border px-4 py-2 text-sm font-medium hover:bg-accent transition"
+            onClick={() => navigate("/auth")}
+          >
+            Go to sign in
+          </button>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Reading History | TechBeetle</title>
+        <meta name="description" content="Track your reading history and get personalized recommendations on TechBeetle." />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">

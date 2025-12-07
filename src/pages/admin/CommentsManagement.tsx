@@ -41,7 +41,8 @@ const CommentsManagement = () => {
           profiles:user_id (full_name),
           content:content_id (title)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (searchTerm) {
         query = query.ilike('comment_text', `%${searchTerm}%`);
@@ -72,6 +73,13 @@ const CommentsManagement = () => {
         description: "Comment status has been updated successfully.",
       });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating comment",
+        description: error.message || "Failed to update comment.",
+        variant: "destructive",
+      });
+    },
   });
 
   const deleteCommentMutation = useMutation({
@@ -88,6 +96,13 @@ const CommentsManagement = () => {
       toast({
         title: "Comment deleted",
         description: "Comment has been deleted successfully.",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error deleting comment",
+        description: error.message || "Failed to delete comment.",
+        variant: "destructive",
       });
     },
   });
@@ -146,7 +161,11 @@ const CommentsManagement = () => {
             onStatusUpdate={(commentId, status) => 
               updateStatusMutation.mutate({ commentId, status })
             }
-            onDelete={(commentId) => deleteCommentMutation.mutate(commentId)}
+            onDelete={(commentId) => {
+              if (window.confirm("Delete this comment? This cannot be undone.")) {
+                deleteCommentMutation.mutate(commentId);
+              }
+            }}
             isUpdating={updateStatusMutation.isPending}
           />
         </CardContent>

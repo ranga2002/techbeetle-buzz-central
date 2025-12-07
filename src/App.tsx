@@ -33,10 +33,13 @@ import NewsApiTest from "./pages/admin/NewsApiTest";
 import ReadingHistoryPage from "@/pages/ReadingHistoryPage";
 import ReviewGeneration from "./pages/admin/ReviewGeneration";
 import ProductManagement from "./pages/admin/ProductManagement";
+import ProductScraperPage from "./pages/admin/ProductScraperPage";
+import InventoryManagement from "./pages/admin/InventoryManagement";
 import SiteSettingsManagement from "./pages/admin/SiteSettingsManagement";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
 import { GlobalSeo } from "./components/GlobalSeo";
+import ProfilePage from "./pages/ProfilePage";
 
 
 const queryClient = new QueryClient();
@@ -67,6 +70,7 @@ const App = () => (
                   <Route path="/bookmarks" element={<BookmarksPage />} />
                   <Route path="/preferences" element={<PreferencesPage />} />
                   <Route path="/reading-history" element={<ReadingHistoryPage />} />
+                  <Route path="/profile" element={<ProfilePage />} />
                       
                   {/* Admin Routes */}
                   <Route path="/admin" element={<AdminLayout />}>
@@ -81,7 +85,9 @@ const App = () => (
                     <Route path="site-settings" element={<SiteSettingsManagement />} />
                     <Route path="news-test" element={<NewsApiTest />} />
                     <Route path="review-generator" element={<ReviewGeneration />} />
-                    <Route path="product-scraper" element={<ProductManagement />} />
+                    <Route path="product-management" element={<ProductManagement />} />
+                    <Route path="product-scraper" element={<ProductScraperPage />} />
+                    <Route path="inventory" element={<InventoryManagement />} />
                   </Route>
                     
                   <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />

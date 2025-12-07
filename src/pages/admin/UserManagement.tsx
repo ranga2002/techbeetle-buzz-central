@@ -24,7 +24,8 @@ const UserManagement = () => {
       let profileQuery = supabase
         .from('profiles')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (searchTerm) {
         profileQuery = profileQuery.or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
@@ -93,13 +94,23 @@ const UserManagement = () => {
   });
 
   const toggleUserStatusMutation = useMutation({
-    mutationFn: async ({ userId, isActive }: { userId: string; isActive: boolean }) => {
+    mutationFn: async ({ userId, isActive, reason, email }: { userId: string; isActive: boolean; reason?: string; email?: string }) => {
       const { error } = await supabase
         .from('profiles')
         .update({ is_active: !isActive })
         .eq('id', userId);
       
       if (error) throw error;
+
+      if (email) {
+        try {
+          await supabase.functions.invoke('send-suspension-email', {
+            body: { userId, email, reason, action: isActive ? 'suspend' : 'activate' }
+          });
+        } catch (err) {
+          console.error('Failed to send suspension email', err);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
@@ -146,8 +157,8 @@ const UserManagement = () => {
             onRoleUpdate={(userId, role) => 
               updateRoleMutation.mutate({ userId, role })
             }
-            onStatusToggle={(userId, isActive) => 
-              toggleUserStatusMutation.mutate({ userId, isActive })
+            onStatusToggle={({ userId, isActive, reason, email }) => 
+              toggleUserStatusMutation.mutate({ userId, isActive, reason, email })
             }
             isUpdating={updateRoleMutation.isPending || toggleUserStatusMutation.isPending}
           />

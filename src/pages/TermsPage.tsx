@@ -13,6 +13,16 @@ const TermsPage = () => {
         />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://techbeetle.org/terms" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            name: "Terms of Service",
+            url: "https://techbeetle.org/terms",
+            description:
+              "Review the Terms of Service for Tech Beetle to understand your rights and responsibilities when using our platform.",
+          })}
+        </script>
       </Helmet>
 
       <Header />

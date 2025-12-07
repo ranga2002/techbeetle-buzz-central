@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
 import { Filter, Star } from 'lucide-react';
+import { Helmet } from 'react-helmet-async';
 
 const ProductsPage = () => {
   const [filters, setFilters] = useState({
@@ -18,6 +19,7 @@ const ProductsPage = () => {
   const [currency, setCurrency] = useState<'USD' | 'CAD' | 'INR'>('USD');
   const [rates, setRates] = useState<{ [k: string]: number }>({ USD: 1 });
   const [loadingRates, setLoadingRates] = useState(false);
+  const [fxError, setFxError] = useState<string | null>(null);
 
   const { useProductReviewsQuery } = useProducts();
   const { data: products, isLoading } = useProductReviewsQuery(filters);
@@ -36,9 +38,12 @@ const ProductsPage = () => {
         const json = await res.json();
         if (json?.rates) {
           setRates(json.rates);
+          setFxError(null);
         }
       } catch (e) {
         console.error('Failed to load rates', e);
+        setFxError('Live currency rates unavailable. Showing USD.');
+        setCurrency('USD');
       } finally {
         setLoadingRates(false);
       }
@@ -78,6 +83,28 @@ const ProductsPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Products | TechBeetle</title>
+        <meta
+          name="description"
+          content="Browse curated tech products with ratings, prices, and purchase links. Filter by category, rating, and budget."
+        />
+        <link rel="canonical" href="https://techbeetle.org/products" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Products | TechBeetle" />
+        <meta
+          property="og:description"
+          content="Curated gadget picks with reviews, ratings, and purchase links."
+        />
+        <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Products | TechBeetle" />
+        <meta
+          name="twitter:description"
+          content="Curated gadget picks with reviews, ratings, and purchase links."
+        />
+        <meta name="twitter:image" content="https://techbeetle.org/favicon.ico" />
+      </Helmet>
       <Header />
       
       <main className="py-8">
@@ -99,6 +126,12 @@ const ProductsPage = () => {
               <Filter className="w-5 h-5" />
               <h3 className="text-lg font-semibold">Filter Products</h3>
             </div>
+
+            {fxError && (
+              <div className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-4">
+                {fxError}
+              </div>
+            )}
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Category Filter */}
@@ -149,7 +182,9 @@ const ProductsPage = () => {
                     className="w-full"
                   />
                   <div className="text-center mt-2">
-                    <span className="text-sm">Up to ${filters.maxPrice}</span>
+                    <span className="text-sm">
+                      Up to {new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(filters.maxPrice)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -199,7 +234,7 @@ const ProductsPage = () => {
                     formattedPrice={product.formattedPrice}
                     purchaseLinks={product.purchase_links || []}
                     onClick={() => {
-                      console.log('Navigate to product:', product.slug);
+                      window.location.href = `/reviews/${product.slug}`;
                     }}
                   />
                 ))}

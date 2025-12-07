@@ -44,7 +44,8 @@ const TagsManagement = () => {
       const { data, error } = await supabase
         .from('tags')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       return data as Tag[];
@@ -106,6 +107,13 @@ const TagsManagement = () => {
         description: "Tag has been deleted successfully.",
       });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Error deleting tag",
+        description: error.message || "Failed to delete tag.",
+        variant: "destructive",
+      });
+    }
   });
 
   const resetForm = () => {
@@ -218,7 +226,12 @@ const TagsManagement = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteTagMutation.mutate(tag.id)}
+                        onClick={() => {
+                          if (window.confirm(`Delete tag "${tag.name}"? This cannot be undone.`)) {
+                            deleteTagMutation.mutate(tag.id);
+                          }
+                        }}
+                        disabled={deleteTagMutation.isPending}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

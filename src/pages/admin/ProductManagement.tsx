@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,6 +23,7 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from '@/components/ui/alert-dialog';
+import { useSearchParams } from 'react-router-dom';
 
 interface ProductFormData {
   title: string;
@@ -55,6 +56,7 @@ const ProductManagement = () => {
   const [isFetching, setIsFetching] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Fetch categories
   const { data: categories, isLoading: loadingCategories } = useQuery({
@@ -64,7 +66,8 @@ const ProductManagement = () => {
         .from('categories')
         .select('*')
         .eq('is_active', true)
-        .order('name');
+        .order('name')
+        .limit(100);
       if (error) throw error;
       return data || [];
     }
@@ -84,7 +87,8 @@ const ProductManagement = () => {
           purchase_links (*)
         `)
         .eq('content_type', 'review')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
       if (error) throw error;
       return data || [];
     }
@@ -143,17 +147,17 @@ const ProductManagement = () => {
             pros: ['High quality product', 'Great value'],
             cons: ['Could be improved'],
             images: formData.imageUrl ? [formData.imageUrl] : []
-          }, {
-            onConflict: 'content_id'
           });
 
         if (reviewError) throw reviewError;
 
         // Update purchase link
         if (formData.productUrl) {
+          // clear any existing links to avoid unique conflicts on (content_id, retailer_name, product_url)
+          await supabase.from('purchase_links').delete().eq('content_id', contentData.id);
           const { error: linkError } = await supabase
             .from('purchase_links')
-            .upsert({
+            .insert({
               content_id: contentData.id,
               retailer_name: formData.retailerName || 'Store',
               product_url: formData.productUrl,
@@ -306,58 +310,20 @@ const ProductManagement = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleFetchProduct = async () => {
-    if (!fetchUrl.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter an Amazon product URL",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsFetching(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('scrape-product-data', {
-        body: { productUrl: fetchUrl }
-      });
-
-      if (error) throw error;
-
-      if (data.success && data.data) {
-        const product = data.data;
-        setFormData(prev => ({
-          ...prev,
-          title: product.title || prev.title,
-          description: product.description || prev.description,
-          price: product.price ? product.price.toString() : prev.price,
-          brand: product.brand || prev.brand,
-          model: product.model || prev.model,
-          rating: product.rating ? product.rating.toString() : prev.rating,
-          imageUrl: product.images?.[0] || prev.imageUrl,
-          productUrl: fetchUrl,
-          retailerName: fetchUrl.includes('amazon') ? 'Amazon' : prev.retailerName,
-        }));
-
-        toast({
-          title: "Success",
-          description: "Product details fetched successfully!",
-        });
-        setFetchUrl('');
-      } else {
-        throw new Error(data.error || 'Failed to fetch product details');
+  // Auto-open edit when ?edit=<id> is provided
+  useEffect(() => {
+    const editId = searchParams.get('edit');
+    if (editId && products) {
+      const productToEdit = products.find((p: any) => p.id === editId);
+      if (productToEdit) {
+        handleEdit(productToEdit);
+        // remove param to avoid re-triggering
+        const nextParams = new URLSearchParams(searchParams);
+        nextParams.delete('edit');
+        setSearchParams(nextParams, { replace: true });
       }
-    } catch (error: any) {
-      console.error('Error fetching product:', error);
-      toast({
-        title: "Error fetching product",
-        description: error.message || "Failed to fetch product details from Amazon",
-        variant: "destructive",
-      });
-    } finally {
-      setIsFetching(false);
     }
-  };
+  }, [products, searchParams, setSearchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -368,57 +334,13 @@ const ProductManagement = () => {
     <div className="space-y-6 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
+          <h1 className="text-3xl font-bold flex items-center gap-3" id="reviews">
             <Package className="w-8 h-8 text-primary" />
-            Product Management
+            Review Management
           </h1>
-          <p className="text-muted-foreground mt-1">Create and manage comprehensive product reviews</p>
+          <p className="text-muted-foreground mt-1">Create and manage detailed product reviews</p>
         </div>
       </div>
-
-      {/* Product Fetcher */}
-      <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Package className="w-5 h-5" />
-            Amazon Product Fetcher
-          </CardTitle>
-          <CardDescription>
-            Automatically import product details from Amazon India or Amazon.com
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Input
-              placeholder="https://www.amazon.in/dp/... or amzn.in/..."
-              value={fetchUrl}
-              onChange={(e) => setFetchUrl(e.target.value)}
-              disabled={isFetching}
-              className="flex-1"
-            />
-            <Button 
-              onClick={handleFetchProduct}
-              disabled={isFetching || !fetchUrl.trim()}
-              size="lg"
-            >
-              {isFetching ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Fetching...
-                </>
-              ) : (
-                <>
-                  <Package className="w-4 h-4 mr-2" />
-                  Fetch Product
-                </>
-              )}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground mt-2">
-            💡 Tip: Paste any Amazon product link to automatically fill the form below
-          </p>
-        </CardContent>
-      </Card>
 
       {/* Product Form */}
       <Card>
@@ -626,8 +548,8 @@ const ProductManagement = () => {
         <CardHeader className="border-b">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Published Product Reviews</CardTitle>
-              <CardDescription className="mt-1">View and manage all your product reviews</CardDescription>
+              <CardTitle>Published Reviews</CardTitle>
+              <CardDescription className="mt-1">These entries are review content. For stock-level product inventory, use the Inventory page.</CardDescription>
             </div>
             {products && products.length > 0 && (
               <Badge variant="secondary" className="text-sm">
@@ -711,7 +633,7 @@ const ProductManagement = () => {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => window.open(`/products`, '_blank')}
+                            onClick={() => window.open(product.slug ? `/reviews/${product.slug}` : '/products', '_blank')}
                             title="View product"
                           >
                             <Eye className="w-4 h-4" />

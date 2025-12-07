@@ -15,6 +15,7 @@ import { Search, Filter, Calendar as CalendarIcon, X } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Helmet } from 'react-helmet-async';
 
 const SearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -99,6 +100,7 @@ const SearchPage = () => {
       setResults(data || []);
     } catch (error) {
       console.error('Search error:', error);
+      alert('Search failed. Please try again.'); // fallback UI
     } finally {
       setIsLoading(false);
     }
@@ -137,6 +139,11 @@ const SearchPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Search | TechBeetle</title>
+        <meta name="description" content="Search news, reviews, how-tos, and videos across TechBeetle." />
+        <link rel="canonical" href={`https://techbeetle.org/search${query ? `?q=${encodeURIComponent(query)}` : ""}`} />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">

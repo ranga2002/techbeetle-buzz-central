@@ -46,6 +46,14 @@ const AuthPage = () => {
       full_name: fullName,
       username: username,
     });
+
+    if (!error) {
+      toast({
+        title: "Check your inbox",
+        description: "Confirm your email to complete signup.",
+      });
+      navigate('/');
+    }
     
     setIsLoading(false);
   };

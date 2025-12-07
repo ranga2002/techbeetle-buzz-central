@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -29,6 +29,7 @@ const ProductScraperPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [apiKey, setApiKey] = useState('');
 
   // Fetch categories for selection
   const { data: categories } = useQuery({
@@ -64,7 +65,7 @@ const ProductScraperPage = () => {
           excerpt: scrapedData.description.substring(0, 200) + '...',
           content: `# ${scrapedData.title}\n\n${scrapedData.description}`,
           featured_image: scrapedData.image,
-          content_type: 'review',
+          content_type: 'products',
           status: 'draft',
           author_id: user.id,
           category_id: selectedCategory,
@@ -147,7 +148,8 @@ const ProductScraperPage = () => {
         body: {
           product_id: extractProductId(amazonUrl),
           source_type: 'amazon',
-          product_url: amazonUrl
+          product_url: amazonUrl,
+          apiKey: apiKey || undefined,
         }
       });
 
@@ -233,6 +235,26 @@ const ProductScraperPage = () => {
           <p className="text-muted-foreground mt-1">Extract product data from Amazon URLs and create reviews</p>
         </div>
       </div>
+
+      {/* API Connector */}
+      <Card className="border-2 bg-gradient-to-br from-blue-50/70 to-white">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-xl">Free Amazon API Scraper</CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Plug in your Amazon scraping API key (share it here and we’ll wire it up), or use the built-in edge function.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <Input
+            placeholder="Enter your Amazon API key (optional)"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+          />
+          <p className="text-xs text-muted-foreground">
+            Leave blank to use the default scraper. Provide a key if you want to use an external free API—send it to us and we’ll plug it in.
+          </p>
+        </CardContent>
+      </Card>
 
       {/* URL Input Form */}
       <Card className="border-2">

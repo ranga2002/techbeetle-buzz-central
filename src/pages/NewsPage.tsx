@@ -28,7 +28,7 @@ const NewsPage = () => {
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [seoItem, setSeoItem] = useState<any>(null);
 
-  const { data: newsData = [], isLoading } = useContentQuery(
+  const { data: newsData = [], isLoading, isError, error: newsError } = useContentQuery(
     {
       contentType: "news",
       category: selectedCategory !== "all" ? selectedCategory : undefined,
@@ -39,7 +39,7 @@ const NewsPage = () => {
       staleTime: 60000,
     }
   );
-  const { data: categories = [] } = useCategoriesQuery();
+  const { data: categories = [], isError: categoriesError } = useCategoriesQuery();
 
   const handleNewsClick = (newsItem: any) => {
     setSelectedNewsItem(newsItem);
@@ -55,7 +55,16 @@ const NewsPage = () => {
 
   useEffect(() => {
     try {
-      const sorted = [...(newsData || [])].sort((a, b) => {
+      const deduped = [...(newsData || [])].reduce((acc: any[], item: any) => {
+        const key = item.slug || item.id;
+        if (!key) return acc;
+        if (!acc.find((x) => (x.slug || x.id) === key)) {
+          acc.push(item);
+        }
+        return acc;
+      }, []);
+
+      const sorted = deduped.sort((a, b) => {
         const aDate = new Date(a.published_at || "").getTime() || 0;
         const bDate = new Date(b.published_at || "").getTime() || 0;
         return bDate - aDate;
@@ -73,7 +82,13 @@ const NewsPage = () => {
         if (match) {
           setSelectedNewsItem(match);
           setIsModalOpen(true);
+          setError(null);
+        } else {
+          setError("We couldn't find that story. Try browsing the latest below.");
+          setIsModalOpen(false);
         }
+      } else {
+        setError(null);
       }
     } catch (err: any) {
       console.error("Error processing news data:", err);
@@ -82,10 +97,17 @@ const NewsPage = () => {
   }, [newsData, slug]);
 
   useEffect(() => {
+    let ticking = false;
     const onScroll = () => {
-      setShowScrollTop(window.scrollY > 400);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          setShowScrollTop(window.scrollY > 400);
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
-    window.addEventListener("scroll", onScroll);
+    window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -96,7 +118,11 @@ const NewsPage = () => {
 
   const filtered = selectedCategory === "all"
     ? articles
-    : articles.filter((item: any) => item.categories?.slug === selectedCategory || item.category_id === selectedCategory);
+    : articles.filter((item: any) => {
+        const itemSlug = item.categories?.slug || item.category_slug;
+        const itemId = item.categories?.id || item.category_id;
+        return itemSlug === selectedCategory || itemId === selectedCategory;
+      });
 
   const trending = [...articles]
     .sort((a: any, b: any) => (b.views_count || 0) - (a.views_count || 0))
@@ -147,7 +173,9 @@ const NewsPage = () => {
   const renderEmpty = () => (
     <div className="bg-card border rounded-2xl p-10 text-center space-y-3">
       <Sparkles className="w-10 h-10 text-primary mx-auto" />
-      <h3 className="text-xl font-semibold">No tech news yet</h3>
+      <h3 className="text-xl font-semibold">
+        {selectedCategory === "all" ? "No tech news yet" : `No ${selectedCategory} stories yet`}
+      </h3>
       <p className="text-muted-foreground">
         Stay tuned while we pull fresh gadget launches, AI drops, and product updates.
       </p>
@@ -339,9 +367,9 @@ const NewsPage = () => {
           </div>
         </section>
 
-        {error && (
+        {(error || isError || categoriesError) && (
           <div className="bg-destructive/10 text-destructive border border-destructive/30 rounded-2xl p-4">
-            {error}
+            {error || newsError?.message || "Unable to load the latest tech news right now."}
           </div>
         )}
 

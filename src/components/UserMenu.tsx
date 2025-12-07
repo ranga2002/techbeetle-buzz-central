@@ -39,8 +39,6 @@ const UserMenu = () => {
     return email.substring(0, 2).toUpperCase();
   };
 
-  console.log('UserMenu - hasContentAccess:', hasContentAccess);
-
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>

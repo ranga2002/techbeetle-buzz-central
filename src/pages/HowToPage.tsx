@@ -223,13 +223,27 @@ const HowToPage = () => {
 
   const supabaseGuides: LocalGuide[] = useMemo(() => {
     return (howToContent || []).map((item) => {
-      const cleanSteps =
-        (item.content_raw || item.content || "")
-          .replace(/<[^>]*>/g, " ")
-          .split(/\n+/)
-          .map((s) => s.trim())
-          .filter((s) => s.length > 0)
-          .slice(0, 8);
+      const rawContent = (item.content_raw || item.content || "") as string;
+      const cleanSteps = rawContent
+        .replace(/<br\s*\/?>/gi, "\n")
+        .replace(/<\/(p|li)>/gi, "\n")
+        .replace(/<[^>]*>/g, " ")
+        .split(/\n+/)
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .slice(0, 8);
+
+      const tagsValue = item.tags;
+      const parsedTags = Array.isArray(tagsValue)
+        ? tagsValue
+        : typeof tagsValue === "string"
+          ? tagsValue.split(",").map((t) => t.trim()).filter(Boolean)
+          : [];
+
+      const difficultyValue =
+        (item as any)?.difficulty && ["beginner", "intermediate", "advanced"].includes((item as any).difficulty)
+          ? ((item as any).difficulty as LocalGuide["difficulty"])
+          : "intermediate";
 
       return {
         id: item.id,
@@ -237,9 +251,9 @@ const HowToPage = () => {
         summary: item.excerpt || "Step-by-step guide",
         device: item.categories?.slug || "general",
         platform: item.categories?.slug || "general",
-        difficulty: "intermediate",
+        difficulty: difficultyValue,
         durationMinutes: item.reading_time ? item.reading_time * 2 : 20,
-        tags: (item.tags as string[]) || [],
+        tags: parsedTags,
         steps: cleanSteps.length ? cleanSteps : ["Read the full guide for detailed steps."],
         prerequisites: [],
         tools: [],
@@ -261,9 +275,10 @@ const HowToPage = () => {
         !search ||
         guide.title.toLowerCase().includes(search.toLowerCase()) ||
         guide.summary.toLowerCase().includes(search.toLowerCase());
-      return matchesDevice && matchesPlatform && matchesDifficulty && matchesTime && matchesTags && matchesSearch;
+      const matchesBrand = !brand || guide.summary.toLowerCase().includes(brand.toLowerCase());
+      return matchesDevice && matchesPlatform && matchesDifficulty && matchesTime && matchesTags && matchesSearch && matchesBrand;
     });
-  }, [allGuides, device, os, difficulty, maxTime, selectedTags, search]);
+  }, [allGuides, device, os, difficulty, maxTime, selectedTags, search, brand]);
 
   const summary = useMemo(() => {
     const pieces = [
@@ -379,6 +394,16 @@ const HowToPage = () => {
               <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                 <Badge variant="secondary" className="flex items-center gap-1"><Clock className="w-4 h-4" /> Guided flows</Badge>
                 <Badge variant="secondary" className="flex items-center gap-1"><Sparkles className="w-4 h-4" /> Curated picks</Badge>
+              </div>
+              <div className="flex flex-wrap gap-2 text-sm">
+                <Badge variant="outline">{summary || "Set your filters"}</Badge>
+                <Button size="sm" variant="secondary" onClick={() => {
+                  if (selectedGuide) {
+                    navigator.clipboard?.writeText(`${window.location.origin}/how-to#${selectedGuide.id}`).catch(() => null);
+                  }
+                }}>
+                  Share this setup
+                </Button>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4 w-full lg:w-auto text-sm">

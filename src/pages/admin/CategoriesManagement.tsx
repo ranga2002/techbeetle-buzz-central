@@ -50,7 +50,8 @@ const CategoriesManagement = () => {
       const { data, error } = await supabase
         .from('categories')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (error) throw error;
       return data as Category[];
@@ -112,6 +113,13 @@ const CategoriesManagement = () => {
         description: "Category has been deleted successfully.",
       });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Error deleting category",
+        description: error.message || "Failed to delete category.",
+        variant: "destructive",
+      });
+    }
   });
 
   const resetForm = () => {
@@ -270,7 +278,12 @@ const CategoriesManagement = () => {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => deleteCategoryMutation.mutate(category.id)}
+                        onClick={() => {
+                          if (window.confirm(`Delete category "${category.name}"? This cannot be undone.`)) {
+                            deleteCategoryMutation.mutate(category.id);
+                          }
+                        }}
+                        disabled={deleteCategoryMutation.isPending}
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>

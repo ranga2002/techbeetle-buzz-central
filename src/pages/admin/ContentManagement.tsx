@@ -10,6 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import ContentFilters from '@/components/admin/content/ContentFilters';
 import ContentTable from '@/components/admin/content/ContentTable';
 import type { Tables, Database } from '@/integrations/supabase/types';
+import { useNavigate } from 'react-router-dom';
 
 type Content = Tables<'content'> & {
   profiles: Pick<Tables<'profiles'>, 'full_name'> | null;
@@ -25,6 +26,7 @@ const ContentManagement = () => {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: content, isLoading } = useQuery({
     queryKey: ['admin-content', searchTerm, statusFilter, typeFilter],
@@ -36,7 +38,8 @@ const ContentManagement = () => {
           profiles:author_id (full_name),
           categories (name)
         `)
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
+        .limit(100);
 
       if (searchTerm) {
         query = query.ilike('title', `%${searchTerm}%`);
@@ -98,6 +101,13 @@ const ContentManagement = () => {
         description: "Content status has been updated successfully.",
       });
     },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating status",
+        description: error.message || "Failed to update content status.",
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -135,12 +145,40 @@ const ContentManagement = () => {
             onStatusUpdate={(contentId, status) => 
               updateStatusMutation.mutate({ contentId, status })
             }
-            onDelete={(contentId) => deleteContentMutation.mutate(contentId)}
+            onDelete={(contentId) => {
+              if (window.confirm("Delete this content? This cannot be undone.")) {
+                deleteContentMutation.mutate(contentId);
+              }
+            }}
+            onEdit={(contentId, type) => {
+              if (type === 'review') {
+                navigate(`/admin/product-management?edit=${contentId}`);
+              } else {
+                toast({
+                  title: 'Edit not available',
+                  description: 'Editing is currently only supported for reviews.',
+                  variant: 'destructive',
+                });
+              }
+            }}
+            onView={(slug, type) => {
+              if (!slug) return;
+              const typeToRoute: Record<string, string> = {
+                review: '/reviews',
+                news: '/news',
+                article: '/news',
+                how_to: '/how-to',
+                comparison: '/compare',
+                video: '/videos',
+              };
+              const base = typeToRoute[type || ''] || '/news';
+              window.open(`${base}/${slug}`, '_blank');
+            }}
             isUpdating={updateStatusMutation.isPending}
             isDeleting={deleteContentMutation.isPending}
           />
-        </CardContent>
-      </Card>
+      </CardContent>
+    </Card>
     </div>
   );
 };

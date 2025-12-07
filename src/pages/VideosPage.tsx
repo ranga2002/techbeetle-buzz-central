@@ -5,6 +5,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ContentCard from '@/components/ContentCard';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Helmet } from 'react-helmet-async';
 
 const VideosPage = () => {
   const { useContentQuery } = useContent();
@@ -15,6 +16,11 @@ const VideosPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Helmet>
+        <title>Videos | TechBeetle</title>
+        <meta name="description" content="Watch the latest TechBeetle videos, reviews, tutorials, and explainers." />
+        <link rel="canonical" href="https://techbeetle.org/videos" />
+      </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">
         <div className="mb-8">
@@ -51,9 +57,7 @@ const VideosPage = () => {
                 likesCount={content.likes_count || 0}
                 readingTime={content.reading_time || undefined}
                 publishedAt={content.published_at || undefined}
-                onClick={() => {
-                  console.log('Navigate to video:', content.slug);
-                }}
+                onClick={content.slug ? () => (window.location.href = `/news/${content.slug}`) : undefined}
               />
             ))}
           </div>

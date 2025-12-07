@@ -18,7 +18,12 @@ const ReviewsPage = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { useContentQuery } = useContent();
-  const { data: reviewsContent = [], isLoading } = useContentQuery({
+  const {
+    data: reviewsContent = [],
+    isLoading,
+    isError,
+    error: reviewsError,
+  } = useContentQuery({
     contentType: "review",
     limit: 50,
   });
@@ -64,34 +69,50 @@ const ReviewsPage = () => {
   );
 
   useEffect(() => {
-    const loadRatings = async () => {
+    let cancelled = false;
+    const timeout = setTimeout(async () => {
       const ids = filtered.map((item: any) => item.id).filter(Boolean);
       if (!ids.length) {
-        setRatingsMap({});
+        if (!cancelled) setRatingsMap({});
         return;
       }
-      const { data, error } = await supabase
-        .from("review_details")
-        .select("content_id, overall_rating")
-        .in("content_id", ids);
-      if (error) {
-        toast({
-          title: "Unable to load ratings",
-          description: error.message,
-          duration: 2500,
+
+      try {
+        const { data, error } = await supabase
+          .from("review_details")
+          .select("content_id, overall_rating")
+          .in("content_id", ids);
+
+        if (error) throw error;
+
+        const map: Record<string, number> = {};
+        (data || []).forEach((row: any) => {
+          if (row.overall_rating) {
+            map[row.content_id] = row.overall_rating;
+          }
         });
-        return;
-      }
-      const map: Record<string, number> = {};
-      (data || []).forEach((row: any) => {
-        if (row.overall_rating) {
-          map[row.content_id] = row.overall_rating;
+        if (!cancelled) setRatingsMap(map);
+      } catch (error: any) {
+        if (!cancelled) {
+          toast({
+            title: "Unable to load ratings",
+            description: error?.message || "Please try again shortly.",
+            duration: 2500,
+            variant: "destructive",
+          });
         }
-      });
-      setRatingsMap(map);
+      }
+    }, 200);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timeout);
     };
-    loadRatings();
   }, [filtered, toast]);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [selectedCategory, search, sortBy]);
 
   const orderedReviews = useMemo(() => {
     const list = [...searched];
@@ -109,7 +130,7 @@ const ReviewsPage = () => {
   const averageRating =
     searched.length > 0
       ? (
-          searched.reduce((acc: number, item: any) => acc + (item.rating || 0), 0) /
+          searched.reduce((acc: number, item: any) => acc + (ratingsMap[item.id] || 0), 0) /
           Math.max(searched.length, 1)
         ).toFixed(1)
       : "0.0";
@@ -218,6 +239,14 @@ const ReviewsPage = () => {
           </div>
           
         </section>
+        {isError && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
+            We couldn't load reviews right now. Please retry in a moment.
+            {reviewsError && typeof reviewsError === "object" && "message" in reviewsError && (
+              <span className="block text-xs opacity-80">{(reviewsError as any).message}</span>
+            )}
+          </div>
+        )}
         <div className="mt-6 grid gap-4 md:grid-cols-3 items-center">
           <div className="flex flex-wrap gap-2">
             <Badge

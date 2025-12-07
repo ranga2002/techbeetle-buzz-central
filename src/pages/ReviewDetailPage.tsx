@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import DOMPurify from "dompurify";
 import { Helmet } from "react-helmet-async";
 import { useNavigate, useParams } from "react-router-dom";
 import Header from "@/components/Header";
@@ -24,50 +25,79 @@ const ReviewDetailPage = () => {
   const [details, setDetails] = useState<ReviewDetails | null>(null);
   const [purchaseLinks, setPurchaseLinks] = useState<PurchaseLink[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const load = async () => {
-      if (!slug) return;
-      setLoading(true);
-
-      const { data: reviewData } = await supabase
-        .from("content")
-        .select("*, categories(*), profiles(*)")
-        .eq("slug", slug)
-        .eq("status", "published")
-        .maybeSingle();
-
-      if (!reviewData) {
-        toast({
-          title: "Review not found",
-          description: "Returning to reviews.",
-          duration: 3000,
-        });
-        navigate("/reviews", { replace: true });
+      if (!slug) {
+        setFetchError("Missing review slug.");
+        setLoading(false);
         return;
       }
+      setLoading(true);
+      setFetchError(null);
 
-      setReview(reviewData);
+      try {
+        const { data: reviewData, error } = await supabase
+          .from("content")
+          .select("*, categories(*), profiles(*)")
+          .eq("slug", slug)
+          .eq("status", "published")
+          .maybeSingle();
 
-      const [{ data: detailData }, { data: purchaseData }] = await Promise.all([
-        supabase.from("review_details").select("*").eq("content_id", reviewData.id).maybeSingle(),
-        supabase
-          .from("purchase_links")
-          .select("*")
-          .eq("content_id", reviewData.id)
-          .order("is_primary", { ascending: false }),
-      ]);
+        if (error) throw error;
 
-      setDetails(detailData || null);
-      setPurchaseLinks(purchaseData || []);
-      setLoading(false);
-      // Increment views
-      if (reviewData?.id) {
-        await supabase.rpc("increment_content_views", { content_id_param: reviewData.id });
+        if (!reviewData) {
+          throw new Error("Review not found");
+        }
+
+        if (cancelled) return;
+        setReview(reviewData);
+
+        const [{ data: detailData, error: detailsError }, { data: purchaseData, error: purchaseError }] =
+          await Promise.all([
+            supabase.from("review_details").select("*").eq("content_id", reviewData.id).maybeSingle(),
+            supabase
+              .from("purchase_links")
+              .select("*")
+              .eq("content_id", reviewData.id)
+              .order("is_primary", { ascending: false }),
+          ]);
+
+        if (detailsError) throw detailsError;
+        if (purchaseError) throw purchaseError;
+
+        if (cancelled) return;
+        setDetails(detailData || null);
+        setPurchaseLinks(purchaseData || []);
+
+        if (reviewData?.id) {
+          try {
+            await supabase.rpc("increment_content_views", { content_id_param: reviewData.id });
+          } catch (err) {
+            console.warn("Unable to increment views", err);
+          }
+        }
+      } catch (err: any) {
+        if (cancelled) return;
+        console.error("Failed to load review", err);
+        setFetchError(err?.message || "Unable to load this review right now.");
+        toast({
+          title: "Review unavailable",
+          description: err?.message || "Please try again shortly.",
+          variant: "destructive",
+          duration: 3000,
+        });
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
     load();
+    return () => {
+      cancelled = true;
+    };
   }, [slug, navigate, toast]);
 
   const pageTitle = review ? `${review.title} | TechBeetle Reviews` : "Review | TechBeetle";
@@ -89,6 +119,38 @@ const ReviewDetailPage = () => {
     review?.featured_image ||
     details?.images?.[0] ||
     "https://placehold.co/1200x700?text=TechBeetle+Review";
+
+  const contentHtml = useMemo(() => {
+    if (review?.content) {
+      return DOMPurify.sanitize(review.content);
+    }
+    if (review?.excerpt || review?.summary) {
+      return DOMPurify.sanitize(`<p>${review.excerpt || review.summary}</p>`);
+    }
+    return "";
+  }, [review?.content, review?.excerpt, review?.summary]);
+
+  const handleShare = async () => {
+    const url = review?.slug ? `${window.location.origin}/reviews/${review.slug}` : window.location.href;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: review?.title || "Review",
+          text: review?.excerpt || review?.summary || "",
+          url,
+        });
+      } else if (navigator.clipboard) {
+        await navigator.clipboard.writeText(url);
+        toast({ title: "Link copied", description: "Share this review with your friends." });
+      }
+    } catch (err) {
+      toast({
+        title: "Unable to share",
+        description: "Copy the link and share manually.",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -169,6 +231,12 @@ const ReviewDetailPage = () => {
           {publishTime && <span className="text-xs text-muted-foreground">{publishTime}</span>}
         </div>
 
+        {fetchError && !loading && (
+          <div className="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-destructive">
+            {fetchError}
+          </div>
+        )}
+
         {loading || !review ? (
           <div className="space-y-4">
             <Skeleton className="h-10 w-64" />
@@ -198,7 +266,7 @@ const ReviewDetailPage = () => {
                     ))}
                   </div>
                 )}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   {review.categories?.name && (
                     <Badge variant="secondary">{review.categories.name}</Badge>
                   )}
@@ -211,18 +279,19 @@ const ReviewDetailPage = () => {
                       {details.overall_rating}/5
                     </Badge>
                   )}
+                  <Button variant="outline" size="sm" onClick={handleShare}>
+                    Share
+                  </Button>
                 </div>
                 <div className="prose prose-neutral dark:prose-invert max-w-none">
                   <h1 className="text-4xl font-bold leading-tight">{review.title}</h1>
                   <p className="text-muted-foreground text-lg">{review.excerpt || review.summary}</p>
-                  <div className="space-y-4 text-foreground">
-                    {(review.content || "")
-                      .split("\n\n")
-                      .filter((p: string) => p.trim().length > 0)
-                      .map((p: string, idx: number) => (
-                        <p key={idx}>{p.trim()}</p>
-                      ))}
-                  </div>
+                  <div
+                    className="space-y-4 text-foreground"
+                    dangerouslySetInnerHTML={{
+                      __html: contentHtml || "<p>Full review will be available soon.</p>",
+                    }}
+                  />
                 </div>
               </div>
 

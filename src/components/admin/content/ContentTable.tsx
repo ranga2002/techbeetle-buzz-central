@@ -31,6 +31,8 @@ interface ContentTableProps {
   content: Content[] | undefined;
   onStatusUpdate: (contentId: string, status: ContentStatus) => void;
   onDelete: (contentId: string) => void;
+  onEdit?: (contentId: string, type?: string | null) => void;
+  onView?: (slug: string, type?: string | null) => void;
   isUpdating: boolean;
   isDeleting: boolean;
 }
@@ -39,6 +41,8 @@ const ContentTable: React.FC<ContentTableProps> = ({
   content,
   onStatusUpdate,
   onDelete,
+  onEdit,
+  onView,
   isUpdating,
   isDeleting,
 }) => {
@@ -100,10 +104,19 @@ const ContentTable: React.FC<ContentTableProps> = ({
             </TableCell>
             <TableCell>
               <div className="flex space-x-2">
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onView?.(item.slug || '', item.content_type)}
+                  disabled={!item.slug}
+                >
                   <Eye className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => onEdit?.(item.id, item.content_type)}
+                >
                   <Edit className="w-4 h-4" />
                 </Button>
                 <Button 

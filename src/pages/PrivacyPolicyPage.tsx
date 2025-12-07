@@ -13,6 +13,16 @@ const PrivacyPolicyPage = () => {
         />
         <meta name="robots" content="index, follow" />
         <link rel="canonical" href="https://techbeetle.org/privacy-policy" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebPage",
+            name: "Privacy Policy",
+            url: "https://techbeetle.org/privacy-policy",
+            description:
+              "Tech Beetle's Privacy Policy explains how we collect, use, store, and protect Google user data and other personal information.",
+          })}
+        </script>
       </Helmet>
 
       <Header />

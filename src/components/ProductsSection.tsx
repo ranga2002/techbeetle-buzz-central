@@ -8,7 +8,12 @@ import { Link } from 'react-router-dom';
 
 const ProductsSection = () => {
   const { useProductReviewsQuery } = useProducts();
-  const { data: products, isLoading } = useProductReviewsQuery({ limit: 6 });
+  const {
+    data: products,
+    isLoading,
+    isError,
+    error,
+  } = useProductReviewsQuery({ limit: 6 });
 
   if (isLoading) {
     return (
@@ -33,8 +38,39 @@ const ProductsSection = () => {
     );
   }
 
+  if (isError) {
+    return (
+      <section className="py-16 bg-gradient-to-br from-muted/20 to-background">
+        <div className="container mx-auto px-4">
+          <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-6 text-destructive">
+            We couldn't load product picks right now. Please try again soon.
+            {error && typeof error === 'object' && 'message' in error && (
+              <span className="block text-xs opacity-80 mt-1">{(error as any).message}</span>
+            )}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   if (!products?.length) {
-    return null;
+    return (
+      <section className="py-16 bg-gradient-to-br from-muted/20 to-background">
+        <div className="container mx-auto px-4">
+          <div className="rounded-xl border bg-card px-6 py-8 text-center">
+            <h3 className="text-2xl font-semibold mb-2">No products to show yet</h3>
+            <p className="text-muted-foreground">
+              Check back soon for fresh recommendations or browse all reviews.
+            </p>
+            <div className="mt-4">
+              <Link to="/products">
+                <Button variant="outline">Browse all products</Button>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
   }
 
   return (

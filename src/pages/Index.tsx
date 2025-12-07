@@ -147,11 +147,13 @@ const Index = () => {
                     <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">New</p>
                     <h3 className="text-2xl font-semibold">Guided gadget picks</h3>
                     <p className="text-muted-foreground">
-                      Start with the gadget type, drill into OS, brand, and specs. WeΓÇÖll hand you the right how-to.
+                      Start with the gadget type, drill into OS, brand, and specs. We'll hand you the right how-to.
                     </p>
                   </div>
                   <Button asChild size="lg">
-                    <Link to="/how-to">Launch How-To Flow</Link>
+                    <Link to={user ? "/how-to" : "/auth"}>
+                      {user ? "Launch How-To Flow" : "Sign in to personalize"}
+                    </Link>
                   </Button>
                 </CardContent>
               </Card>

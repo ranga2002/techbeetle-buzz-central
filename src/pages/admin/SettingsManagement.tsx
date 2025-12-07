@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const SettingsManagement = () => {
   const { toast } = useToast();
@@ -24,6 +25,12 @@ const SettingsManagement = () => {
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">Settings</h1>
       </div>
+
+      <Alert>
+        <AlertDescription>
+          These settings are currently UI-only; saving will show a confirmation toast but does not persist to a backend yet.
+        </AlertDescription>
+      </Alert>
 
       <Tabs defaultValue="general" className="space-y-6">
         <TabsList>
