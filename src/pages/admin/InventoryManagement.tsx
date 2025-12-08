@@ -58,8 +58,8 @@ const InventoryManagement = () => {
     queryFn: async () => {
       let query = supabase
         .from('content')
-        .select('id, title, slug, category_id, categories ( name ), featured_image, status, views_count, content_type, external_url, images, excerpt, purchase_links ( price, product_url, retailer_name )')
-        .in('content_type', ['products', 'product'])
+        .select('id, title, slug, category_id, categories ( name ), featured_image, status, views_count, content_type, excerpt, purchase_links ( price, product_url, retailer_name )')
+        .eq('content_type', 'products')
         .order('created_at', { ascending: false });
 
       if (filter) query = query.ilike('title', `%${filter}%`);
