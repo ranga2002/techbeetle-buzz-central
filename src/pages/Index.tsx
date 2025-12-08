@@ -170,15 +170,15 @@ const Index = () => {
                       <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-1">Discover</p>
                       <h3 className="text-xl font-semibold">Explore by channel</h3>
                       <div className="flex flex-wrap gap-2">
-                        <Badge variant="secondary" asChild>
-                          <Link to="/videos">Videos</Link>
-                        </Badge>
-                        <Badge variant="secondary" asChild>
-                          <Link to="/compare">Compare</Link>
-                        </Badge>
-                        <Badge variant="secondary" asChild>
-                          <Link to="/products">Products</Link>
-                        </Badge>
+                        <Link to="/videos">
+                          <Badge variant="secondary">Videos</Badge>
+                        </Link>
+                        <Link to="/compare">
+                          <Badge variant="secondary">Compare</Badge>
+                        </Link>
+                        <Link to="/products">
+                          <Badge variant="secondary">Products</Badge>
+                        </Link>
                       </div>
                     </div>
                   </div>

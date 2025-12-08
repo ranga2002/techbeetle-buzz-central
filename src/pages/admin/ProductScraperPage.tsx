@@ -56,7 +56,7 @@ const ProductScraperPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      // Create content entry
+      // Create content entry as product
       const { data: contentData, error: contentError } = await supabase
         .from('content')
         .insert({
@@ -77,24 +77,6 @@ const ProductScraperPage = () => {
         .single();
 
       if (contentError) throw contentError;
-
-      // Create review details
-      const { error: reviewError } = await supabase
-        .from('review_details')
-        .insert({
-          content_id: contentData.id,
-          product_name: scrapedData.title,
-          brand: scrapedData.brand || '',
-          model: scrapedData.model || '',
-          price: scrapedData.price,
-          overall_rating: scrapedData.rating || 4.0,
-          specifications: {},
-          pros: ['Great features', 'Good value for money'],
-          cons: ['Could be improved'],
-          images: [scrapedData.image]
-        });
-
-      if (reviewError) throw reviewError;
 
       // Create purchase link
       const { error: linkError } = await supabase
@@ -144,27 +126,27 @@ const ProductScraperPage = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke('scrape-product-data', {
+      // Call edge function that scrapes Amazon; expects { product } response
+      const { data, error } = await supabase.functions.invoke('amazon-product-scraper', {
         body: {
-          product_id: extractProductId(amazonUrl),
-          source_type: 'amazon',
           product_url: amazonUrl,
           apiKey: apiKey || undefined,
-        }
+        },
       });
 
       if (error) throw error;
 
-      if (data.product) {
+      const product = data?.product;
+      if (product) {
         setScrapedData({
-          title: data.product.title,
-          description: data.product.description,
-          image: data.product.images[0],
-          price: data.product.price,
-          rating: data.product.rating,
-          brand: data.product.brand,
-          model: data.product.model,
-          availability: data.product.availability
+          title: product.title,
+          description: product.description,
+          image: product.images?.[0],
+          price: product.price,
+          rating: product.rating,
+          brand: product.brand,
+          model: product.model,
+          availability: product.availability,
         });
         toast({
           title: "Success",
@@ -196,24 +178,6 @@ const ProductScraperPage = () => {
     }
   };
 
-  const extractProductId = (url: string): string => {
-    // Handle specific shortened Amazon links
-    if (url.includes('amzn.to/46ExbRd') || url.includes('amzn.in/d/46ExbRd')) {
-      return 'B0D22YM7LD'; // ZEBRONICS Power Bank
-    }
-    if (url.includes('amzn.to/46yFldG') || url.includes('amzn.in/d/e0OTb9H')) {
-      return 'e0OTb9H'; // Faber Chimney
-    }
-    // Extract from generic shortened URLs
-    if (url.includes('amzn.to/') || url.includes('amzn.in/')) {
-      const shortCode = url.split('/').pop();
-      return shortCode || 'B0D22YM7LD';
-    }
-    // Extract ASIN from full Amazon URLs (both .com and .in)
-    const match = url.match(/\/dp\/([A-Z0-9]{8,10})|\/gp\/product\/([A-Z0-9]{8,10})/);
-    return match ? (match[1] || match[2]) : 'B0D22YM7LD';
-  };
-
   const handlePost = () => {
     if (!selectedCategory) {
       toast({
@@ -232,7 +196,7 @@ const ProductScraperPage = () => {
         <Package className="w-8 h-8 text-primary" />
         <div>
           <h1 className="text-3xl font-bold">Product Scraper</h1>
-          <p className="text-muted-foreground mt-1">Extract product data from Amazon URLs and create reviews</p>
+          <p className="text-muted-foreground mt-1">Extract product data from Amazon URLs and save as products</p>
         </div>
       </div>
 
@@ -355,7 +319,7 @@ const ProductScraperPage = () => {
                       title={scrapedData.title}
                       excerpt={scrapedData.description.substring(0, 100) + '...'}
                       featuredImage={scrapedData.image}
-                      contentType="review"
+                      contentType="products"
                       category={selectedCategory ? {
                         name: categories?.find(c => c.id === selectedCategory)?.name || '',
                         slug: categories?.find(c => c.id === selectedCategory)?.slug || '',
