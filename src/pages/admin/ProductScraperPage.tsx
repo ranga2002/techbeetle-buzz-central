@@ -27,6 +27,7 @@ const ProductScraperPage = () => {
   const [scrapedData, setScrapedData] = useState<ScrapedProduct | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
+  const [lastError, setLastError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [apiKey, setApiKey] = useState('');
@@ -125,6 +126,7 @@ const ProductScraperPage = () => {
     }
 
     setIsLoading(true);
+    setLastError(null);
     try {
       // Call edge function that scrapes Amazon; expects { product } response
       const { data, error } = await supabase.functions.invoke('amazon-product-scraper', {
@@ -145,7 +147,11 @@ const ProductScraperPage = () => {
           try {
             const text = await error.context.response.text();
             console.error('Edge response body:', text);
+            setLastError(text || error.message);
           } catch {}
+        }
+        if (!error.context?.response?.status) {
+          setLastError('Request blocked (likely CORS/preflight). Ensure the edge function allows https://techbeetle.org and responds to OPTIONS with 200.');
         }
         throw error;
       }
@@ -171,6 +177,7 @@ const ProductScraperPage = () => {
       }
     } catch (error: any) {
       console.error('Scraping error:', error);
+      setLastError(error?.message || 'Edge function returned an error. Check CORS/edge logs.');
       toast({
         title: "Scraping Failed",
         description: error?.message || "Edge function returned an error. Check CORS/edge logs.",
@@ -382,6 +389,20 @@ const ProductScraperPage = () => {
             </CardContent>
           </Card>
         </>
+      )}
+
+      {lastError && (
+        <Card className="border border-destructive/40 bg-destructive/5">
+          <CardHeader>
+            <CardTitle className="text-destructive text-sm">Scraper error details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-destructive">{lastError}</p>
+            <p className="text-xs text-muted-foreground mt-2">
+              If this mentions CORS/preflight, allow https://techbeetle.org in Supabase CORS and handle OPTIONS in the edge function.
+            </p>
+          </CardContent>
+        </Card>
       )}
     </div>
   );
