@@ -134,7 +134,21 @@ const ProductScraperPage = () => {
         },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Scraper edge function error', {
+          message: error.message,
+          status: error.context?.response?.status,
+          context: error.context,
+        });
+        // surface status text when available (CORS/preflight failures often land here)
+        if (error.context?.response?.text) {
+          try {
+            const text = await error.context.response.text();
+            console.error('Edge response body:', text);
+          } catch {}
+        }
+        throw error;
+      }
 
       const product = data?.product;
       if (product) {
@@ -159,7 +173,7 @@ const ProductScraperPage = () => {
       console.error('Scraping error:', error);
       toast({
         title: "Scraping Failed",
-        description: error.details || error.message || "Failed to fetch product data from Amazon",
+        description: error?.message || "Edge function returned an error. Check CORS/edge logs.",
         variant: "destructive",
       });
       
