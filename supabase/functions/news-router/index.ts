@@ -146,17 +146,25 @@ const safeJsonParse = <T>(value: string): T | null => {
 
 const fallbackExplainer = (article: NormalizedArticle): NormalizedArticle => {
   const ingestedAt = new Date().toISOString();
-  const summary = article.summary?.trim() || "Technology update for TechBeetle readers.";
-  const keyPoints = [
-    summary,
-    `Originally reported by ${article.source_name}`,
+  const cleanSummary =
+    (article.summary || "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 240) || "Brief update for TechBeetle readers.";
+
+  const keyPointsBase = [
+    cleanSummary,
     article.published_at ? `Published ${formatDate(article.published_at)}` : "Recent",
-  ];
+    `Source: ${article.source_name}`,
+    article.source_country ? `Region: ${article.source_country.toUpperCase()}` : null,
+  ].filter(Boolean) as string[];
+
+  // Keep 2–4 concise bullets
+  const keyPoints = keyPointsBase.slice(0, 4);
+
   const contentLines = [
-    summary,
-    `Originally reported by ${article.source_name}${
-      article.source_country ? ` (${article.source_country.toUpperCase()})` : ""
-    }; this is a brief for TechBeetle readers.`,
+    cleanSummary,
+    `Originally reported by ${article.source_name}; this is a brief for TechBeetle readers.`,
     "Key points:",
     ...keyPoints.map((p) => `- ${p}`),
   ];
@@ -167,10 +175,10 @@ const fallbackExplainer = (article: NormalizedArticle): NormalizedArticle => {
     published_at: ingestedAt,
     why_it_matters: article.why_it_matters || "Context: A quick take for TechBeetle readers.",
     takeaways: keyPoints,
-    summary,
+    summary: cleanSummary,
     slug: article.slug || toSlug(article.title),
     seo_title: article.seo_title || `${article.title} | TechBeetle Brief`,
-    seo_description: article.seo_description || summary.slice(0, 150),
+    seo_description: article.seo_description || cleanSummary.slice(0, 150),
     content: contentLines.join("\n\n"),
     key_points: keyPoints,
     _ai_indexable: false,
