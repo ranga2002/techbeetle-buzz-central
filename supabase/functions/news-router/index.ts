@@ -33,6 +33,7 @@ type NormalizedArticle = {
   content?: string;
   content_raw?: string;
   key_points?: string[];
+  _ai_indexable?: boolean;
 };
 
 const safeEnv = (key: string) => Deno.env.get(key) ?? "";
@@ -41,6 +42,7 @@ const NEWS_DATA_KEY = safeEnv("NEWSDATA_API_KEY");
 const GNEWS_KEY = safeEnv("GNEWS_API_KEY");
 const MEDIASTACK_KEY = safeEnv("MEDIASTACK_API_KEY");
 const GUARDIAN_KEY = safeEnv("GUARDIAN_API_KEY");
+const OPENAI_KEY = safeEnv("OPEN_API");
 
 const supabaseUrl = safeEnv("SUPABASE_URL");
 const supabaseServiceKey = safeEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -121,51 +123,142 @@ const toSlug = (title: string) =>
     .replace(/(^-|-$)/g, "")
     .slice(0, 80);
 
-const rewriteArticle = (article: NormalizedArticle): NormalizedArticle => {
+type AiArticleOutput = {
+  headline: string;
+  slug: string;
+  seo_title: string;
+  seo_description: string;
+  summary: string;
+  why_it_matters: string;
+  key_points: string[];
+  takeaways: string[];
+  body: string;
+  indexable: boolean;
+};
+
+const safeJsonParse = <T>(value: string): T | null => {
+  try {
+    return JSON.parse(value) as T;
+  } catch (_e) {
+    return null;
+  }
+};
+
+const fallbackExplainer = (article: NormalizedArticle): NormalizedArticle => {
   const ingestedAt = new Date().toISOString();
-  const why = `Why it matters: ${article.title.slice(0, 90)}...`;
-  const takeaways = [
-    `Source: ${article.source_name}`,
-    `Published: ${article.published_at || "recent"}`,
-    `Region: ${article.source_country || "global"}`,
-  ];
+  const summary = article.summary?.trim() || "Technology update for TechBeetle readers.";
   const keyPoints = [
-    `${article.title}`,
-    `Published ${article.published_at ? formatDate(article.published_at) : "recently"}`,
-    `From ${article.source_name}`,
+    summary,
+    `Originally reported by ${article.source_name}`,
+    article.published_at ? `Published ${formatDate(article.published_at)}` : "Recent",
   ];
-  const seoTitle = `${article.title} | TechBeetle Brief`;
-  const seoDescription =
-    article.summary?.slice(0, 150) ||
-    `Latest on ${article.source_name}: ${article.title}`;
-  const paraphrasedSummary = article.summary
-    ? `Here’s the gist: ${article.summary.replace(/\s+/g, " ").trim()}`
-    : `A fresh update from ${article.source_name} on recent technology developments.`;
-  const synthesizedContent = [
-    paraphrasedSummary,
-    article.content_raw,
-    `Originally from ${article.source_name}${
+  const contentLines = [
+    summary,
+    `Originally reported by ${article.source_name}${
       article.source_country ? ` (${article.source_country.toUpperCase()})` : ""
-    }, curated for TechBeetle readers.`,
-    "Key takeaways:",
+    }; this is a brief for TechBeetle readers.`,
+    "Key points:",
     ...keyPoints.map((p) => `- ${p}`),
-  ]
-    .filter(Boolean)
-    .join("\n\n");
+  ];
 
   return {
     ...article,
     source_published_at: article.published_at || null,
-    published_at: ingestedAt, // treat ingestion time as the posted time for ordering
-    why_it_matters: why,
-    takeaways,
-    summary: paraphrasedSummary,
-    slug: toSlug(article.title),
-    seo_title: seoTitle,
-    seo_description: seoDescription,
-    content: synthesizedContent,
+    published_at: ingestedAt,
+    why_it_matters: article.why_it_matters || "Context: A quick take for TechBeetle readers.",
+    takeaways: keyPoints,
+    summary,
+    slug: article.slug || toSlug(article.title),
+    seo_title: article.seo_title || `${article.title} | TechBeetle Brief`,
+    seo_description: article.seo_description || summary.slice(0, 150),
+    content: contentLines.join("\n\n"),
     key_points: keyPoints,
+    _ai_indexable: false,
   };
+};
+
+const enhanceArticleWithAI = async (
+  article: NormalizedArticle,
+): Promise<NormalizedArticle> => {
+  if (!OPENAI_KEY) {
+    return fallbackExplainer(article);
+  }
+
+  const systemPrompt =
+    "You are a TechBeetle editor. Write original explainer articles, not paraphrases. " +
+    "Return ONLY valid JSON for the fields described. Tone: concise, neutral, helpful. " +
+    "Avoid fluff. Focus on why it matters and clear takeaways. Do not copy the source wording.";
+
+  const userPayload = {
+    title: article.title,
+    summary: article.summary,
+    content_raw: article.content_raw,
+    source: article.source_name,
+    published_at: article.published_at,
+  };
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${OPENAI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        temperature: 0.35,
+        max_tokens: 1400,
+        response_format: { type: "json_object" },
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content:
+              "Create a TechBeetle explainer based on this source. Respond with JSON only.\n" +
+              JSON.stringify(userPayload, null, 2),
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("OpenAI call failed", response.status, await response.text());
+      return fallbackExplainer(article);
+    }
+
+    const json = await response.json();
+    const content = typeof json?.choices?.[0]?.message?.content === "string"
+      ? json.choices[0].message.content
+      : "";
+    const ai: AiArticleOutput | null = safeJsonParse<AiArticleOutput>(content);
+    if (!ai || !ai.headline || !ai.body) {
+      console.error("AI JSON parse failed", json);
+      return fallbackExplainer(article);
+    }
+
+    const headline = ai.headline.trim();
+    const slug = toSlug(ai.slug || ai.headline || article.title);
+    const now = new Date().toISOString();
+
+    return {
+      ...article,
+      title: headline,
+      slug,
+      summary: ai.summary?.trim() || article.summary,
+      why_it_matters: ai.why_it_matters?.trim() || article.why_it_matters,
+      takeaways: ai.takeaways && ai.takeaways.length > 0 ? ai.takeaways : ai.key_points || [],
+      key_points: ai.key_points || [],
+      seo_title: ai.seo_title?.slice(0, 120) || truncate(headline, 60),
+      seo_description: ai.seo_description?.slice(0, 180) || truncate(ai.summary || headline, 155),
+      content: ai.body,
+      source_published_at: article.published_at || article.source_published_at || null,
+      published_at: now,
+      _ai_indexable: Boolean(ai.indexable),
+    };
+  } catch (error) {
+    console.error("enhanceArticleWithAI error", error);
+    return fallbackExplainer(article);
+  }
 };
 
 const formatDate = (value: string) => {
@@ -317,7 +410,8 @@ const collectArticles = async (country: string, needed = 20, query?: string) => 
     })
     .slice(0, needed);
 
-  return sorted.map(rewriteArticle);
+  const enhanced = await Promise.all(sorted.map((item) => enhanceArticleWithAI(item)));
+  return enhanced;
 };
 
 const truncate = (value: string, max = 200) =>
@@ -362,6 +456,9 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
     return;
   }
 
+  // Migration reference (run separately):
+  // alter table content add column if not exists is_indexable boolean not null default false;
+
   const regionSlug = `news-${country.toLowerCase()}`;
   const categoryId =
     (await ensureCategory(regionSlug, `News (${country.toUpperCase()})`)) ||
@@ -370,6 +467,7 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
   for (const article of items) {
     try {
       const nowIso = new Date().toISOString();
+      const isIndexable = article._ai_indexable ?? false;
       const insertPayload = {
         title: article.title,
         slug: article.slug || toSlug(article.title),
@@ -384,6 +482,7 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         meta_title: article.seo_title ?? truncate(article.title, 60),
         meta_description: article.seo_description ?? truncate(article.summary || article.title, 160),
         is_featured: false,
+        is_indexable: isIndexable,
         reading_time: 5,
         views_count: 0,
         likes_count: 0,

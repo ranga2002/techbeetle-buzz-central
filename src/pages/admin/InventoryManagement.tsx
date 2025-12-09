@@ -58,7 +58,21 @@ const InventoryManagement = () => {
     queryFn: async () => {
       let query = supabase
         .from('content')
-        .select('id, title, slug, category_id, categories ( name ), featured_image, status, views_count, content_type, excerpt, purchase_links ( price, product_url, retailer_name )')
+        .select(
+          `
+          id,
+          title,
+          slug,
+          category_id,
+          categories ( name ),
+          featured_image,
+          status,
+          views_count,
+          content_type,
+          excerpt,
+          purchase_links ( price, product_url, retailer_name )
+        `,
+        )
         .eq('content_type', 'products')
         .order('created_at', { ascending: false });
 
@@ -120,7 +134,16 @@ const InventoryManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
       toast({ title: 'Saved', description: 'Inventory item saved.' });
       setEditing(null);
-      setFormData({ title: '', sku: '', stock_quantity: '', price: '', category_id: '', image_url: '', product_url: '' });
+      setFormData({
+        title: '',
+        category_id: '',
+        image_url: '',
+        additional_images: '',
+        product_url: '',
+        affiliate_url: '',
+        description: '',
+        price: '',
+      });
     },
     onError: (err: any) => {
       toast({ title: 'Error', description: err.message || 'Failed to save item', variant: 'destructive' });
@@ -162,9 +185,23 @@ const InventoryManagement = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Inventory</h1>
-          <p className="text-muted-foreground">Manage stock and pricing for product reviews.</p>
+          <p className="text-muted-foreground">Affiliate-style inventory of products you recommend.</p>
         </div>
-        <Button onClick={() => { setEditing(null); setFormData({ title: '', sku: '', stock_quantity: '', price: '', category_id: '' }); }}>
+        <Button
+          onClick={() => {
+            setEditing(null);
+            setFormData({
+              title: '',
+              category_id: '',
+              image_url: '',
+              additional_images: '',
+              product_url: '',
+              affiliate_url: '',
+              description: '',
+              price: '',
+            });
+          }}
+        >
           <Plus className="w-4 h-4 mr-2" />
           New Item
         </Button>
@@ -263,10 +300,17 @@ const InventoryManagement = () => {
                     <TableCell>{item.categories?.name || 'Uncategorized'}</TableCell>
                     <TableCell className="capitalize">{item.status || 'draft'}</TableCell>
                     <TableCell>{(item.views_count || 0).toLocaleString()}</TableCell>
-                    <TableCell>{item.price ? `₹${item.price}` : '-'}</TableCell>
                     <TableCell>
-                      {item.external_url ? (
-                        <a href={item.external_url} target="_blank" rel="noreferrer" className="text-primary underline text-xs">
+                      {item.purchase_links?.[0]?.price ? `₹${item.purchase_links[0].price}` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      {item.purchase_links?.[0]?.product_url || item.external_url ? (
+                        <a
+                          href={item.purchase_links?.[0]?.product_url || item.external_url || ''}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-primary underline text-xs"
+                        >
                           Link
                         </a>
                       ) : (

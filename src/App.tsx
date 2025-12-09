@@ -38,8 +38,10 @@ import InventoryManagement from "./pages/admin/InventoryManagement";
 import SiteSettingsManagement from "./pages/admin/SiteSettingsManagement";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
+import NewsEditor from "./pages/admin/NewsEditor";
 import { GlobalSeo } from "./components/GlobalSeo";
 import ProfilePage from "./pages/ProfilePage";
+import NewsArticlePage from "./pages/NewsArticlePage";
 
 
 const queryClient = new QueryClient();
@@ -59,7 +61,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/news" element={<NewsPage />} />
-                  <Route path="/news/:slug" element={<NewsPage />} />
+                  <Route path="/news/:slug" element={<NewsArticlePage />} />
                   <Route path="/reviews" element={<ReviewsPage />} />
                   <Route path="/reviews/:slug" element={<ReviewDetailPage />} />
                   <Route path="/videos" element={<VideosPage />} />
@@ -84,6 +86,7 @@ const App = () => (
                     <Route path="settings" element={<SettingsManagement />} />
                     <Route path="site-settings" element={<SiteSettingsManagement />} />
                     <Route path="news-test" element={<NewsApiTest />} />
+                    <Route path="news-editor" element={<NewsEditor />} />
                     <Route path="review-generator" element={<ReviewGeneration />} />
                     <Route path="product-management" element={<ProductManagement />} />
                     <Route path="product-scraper" element={<ProductScraperPage />} />

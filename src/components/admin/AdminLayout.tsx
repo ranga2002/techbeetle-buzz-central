@@ -99,6 +99,7 @@ const AdminLayout = () => {
     {
       title: 'Tools',
       items: [
+        { path: '/admin/news-editor', icon: FileText, label: 'News Editor', roles: ['admin', 'editor'] },
         { path: '/admin/news-test', icon: Rss, label: 'News API Test', roles: ['admin'] },
       ],
     },
