@@ -174,7 +174,8 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     return value.replace(/\s+/g, "").length >= 400;
   };
 
-  const preferredBody = hasMeaningfulBody(content_raw) ? content_raw : content;
+  // Prefer our own content/summary; never re-host full wire content_raw
+  const preferredBody = hasMeaningfulBody(content) ? content : description;
   const contentBodyRaw = preferredBody || description || "";
   const contentBody = sanitizeText(contentBodyRaw);
   const paragraphs = contentBody.split(/\n\s*\n/).filter((p: string) => p.trim().length > 0);
