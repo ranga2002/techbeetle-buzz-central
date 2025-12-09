@@ -32,6 +32,7 @@ const LatestNews = () => {
   } = useContentQuery({
     category: selectedCategory === 'All' ? undefined : selectedCategory,
     contentType: 'news',
+    isIndexable: true,
     limit: 9,
   }, {
     refetchInterval: 120000, // keep homepage fresh every 2 minutes

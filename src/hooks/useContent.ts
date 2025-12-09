@@ -20,6 +20,7 @@ export const useContent = () => {
     status?: string;
     limit?: number;
     slug?: string;
+    isIndexable?: boolean;
   }): Promise<Content[]> => {
     let query = supabase
       .from('content')
@@ -50,6 +51,9 @@ export const useContent = () => {
     }
     if (filters?.contentType) {
       query = query.eq('content_type', filters.contentType as any);
+    }
+    if (typeof filters?.isIndexable === 'boolean') {
+      query = query.eq('is_indexable', filters.isIndexable);
     }
     if (filters?.status) {
       query = query.eq('status', filters.status as any);
