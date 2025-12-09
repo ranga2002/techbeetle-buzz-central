@@ -110,16 +110,10 @@ const NewsArticlePage = () => {
       {!loading && !error && article && (
         <>
           <h1 className="text-3xl font-bold mb-4">{article.title}</h1>
-          {article.is_indexable === false || (article.status && article.status !== 'published') ? (
-            <p className="text-muted-foreground">
-              This article is currently unavailable.
-            </p>
-          ) : (
-            <article
-              className="prose prose-slate dark:prose-invert"
-              dangerouslySetInnerHTML={{ __html: sanitizedContent }}
-            />
-          )}
+          <article
+            className="prose prose-slate dark:prose-invert"
+            dangerouslySetInnerHTML={{ __html: sanitizedContent }}
+          />
           {related.length > 0 && (
             <div className="mt-10">
               <h2 className="text-2xl font-semibold mb-4">Related articles</h2>

@@ -41,7 +41,6 @@ import TermsPage from "./pages/TermsPage";
 import NewsEditor from "./pages/admin/NewsEditor";
 import { GlobalSeo } from "./components/GlobalSeo";
 import ProfilePage from "./pages/ProfilePage";
-import NewsArticlePage from "./pages/NewsArticlePage";
 
 
 const queryClient = new QueryClient();
@@ -61,7 +60,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/auth" element={<AuthPage />} />
                   <Route path="/news" element={<NewsPage />} />
-                  <Route path="/news/:slug" element={<NewsArticlePage />} />
+                  <Route path="/news/:slug" element={<NewsPage />} />
                   <Route path="/reviews" element={<ReviewsPage />} />
                   <Route path="/reviews/:slug" element={<ReviewDetailPage />} />
                   <Route path="/videos" element={<VideosPage />} />
