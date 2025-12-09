@@ -42,7 +42,7 @@ const NEWS_DATA_KEY = safeEnv("NEWSDATA_API_KEY");
 const GNEWS_KEY = safeEnv("GNEWS_API_KEY");
 const MEDIASTACK_KEY = safeEnv("MEDIASTACK_API_KEY");
 const GUARDIAN_KEY = safeEnv("GUARDIAN_API_KEY");
-const OPENAI_KEY = safeEnv("OPEN_API");
+const OPEN_API = safeEnv("OPEN_API");
 
 const supabaseUrl = safeEnv("SUPABASE_URL");
 const supabaseServiceKey = safeEnv("SUPABASE_SERVICE_ROLE_KEY");
@@ -188,7 +188,7 @@ const fallbackExplainer = (article: NormalizedArticle): NormalizedArticle => {
 const enhanceArticleWithAI = async (
   article: NormalizedArticle,
 ): Promise<NormalizedArticle> => {
-  if (!OPENAI_KEY) {
+  if (!OPEN_API) {
     return fallbackExplainer(article);
   }
 
@@ -210,7 +210,7 @@ const enhanceArticleWithAI = async (
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${OPENAI_KEY}`,
+        Authorization: `Bearer ${OPEN_API}`,
       },
       body: JSON.stringify({
         model: "gpt-4.1-mini",
