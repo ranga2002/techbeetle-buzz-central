@@ -239,6 +239,16 @@ const enhanceArticleWithAI = async (
       ? json.choices[0].message.content
       : "";
     const ai: AiArticleOutput | null = safeJsonParse<AiArticleOutput>(content);
+    // Normalize minor key variations to keep ingestion resilient
+    if (ai) {
+      // Some model variants return `title` instead of `headline`
+      ai.headline = ai.headline || (ai as any).title;
+      // Accept `key_takeaways` as `takeaways`
+      ai.takeaways = ai.takeaways || (ai as any).key_takeaways;
+      // If body is missing but summary exists, use summary as a minimal body
+      ai.body = ai.body || ai.summary;
+    }
+
     if (!ai || !ai.headline || !ai.body) {
       console.error("AI JSON parse failed", json);
       return fallbackExplainer(article);
@@ -388,7 +398,7 @@ const fetchGuardian = async (limit = 10, query?: string) => {
   })) as NormalizedArticle[];
 };
 
-const collectArticles = async (country: string, needed = 20, query?: string) => {
+const collectArticles = async (country: string, needed = 60, query?: string) => {
   const providers: Array<() => Promise<NormalizedArticle[]>> = [
     () => fetchNewsData(country, 10, query),
     () => fetchGNews(country, 10, query),
