@@ -194,8 +194,10 @@ const enhanceArticleWithAI = async (
 
   const systemPrompt =
     "You are a TechBeetle editor. Write original explainer articles, not paraphrases. " +
-    "Return ONLY valid JSON for the fields described. Tone: concise, neutral, helpful. " +
-    "Avoid fluff. Focus on why it matters and clear takeaways. Do not copy the source wording.";
+    "Use the provided content_raw/summary for facts; do NOT invent details. " +
+    "Body: 8-12 sentences (~550-600 words) that cover the key facts, context, and implications. " +
+    "Takeaways: 3–5 concise bullets. Tone: concise, neutral, helpful. " +
+    "Return ONLY valid JSON for the fields described.";
 
   const userPayload = {
     title: article.title,
@@ -245,8 +247,21 @@ const enhanceArticleWithAI = async (
       ai.headline = ai.headline || (ai as any).title;
       // Accept `key_takeaways` as `takeaways`
       ai.takeaways = ai.takeaways || (ai as any).key_takeaways;
-      // If body is missing but summary exists, use summary as a minimal body
-      ai.body = ai.body || ai.summary;
+      // Normalize summary if present
+      ai.summary = ai.summary || (ai as any).summary;
+      // If body is missing, build one from what we have
+      const fallbackSummary = ai.summary || article.summary || article.content_raw || "";
+      const fallbackPoints =
+        Array.isArray(ai.key_points) && ai.key_points.length > 0
+          ? ai.key_points.join("\n- ")
+          : Array.isArray(ai.takeaways) && ai.takeaways.length > 0
+            ? ai.takeaways.join("\n- ")
+            : "";
+      ai.body = ai.body || fallbackSummary || fallbackPoints;
+      // If the AI body is too short but we have source text, pad with source content
+      if ((ai.body?.length || 0) < 400 && article.content_raw) {
+        ai.body = `${ai.body ? ai.body + "\n\n" : ""}${article.content_raw.slice(0, 1200)}`;
+      }
     }
 
     if (!ai || !ai.headline || !ai.body) {
@@ -291,7 +306,10 @@ const dedupe = (items: NormalizedArticle[]): NormalizedArticle[] => {
   const seen = new Set<string>();
   const result: NormalizedArticle[] = [];
   for (const item of items) {
-    const key = `${item.title.toLowerCase()}|${item.source_name}|${item.published_at ?? ""}`;
+    const slugKey = toSlug(item.slug || item.title || "");
+    const urlKey = (item.url || item.id || "").toLowerCase();
+    const key = urlKey || `${slugKey}|${(item.source_name || "").toLowerCase()}`;
+    if (!key) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(item);
@@ -491,6 +509,9 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         slug: article.slug || toSlug(article.title),
         excerpt: truncate(article.summary || "", 200),
         content: article.content || article.summary || "",
+        why_it_matters: article.why_it_matters || null,
+        takeaways: article.takeaways || article.key_points || null,
+        key_points: article.key_points || null,
         featured_image: article.image ?? null,
         content_type: "news",
         status: "published",

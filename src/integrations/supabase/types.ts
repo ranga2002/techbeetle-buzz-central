@@ -245,15 +245,19 @@ export type Database = {
           featured_image: string | null
           id: string
           is_featured: boolean | null
+          is_indexable: boolean | null
           likes_count: number | null
+          takeaways: string[] | null
           meta_description: string | null
           meta_title: string | null
           published_at: string | null
+          key_points: string[] | null
           reading_time: number | null
           slug: string
           status: Database["public"]["Enums"]["content_status"] | null
           title: string
           updated_at: string | null
+          why_it_matters: string | null
           views_count: number | null
         }
         Insert: {
@@ -266,15 +270,19 @@ export type Database = {
           featured_image?: string | null
           id?: string
           is_featured?: boolean | null
+          is_indexable?: boolean | null
           likes_count?: number | null
+          takeaways?: string[] | null
           meta_description?: string | null
           meta_title?: string | null
           published_at?: string | null
+          key_points?: string[] | null
           reading_time?: number | null
           slug: string
           status?: Database["public"]["Enums"]["content_status"] | null
           title: string
           updated_at?: string | null
+          why_it_matters?: string | null
           views_count?: number | null
         }
         Update: {
@@ -287,15 +295,19 @@ export type Database = {
           featured_image?: string | null
           id?: string
           is_featured?: boolean | null
+          is_indexable?: boolean | null
           likes_count?: number | null
+          takeaways?: string[] | null
           meta_description?: string | null
           meta_title?: string | null
           published_at?: string | null
+          key_points?: string[] | null
           reading_time?: number | null
           slug?: string
           status?: Database["public"]["Enums"]["content_status"] | null
           title?: string
           updated_at?: string | null
+          why_it_matters?: string | null
           views_count?: number | null
         }
         Relationships: [
