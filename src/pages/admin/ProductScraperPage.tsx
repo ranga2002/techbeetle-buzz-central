@@ -143,14 +143,25 @@ const ProductScraperPage = () => {
     setFieldError(null);
     setIsLoading(true);
     setLastError(null);
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
     try {
+      const controller = new AbortController();
+      const timeoutMs = 120_000; // 2 minutes
+      timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       // Call edge function that scrapes Amazon; expects { product } response
-      const { data, error } = await supabase.functions.invoke('amazon-product-scraper', {
-        body: {
-          product_url: amazonUrl,
-          apiKey: apiKey || undefined,
-        },
-      });
+      const { data, error } = await Promise.race([
+        supabase.functions.invoke('amazon-product-scraper', {
+          body: {
+            product_url: amazonUrl,
+            apiKey: apiKey || undefined,
+          },
+          signal: controller.signal,
+        }),
+        new Promise<{ data: any; error: any }>((_, reject) =>
+          setTimeout(() => reject(new Error('Scrape timed out after 2 minutes. Try again or use a different URL.')), timeoutMs),
+        ),
+      ]);
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error('Scraper edge function error', {
@@ -213,6 +224,7 @@ const ProductScraperPage = () => {
         }, 2000);
       }
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
@@ -447,6 +459,17 @@ const ProductScraperPage = () => {
             </p>
           </CardContent>
         </Card>
+      )}
+
+      {isLoading && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+          <div className="flex flex-col items-center gap-3 rounded-2xl border bg-card px-6 py-5 shadow-xl">
+            <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <p className="text-sm text-muted-foreground text-center">
+              Scraping product data… this can take up to 2 minutes. Please wait.
+            </p>
+          </div>
+        </div>
       )}
     </div>
   );
