@@ -25,9 +25,11 @@ interface ScrapedProduct {
 const ProductScraperPage = () => {
   const [amazonUrl, setAmazonUrl] = useState('');
   const [scrapedData, setScrapedData] = useState<ScrapedProduct | null>(null);
+  const [formData, setFormData] = useState<ScrapedProduct | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [lastError, setLastError] = useState<string | null>(null);
+  const [fieldError, setFieldError] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [apiKey, setApiKey] = useState('');
@@ -57,21 +59,23 @@ const ProductScraperPage = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      const payload = formData || scrapedData;
+
       // Create content entry as product
       const { data: contentData, error: contentError } = await supabase
         .from('content')
         .insert({
-          title: scrapedData.title,
-          slug: scrapedData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
-          excerpt: scrapedData.description.substring(0, 200) + '...',
-          content: `# ${scrapedData.title}\n\n${scrapedData.description}`,
-          featured_image: scrapedData.image,
+          title: payload.title,
+          slug: payload.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+          excerpt: payload.description.substring(0, 200) + '...',
+          content: `# ${payload.title}\n\n${payload.description}`,
+          featured_image: payload.image,
           content_type: 'products',
           status: 'draft',
           author_id: user.id,
           category_id: selectedCategory,
-          meta_title: scrapedData.title,
-          meta_description: scrapedData.description.substring(0, 160),
+          meta_title: payload.title,
+          meta_description: payload.description.substring(0, 160),
           reading_time: 5
         })
         .select()
@@ -86,10 +90,10 @@ const ProductScraperPage = () => {
           content_id: contentData.id,
           retailer_name: 'Amazon',
           product_url: amazonUrl,
-          price: scrapedData.price,
+          price: payload.price,
           currency: 'INR',
           is_primary: true,
-          availability_status: scrapedData.availability || 'in_stock'
+          availability_status: payload.availability || 'in_stock'
         });
 
       if (linkError) throw linkError;
@@ -103,6 +107,7 @@ const ProductScraperPage = () => {
       });
       queryClient.invalidateQueries({ queryKey: ['content'] });
       setScrapedData(null);
+      setFormData(null);
       setAmazonUrl('');
       setSelectedCategory('');
     },
@@ -116,7 +121,18 @@ const ProductScraperPage = () => {
   });
 
   const handleFetch = async () => {
+    if (!amazonUrl.trim()) {
+      setFieldError('Please enter a product URL.');
+      toast({ title: 'Error', description: 'Product URL is required', variant: 'destructive' });
+      return;
+    }
+    if (!amazonUrl.startsWith('http')) {
+      setFieldError('Enter a valid URL starting with http/https.');
+      toast({ title: 'Error', description: 'Enter a valid URL starting with http/https', variant: 'destructive' });
+      return;
+    }
     if (!amazonUrl.includes('amazon') && !amazonUrl.includes('amzn')) {
+      setFieldError('Please enter a valid Amazon URL.');
       toast({
         title: "Error",
         description: "Please enter a valid Amazon product URL",
@@ -124,7 +140,7 @@ const ProductScraperPage = () => {
       });
       return;
     }
-
+    setFieldError(null);
     setIsLoading(true);
     setLastError(null);
     try {
@@ -156,18 +172,20 @@ const ProductScraperPage = () => {
         throw error;
       }
 
-      const product = data?.product;
+      const product = data?.product || (Array.isArray(data?.items) ? data.items[0] : null);
       if (product) {
-        setScrapedData({
+        const mapped: ScrapedProduct = {
           title: product.title,
-          description: product.description,
-          image: product.images?.[0],
-          price: product.price,
+          description: product.description || product.body || '',
+          image: product.images?.[0] || product.image,
+          price: Number(product.price) || 0,
           rating: product.rating,
           brand: product.brand,
           model: product.model,
           availability: product.availability,
-        });
+        };
+        setScrapedData(mapped);
+        setFormData(mapped);
         toast({
           title: "Success",
           description: "Product data fetched successfully",
@@ -200,10 +218,26 @@ const ProductScraperPage = () => {
   };
 
   const handlePost = () => {
+    if (!formData || !formData.title?.trim() || !formData.description?.trim()) {
+      toast({
+        title: "Error",
+        description: "Product title and description are required",
+        variant: "destructive",
+      });
+      return;
+    }
     if (!selectedCategory) {
       toast({
         title: "Error",
         description: "Please select a category",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!formData.price || formData.price <= 0) {
+      toast({
+        title: "Error",
+        description: "Price must be greater than zero",
         variant: "destructive",
       });
       return;
@@ -258,6 +292,7 @@ const ProductScraperPage = () => {
                 onChange={(e) => setAmazonUrl(e.target.value)}
                 className="flex-1 h-12"
               />
+              {fieldError && <p className="text-xs text-destructive mt-1">{fieldError}</p>}
               <Button 
                 onClick={handleFetch} 
                 disabled={isLoading || !amazonUrl}
@@ -308,24 +343,33 @@ const ProductScraperPage = () => {
 
                   <div className="space-y-2">
                     <Label>Title</Label>
-                    <Input value={scrapedData.title} readOnly />
+                    <Input
+                      value={formData?.title || ''}
+                      onChange={(e) => setFormData((prev) => prev ? { ...prev, title: e.target.value } : prev)}
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Price</Label>
-                    <Input value={`₹${scrapedData.price}`} readOnly />
+                    <Input
+                      value={formData?.price ?? ''}
+                      onChange={(e) => setFormData((prev) => prev ? { ...prev, price: Number(e.target.value) || 0 } : prev)}
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Rating</Label>
-                    <Input value={scrapedData.rating || 'N/A'} readOnly />
+                    <Input
+                      value={formData?.rating ?? ''}
+                      onChange={(e) => setFormData((prev) => prev ? { ...prev, rating: Number(e.target.value) || 0 } : prev)}
+                    />
                   </div>
 
                   <div className="space-y-2">
                     <Label>Description</Label>
                     <Textarea 
-                      value={scrapedData.description}
-                      readOnly
+                      value={formData?.description || ''}
+                      onChange={(e) => setFormData((prev) => prev ? { ...prev, description: e.target.value } : prev)}
                       className="h-32"
                     />
                   </div>
@@ -337,9 +381,9 @@ const ProductScraperPage = () => {
                   <div className="max-w-sm">
                     <ProductCard
                       id="preview"
-                      title={scrapedData.title}
-                      excerpt={scrapedData.description.substring(0, 100) + '...'}
-                      featuredImage={scrapedData.image}
+                      title={formData?.title || ''}
+                      excerpt={(formData?.description || '').substring(0, 100) + '...'}
+                      featuredImage={formData?.image}
                       contentType="products"
                       category={selectedCategory ? {
                         name: categories?.find(c => c.id === selectedCategory)?.name || '',
@@ -353,12 +397,12 @@ const ProductScraperPage = () => {
                       viewsCount={0}
                       likesCount={0}
                       readingTime={5}
-                      rating={scrapedData.rating}
-                      price={scrapedData.price}
+                      rating={formData?.rating}
+                      price={formData?.price}
                       purchaseLinks={[{
                         retailer_name: 'Amazon',
                         product_url: amazonUrl,
-                        price: scrapedData.price,
+                        price: formData?.price || 0,
                         is_primary: true
                       }]}
                     />
