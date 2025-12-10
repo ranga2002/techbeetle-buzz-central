@@ -129,7 +129,7 @@ const NewsPage = () => {
     .slice(0, 5);
 
   const sourcesCount = filtered.reduce((acc: Record<string, number>, item: any) => {
-    const name = item.source_name || item.categories?.name || "Tech";
+    const name = item.source_name || item.provider || item.categories?.name || "Source";
     acc[name] = (acc[name] || 0) + 1;
     return acc;
   }, {});
@@ -187,7 +187,11 @@ const NewsPage = () => {
   );
 
   const cards = filtered.slice(0, visibleCount).map((content: any, idx: number) => {
-    const category = content.categories?.name || content.source_name || "Tech";
+    const category =
+      content.source_name ||
+      content.provider ||
+      (content.categories?.name?.startsWith("News (") ? "Tech" : content.categories?.name) ||
+      "Tech";
     const author = content.profiles?.full_name || content.profiles?.username || "TechBeetle";
     const publishedAt = formatLocalTime(
       content.published_at,
@@ -219,50 +223,34 @@ const NewsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>
-          {seoItem
-            ? `${seoItem.title} | TechBeetle News`
-            : "Latest Tech News | TechBeetle"}
-        </title>
+        <title>Latest Tech News | TechBeetle</title>
         <meta
           name="description"
-          content={
-            seoItem?.summary ||
-            seoItem?.excerpt ||
-            "Live, region-aware tech headlines on gadgets, AI, laptops, and launches. Updated continuously."
-          }
+          content="Live, region-aware tech headlines on gadgets, AI, laptops, and launches. Updated continuously."
         />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content={seoItem ? `${seoItem.title} | TechBeetle News` : "Latest Tech News | TechBeetle"} />
+        <meta property="og:title" content="Latest Tech News | TechBeetle" />
         <meta
           property="og:description"
-          content={
-            seoItem?.summary ||
-            seoItem?.excerpt ||
-            "Live, region-aware tech headlines on gadgets, AI, laptops, and launches. Updated continuously."
-          }
+          content="Live, region-aware tech headlines on gadgets, AI, laptops, and launches. Updated continuously."
         />
         <meta
           property="og:image"
-          content={seoItem?.image || seoItem?.featured_image || "https://techbeetle.org/favicon.ico"}
+          content="https://techbeetle.org/favicon.ico"
         />
         <meta
           property="og:url"
           content={slug ? `https://techbeetle.org/news/${slug}` : "https://techbeetle.org/news"}
         />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={seoItem ? `${seoItem.title} | TechBeetle News` : "Latest Tech News | TechBeetle"} />
+        <meta name="twitter:title" content="Latest Tech News | TechBeetle" />
         <meta
           name="twitter:description"
-          content={
-            seoItem?.summary ||
-            seoItem?.excerpt ||
-            "Live, region-aware tech headlines on gadgets, AI, laptops, and launches. Updated continuously."
-          }
+          content="Live, region-aware tech headlines on gadgets, AI, laptops, and launches. Updated continuously."
         />
         <meta
           name="twitter:image"
-          content={seoItem?.image || seoItem?.featured_image || "https://techbeetle.org/favicon.ico"}
+          content="https://techbeetle.org/favicon.ico"
         />
         <link
           rel="canonical"

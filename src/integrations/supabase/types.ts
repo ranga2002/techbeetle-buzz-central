@@ -244,6 +244,7 @@ export type Database = {
           excerpt: string | null
           featured_image: string | null
           id: string
+          provider: string | null
           is_featured: boolean | null
           is_indexable: boolean | null
           likes_count: number | null
@@ -253,6 +254,8 @@ export type Database = {
           published_at: string | null
           key_points: string[] | null
           reading_time: number | null
+          source_country: string | null
+          source_name: string | null
           slug: string
           status: Database["public"]["Enums"]["content_status"] | null
           title: string
@@ -269,6 +272,7 @@ export type Database = {
           excerpt?: string | null
           featured_image?: string | null
           id?: string
+          provider?: string | null
           is_featured?: boolean | null
           is_indexable?: boolean | null
           likes_count?: number | null
@@ -278,6 +282,8 @@ export type Database = {
           published_at?: string | null
           key_points?: string[] | null
           reading_time?: number | null
+          source_country?: string | null
+          source_name?: string | null
           slug: string
           status?: Database["public"]["Enums"]["content_status"] | null
           title: string
@@ -294,6 +300,7 @@ export type Database = {
           excerpt?: string | null
           featured_image?: string | null
           id?: string
+          provider?: string | null
           is_featured?: boolean | null
           is_indexable?: boolean | null
           likes_count?: number | null
@@ -303,6 +310,8 @@ export type Database = {
           published_at?: string | null
           key_points?: string[] | null
           reading_time?: number | null
+          source_country?: string | null
+          source_name?: string | null
           slug?: string
           status?: Database["public"]["Enums"]["content_status"] | null
           title?: string
