@@ -61,6 +61,23 @@ const ProductScraperPage = () => {
 
       const payload = formData || scrapedData;
 
+      // Upsert inventory (match on source/affiliate URL)
+      const { data: invData, error: invError } = await supabase
+        .from('inventory')
+        .upsert({
+          title: payload.title,
+          affiliate_url: amazonUrl,
+          source_url: amazonUrl,
+          price: payload.price ?? null,
+          images: payload.image ? [payload.image] : null,
+          author_id: user.id,
+        }, { onConflict: 'source_url' })
+        .select('id')
+        .single();
+      if (invError) throw invError;
+      const inventoryId = invData?.id;
+      if (!inventoryId) throw new Error('Failed to save product inventory');
+
       // Create content entry as product
       const { data: contentData, error: contentError } = await supabase
         .from('content')
@@ -70,13 +87,14 @@ const ProductScraperPage = () => {
           excerpt: payload.description.substring(0, 200) + '...',
           content: `# ${payload.title}\n\n${payload.description}`,
           featured_image: payload.image,
-          content_type: 'products',
+          content_type: 'product',
           status: 'draft',
           author_id: user.id,
           category_id: selectedCategory,
           meta_title: payload.title,
           meta_description: payload.description.substring(0, 160),
-          reading_time: 5
+          reading_time: 5,
+          inventory_id: inventoryId,
         })
         .select()
         .single();

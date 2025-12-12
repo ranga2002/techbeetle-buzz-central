@@ -21,8 +21,8 @@ const ProductsPage = () => {
   const [loadingRates, setLoadingRates] = useState(false);
   const [fxError, setFxError] = useState<string | null>(null);
 
-  const { useProductReviewsQuery } = useProducts();
-  const { data: products, isLoading } = useProductReviewsQuery(filters);
+  const { useProductCatalogQuery } = useProducts();
+  const { data: products, isLoading } = useProductCatalogQuery(filters);
 
   useEffect(() => {
     const region = (Intl.DateTimeFormat().resolvedOptions().locale.split('-')[1] || 'US').toUpperCase();
@@ -55,7 +55,8 @@ const ProductsPage = () => {
     if (!products) return [];
     const rate = rates[currency] || 1;
     return products.map((p) => {
-      const basePrice = p.review_details?.[0]?.price || (p.purchase_links?.[0]?.price ?? undefined);
+      const primaryLink = p.purchase_links?.find((link) => link.is_primary) || p.purchase_links?.[0];
+      const basePrice = primaryLink?.price ?? p.inventory?.price ?? undefined;
       const convertedPrice = basePrice !== undefined ? basePrice * rate : undefined;
       const formattedPrice =
         convertedPrice !== undefined
@@ -228,13 +229,12 @@ const ProductsPage = () => {
                     likesCount={product.likes_count || 0}
                     readingTime={product.reading_time || undefined}
                     publishedAt={product.published_at || undefined}
-                    rating={product.review_details?.[0]?.overall_rating}
                     price={product.convertedPrice}
                     priceCurrency={currency}
                     formattedPrice={product.formattedPrice}
                     purchaseLinks={product.purchase_links || []}
                     onClick={() => {
-                      window.location.href = `/reviews/${product.slug}`;
+                      window.location.href = `/products/${product.slug}`;
                     }}
                   />
                 ))}

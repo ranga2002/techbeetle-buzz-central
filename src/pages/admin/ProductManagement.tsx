@@ -549,7 +549,7 @@ const ProductManagement = () => {
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Published Reviews</CardTitle>
-              <CardDescription className="mt-1">These entries are review content. For stock-level product inventory, use the Inventory page.</CardDescription>
+              <CardDescription className="mt-1">These entries are review content. For affiliate products, use the Products page.</CardDescription>
             </div>
             {products && products.length > 0 && (
               <Badge variant="secondary" className="text-sm">

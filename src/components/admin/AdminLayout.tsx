@@ -86,7 +86,7 @@ const AdminLayout = () => {
       title: 'Products',
       items: [
         { path: '/admin/product-scraper', icon: Package, label: 'Amazon Fetcher', roles: ['admin', 'editor'] },
-        { path: '/admin/inventory', icon: Package, label: 'Inventory', roles: ['admin', 'editor'] },
+        { path: '/admin/inventory', icon: Package, label: 'Products', roles: ['admin', 'editor'] },
       ],
     },
     {

@@ -25,6 +25,7 @@ type InventoryItem = {
   images?: string[] | null;
   description?: string | null;
   purchase_links?: { price: number | null; product_url: string | null; retailer_name: string | null }[] | null;
+  inventory_id?: string | null;
 };
 
 const InventoryManagement = () => {
@@ -70,10 +71,11 @@ const InventoryManagement = () => {
           views_count,
           content_type,
           excerpt,
-          purchase_links ( price, product_url, retailer_name )
+          purchase_links ( price, product_url, retailer_name ),
+          inventory_id
         `,
         )
-        .eq('content_type', 'products')
+        .eq('content_type', 'product')
         .order('created_at', { ascending: false });
 
       if (filter) query = query.ilike('title', `%${filter}%`);
@@ -88,9 +90,32 @@ const InventoryManagement = () => {
   const saveItem = useMutation({
     mutationFn: async () => {
       if (!formData.title) throw new Error('Title is required');
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) throw new Error('Not authenticated');
       const imagesArray = formData.additional_images
         ? formData.additional_images.split(',').map((s) => s.trim()).filter(Boolean)
         : [];
+      const priceValue = formData.price ? Number(formData.price) : null;
+
+      // Upsert inventory (match on affiliate or product URL)
+      const sourceUrl = formData.product_url || formData.affiliate_url || undefined;
+      const { data: invData, error: invError } = await supabase
+        .from('inventory')
+        .upsert({
+          title: formData.title,
+          affiliate_url: formData.affiliate_url || formData.product_url || null,
+          source_url: sourceUrl || null,
+          price: priceValue,
+          images: imagesArray.length ? imagesArray : null,
+          author_id: userId,
+        }, { onConflict: 'source_url' })
+        .select('id')
+        .single();
+      if (invError) throw invError;
+      const inventoryId = invData?.id;
+      if (!inventoryId) throw new Error('Failed to save product details');
+
       const payload = {
         title: formData.title,
         slug: formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
@@ -101,8 +126,10 @@ const InventoryManagement = () => {
         images: imagesArray.length ? imagesArray : null,
         excerpt: formData.description ? formData.description.slice(0, 200) : null,
         content: formData.description ? `# ${formData.title}\n\n${formData.description}` : `# ${formData.title}`,
-        content_type: 'products',
+        content_type: 'product',
         status: 'draft',
+        inventory_id: inventoryId,
+        author_id: userId,
       };
       let contentId = editing?.id;
       if (editing) {
@@ -132,7 +159,7 @@ const InventoryManagement = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
-      toast({ title: 'Saved', description: 'Inventory item saved.' });
+      toast({ title: 'Saved', description: 'Product saved.' });
       setEditing(null);
       setFormData({
         title: '',
@@ -184,7 +211,7 @@ const InventoryManagement = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Inventory</h1>
+          <h1 className="text-3xl font-bold">Products</h1>
           <p className="text-muted-foreground">Affiliate-style inventory of products you recommend.</p>
         </div>
         <Button
@@ -267,7 +294,7 @@ const InventoryManagement = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle>Inventory Table</CardTitle>
+          <CardTitle>Products Table</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
           {isLoading ? (

@@ -7,18 +7,23 @@ import type { Tables } from '@/integrations/supabase/types';
 type ProductContent = Tables<'content'> & {
   categories?: Tables<'categories'>;
   profiles?: Tables<'profiles'>;
-  review_details?: Tables<'review_details'>[];
   purchase_links?: Tables<'purchase_links'>[];
-  product_specs?: Tables<'product_specs'>[];
+  inventory?: {
+    id: string;
+    price?: number | null;
+    images?: string[] | null;
+    affiliate_url?: string | null;
+    source_url?: string | null;
+    specs?: Record<string, unknown> | null;
+  } | null;
 };
 
 export const useProducts = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const fetchProductReviews = async (filters?: {
+  const fetchProducts = async (filters?: {
     category?: string;
-    minRating?: number;
     maxPrice?: number;
     limit?: number;
   }): Promise<ProductContent[]> => {
@@ -28,11 +33,10 @@ export const useProducts = () => {
         *,
         categories(*),
         profiles(*),
-        review_details(*),
         purchase_links(*),
-        product_specs(*)
+        inventory:inventory_id (*)
       `)
-      .eq('content_type', 'review')
+      .eq('content_type', 'product')
       .eq('status', 'published')
       .order('published_at', { ascending: false });
 
@@ -46,21 +50,14 @@ export const useProducts = () => {
     const { data, error } = await query;
     if (error) throw error;
 
-    // Apply post-processing filters
     let results = data || [];
-    
-    if (filters?.minRating) {
-      results = results.filter(item => 
-        item.review_details?.[0]?.overall_rating >= filters.minRating!
-      );
-    }
-    
     if (filters?.maxPrice) {
-      results = results.filter(item => 
-        item.review_details?.[0]?.price <= filters.maxPrice!
-      );
+      results = results.filter((item) => {
+        const primaryPrice =
+          item.purchase_links?.find((link) => link.is_primary)?.price ?? item.inventory?.price ?? null;
+        return primaryPrice === null ? true : primaryPrice <= filters.maxPrice!;
+      });
     }
-
     return results;
   };
 
@@ -108,12 +105,12 @@ export const useProducts = () => {
   });
 
   return {
-    useProductReviewsQuery: (filters?: Parameters<typeof fetchProductReviews>[0]) =>
+    useProductCatalogQuery: (filters?: Parameters<typeof fetchProducts>[0]) =>
       useQuery({
-        queryKey: ['product-reviews', filters],
-        queryFn: () => fetchProductReviews(filters),
+        queryKey: ['product-catalog', filters],
+        queryFn: () => fetchProducts(filters),
       }),
-    
+
     useProductSpecsQuery: (contentId: string) =>
       useQuery({
         queryKey: ['product-specs', contentId],

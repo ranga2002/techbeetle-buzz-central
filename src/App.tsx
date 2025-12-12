@@ -16,6 +16,7 @@ import VideosPage from "./pages/VideosPage";
 import HowToPage from "./pages/HowToPage";
 import ComparePage from "./pages/ComparePage";
 import ProductsPage from "./pages/ProductsPage";
+import ProductDetailPage from "./pages/ProductDetailPage";
 import SearchPage from "./pages/SearchPage";
 import BookmarksPage from "./pages/BookmarksPage";
 import PreferencesPage from "./pages/PreferencesPage";
@@ -67,6 +68,7 @@ const App = () => (
                   <Route path="/how-to" element={<HowToPage />} />
                   <Route path="/compare" element={<ComparePage />} />
                   <Route path="/products" element={<ProductsPage />} />
+                  <Route path="/products/:slug" element={<ProductDetailPage />} />
                   <Route path="/search" element={<SearchPage />} />
                   <Route path="/bookmarks" element={<BookmarksPage />} />
                   <Route path="/preferences" element={<PreferencesPage />} />

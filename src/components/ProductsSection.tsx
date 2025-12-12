@@ -7,13 +7,13 @@ import { ArrowRight, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const ProductsSection = () => {
-  const { useProductReviewsQuery } = useProducts();
+  const { useProductCatalogQuery } = useProducts();
   const {
     data: products,
     isLoading,
     isError,
     error,
-  } = useProductReviewsQuery({ limit: 6 });
+  } = useProductCatalogQuery({ limit: 6 });
 
   if (isLoading) {
     return (
@@ -107,11 +107,10 @@ const ProductsSection = () => {
               likesCount={product.likes_count || 0}
               readingTime={product.reading_time || undefined}
               publishedAt={product.published_at || undefined}
-              rating={product.review_details?.[0]?.overall_rating}
-              price={product.review_details?.[0]?.price}
+              price={product.purchase_links?.[0]?.price ?? undefined}
               purchaseLinks={product.purchase_links || []}
               onClick={() => {
-                console.log('Navigate to product:', product.slug);
+                window.location.href = `/products/${product.slug}`;
               }}
             />
           ))}

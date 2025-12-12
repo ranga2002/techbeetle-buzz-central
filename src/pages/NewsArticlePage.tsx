@@ -9,6 +9,7 @@ type Article = {
   title: string;
   slug: string;
   content: string | null;
+  content_type?: string | null;
   meta_title: string | null;
   meta_description: string | null;
   is_indexable: boolean | null;
@@ -36,8 +37,8 @@ const NewsArticlePage = () => {
       setError(null);
       const { data, error: fetchError } = await supabase
         .from('content')
-        .select('title, slug, content, meta_title, meta_description, is_indexable, featured_image, published_at, status')
-        .eq('content_type', 'news')
+        .select('title, slug, content, meta_title, meta_description, is_indexable, featured_image, published_at, status, content_type')
+        .eq('status', 'published')
         .eq('slug', slug)
         .maybeSingle();
 
@@ -51,7 +52,7 @@ const NewsArticlePage = () => {
         const { data: relatedData } = await supabase
           .from('content')
           .select('slug, title')
-          .eq('content_type', 'news')
+          .eq('content_type', (data as any).content_type || 'news')
           .eq('is_indexable', true)
           .neq('slug', slug)
           .order('published_at', { ascending: false })
