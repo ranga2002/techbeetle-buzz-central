@@ -1,5 +1,24 @@
+/// <reference path="../deno.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { ApifyClient } from "https://esm.sh/apify-client@2.9.1?target=deno";
+
+type ScrapedProduct = {
+  title?: string;
+  name?: string;
+  description?: string;
+  body?: string;
+  images?: string[];
+  image?: string;
+  price?: number | string;
+  rating?: number | string;
+  brand?: string;
+  model?: string;
+  sku?: string;
+  availability?: string;
+  availability_status?: string;
+};
+
+type JsonObject = Record<string, unknown>;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -7,16 +26,23 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "OPTIONS, POST",
 };
 
-serve(async (req) => {
+serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const product_url = body.product_url || body.url;
-    const maxPages = Math.max(1, Math.min(body.maxPages ?? 2, 3)); // keep small to avoid long runs
-    const maxItems = Math.max(1, Math.min(body.maxItems ?? 20, 50));
+    const body = (await req.json().catch(() => ({}))) as JsonObject;
+    const product_url =
+      typeof body.product_url === "string"
+        ? body.product_url
+        : typeof body.url === "string"
+          ? body.url
+          : "";
+    const maxPagesRaw = typeof body.maxPages === "number" ? body.maxPages : 2;
+    const maxItemsRaw = typeof body.maxItems === "number" ? body.maxItems : 20;
+    const maxPages = Math.max(1, Math.min(maxPagesRaw, 3)); // keep small to avoid long runs
+    const maxItems = Math.max(1, Math.min(maxItemsRaw, 50));
 
     if (!product_url) {
       return jsonResponse({ error: "product_url (or url) is required" }, 400);
@@ -45,8 +71,8 @@ serve(async (req) => {
       };
 
       const run = await client.actor("XVDTQc4a7MDTqSTMJ").call({ input, waitSecs: 25 });
-      const status = (run as any)?.status || (run as any)?.data?.status;
-      const datasetId = (run as any)?.defaultDatasetId || (run as any)?.data?.defaultDatasetId;
+      const status = run.status ?? run.data?.status;
+      const datasetId = run.defaultDatasetId ?? run.data?.defaultDatasetId;
       if (status !== "SUCCEEDED") throw new Error(`Apify run did not finish in time (status=${status})`);
       if (!datasetId) throw new Error("Apify run missing defaultDatasetId");
 
@@ -55,7 +81,10 @@ serve(async (req) => {
         throw new Error("No products returned from Apify scraper");
       }
 
-      const first: any = items[0];
+      const first = items[0] as ScrapedProduct | undefined;
+      if (!first) {
+        throw new Error("Apify dataset missing product details");
+      }
       const product = {
         title: first.title || first.name || "",
         description: first.description || first.body || "",
@@ -91,9 +120,17 @@ serve(async (req) => {
       const text = await upstream.text();
       const fallbackResult = safeJson(text);
       if (!upstream.ok) {
+        const fallbackError =
+          fallbackResult && typeof fallbackResult === "object"
+            ? fallbackResult as { error?: unknown; message?: unknown }
+            : null;
+        const errorMessage =
+          (fallbackError?.error as string | undefined) ||
+          (fallbackError?.message as string | undefined) ||
+          `Upstream error ${upstream.status}`;
         return jsonResponse(
           {
-            error: fallbackResult?.error || fallbackResult?.message || `Upstream error ${upstream.status}`,
+            error: errorMessage,
             upstreamStatus: upstream.status,
             upstreamBody: text,
           },
@@ -102,9 +139,10 @@ serve(async (req) => {
       }
       return jsonResponse(fallbackResult || { success: true, data: text });
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("amazon-product-scraper error", error);
-    return jsonResponse({ error: error?.message || "Unknown error" }, 500);
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return jsonResponse({ error: message }, 500);
   }
 });
 
@@ -126,7 +164,7 @@ async function resolveRedirect(url: string): Promise<string> {
   return url;
 }
 
-function safeJson(value: string | null | undefined) {
+function safeJson(value: string | null | undefined): unknown {
   if (!value) return null;
   try {
     return JSON.parse(value);

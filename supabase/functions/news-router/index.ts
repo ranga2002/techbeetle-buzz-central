@@ -1,4 +1,5 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿/// <reference path="../deno.d.ts" />
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // Shared CORS headers
@@ -10,7 +11,7 @@ const corsHeaders = {
 const categoryCache = new Map<string, string>();
 
 // Simple in-memory cache (per cold start); use short TTL to avoid staleness.
-const cache = new Map<string, { expiresAt: number; payload: any }>();
+const cache = new Map<string, { expiresAt: number; payload: unknown }>();
 // Keep cache comfortably under the scheduler cadence (5 min). Set to 4 minutes.
 const CACHE_TTL_MS = 4 * 60 * 1000;
 
@@ -43,6 +44,10 @@ type CategoryRule = {
   name: string;
   patterns: RegExp[];
 };
+
+type ProfileRow = { id: string };
+type ContentSourceRow = { source_url?: string | null };
+type ContentSlugRow = { slug?: string | null };
 
 const safeEnv = (key: string) => Deno.env.get(key) ?? "";
 
@@ -151,7 +156,7 @@ const resolveAuthorId = async (): Promise<string | null> => {
     .eq("is_active", true)
     .in("role", ["admin", "editor"])
     .limit(1)
-    .maybeSingle();
+    .maybeSingle() as { data: ProfileRow | null };
   if (adminProfile?.id) return adminProfile.id;
 
   // Fallback: any active profile
@@ -160,7 +165,7 @@ const resolveAuthorId = async (): Promise<string | null> => {
     .select("id")
     .eq("is_active", true)
     .limit(1)
-    .maybeSingle();
+    .maybeSingle() as { data: ProfileRow | null };
   if (anyProfile?.id) return anyProfile.id;
 
   // Last resort: create a system user to own ingested news
@@ -331,16 +336,21 @@ const enhanceArticleWithAI = async (
     const content = typeof json?.choices?.[0]?.message?.content === "string"
       ? json.choices[0].message.content
       : "";
-    const ai: AiArticleOutput | null = safeJsonParse<AiArticleOutput>(content);
-    // Normalize minor key variations to keep ingestion resilient
+
+    const parsed = safeJsonParse<unknown>(content);
+    const ai = parsed && typeof parsed === "object"
+      ? (parsed as Partial<AiArticleOutput> & Record<string, unknown>)
+      : null;
+
     if (ai) {
-      // Some model variants return `title` instead of `headline`
-      ai.headline = ai.headline || (ai as any).title;
-      // Accept `key_takeaways` as `takeaways`
-      ai.takeaways = ai.takeaways || (ai as any).key_takeaways;
-      // Normalize summary if present
-      ai.summary = ai.summary || (ai as any).summary;
-      // If body is missing, build one from what we have
+      const headlineVariant = typeof ai.title === "string" ? ai.title : undefined;
+      const keyTakeawaysVariant = Array.isArray(ai["key_takeaways"])
+        ? (ai["key_takeaways"] as string[])
+        : undefined;
+      ai.headline = ai.headline || headlineVariant;
+      ai.takeaways = ai.takeaways || keyTakeawaysVariant;
+      ai.summary = ai.summary || (typeof ai.summary === "string" ? ai.summary : undefined);
+
       const fallbackSummary = ai.summary || article.summary || article.content_raw || "";
       const fallbackPoints =
         Array.isArray(ai.key_points) && ai.key_points.length > 0
@@ -393,6 +403,9 @@ const formatDate = (value: string) => {
   }
 };
 
+const toStringOrEmpty = (value: unknown): string => (typeof value === "string" ? value : "");
+const toStringOrNull = (value: unknown): string | null => (typeof value === "string" ? value : null);
+
 const normalizeUrl = (value?: string | null): string => {
   if (!value) return "";
   const trimmed = value.trim();
@@ -441,8 +454,8 @@ const fetchExistingArticleKeys = async (urls: string[], slugs: string[]) => {
     if (error) {
       console.error("Existing source lookup failed", error);
     } else {
-      for (const row of data || []) {
-        const key = normalizeUrl((row as any)?.source_url);
+      for (const row of (data as ContentSourceRow[] | null) || []) {
+        const key = normalizeUrl(row?.source_url);
         if (key) existingUrls.add(key);
       }
     }
@@ -456,8 +469,8 @@ const fetchExistingArticleKeys = async (urls: string[], slugs: string[]) => {
     if (error) {
       console.error("Existing slug lookup failed", error);
     } else {
-      for (const row of data || []) {
-        const key = toSlug((row as any)?.slug || "");
+      for (const row of (data as ContentSlugRow[] | null) || []) {
+        const key = toSlug(row?.slug || "");
         if (key) existingSlugs.add(key);
       }
     }
@@ -508,18 +521,28 @@ const fetchNewsData = async (country: string, limit = 10, query?: string) => {
   if (!resp.ok) return [];
   const json = await resp.json();
   const items = (json.results || []).slice(0, limit);
-  return items.map((item: any) => ({
-    id: item.article_id || item.link,
-    title: item.title,
-    summary: item.description || item.content || "",
-    url: item.link,
-    image: item.image_url,
-    published_at: item.pubDate,
-    source_name: item.source_id || "NewsData",
-    source_country: item.country?.[0] || country,
-    provider: "newsdata",
-    content_raw: item.content || item.description || "",
-  })) as NormalizedArticle[];
+  return items.map((item: unknown) => {
+    const obj = item as Record<string, unknown>;
+    const link = toStringOrEmpty(obj.link);
+    const articleId = toStringOrEmpty(obj.article_id) || link;
+    const summary = toStringOrEmpty(obj.description) || toStringOrEmpty(obj.content);
+    const sourceCountry =
+      Array.isArray(obj.country) && obj.country.length > 0
+        ? toStringOrEmpty((obj.country as unknown[])[0])
+        : country;
+    return {
+      id: articleId,
+      title: toStringOrEmpty(obj.title),
+      summary,
+      url: link,
+      image: toStringOrNull(obj.image_url),
+      published_at: toStringOrNull(obj.pubDate),
+      source_name: toStringOrEmpty(obj.source_id) || "NewsData",
+      source_country: sourceCountry,
+      provider: "newsdata",
+      content_raw: toStringOrEmpty(obj.content) || toStringOrEmpty(obj.description),
+    };
+  }) as NormalizedArticle[];
 };
 
 const fetchGNews = async (country: string, limit = 10, query?: string) => {
@@ -532,18 +555,23 @@ const fetchGNews = async (country: string, limit = 10, query?: string) => {
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
-  return (json.articles || []).map((item: any) => ({
-    id: item.url,
-    title: item.title,
-    summary: item.description || item.content || "",
-    url: item.url,
-    image: item.image,
-    published_at: item.publishedAt,
-    source_name: item.source?.name || "GNews",
-    source_country: country,
-    provider: "gnews",
-    content_raw: item.content || item.description || "",
-  })) as NormalizedArticle[];
+  return (json.articles || []).map((item: unknown) => {
+    const obj = item as Record<string, unknown>;
+    const link = toStringOrEmpty(obj.url);
+    const source = obj.source as Record<string, unknown> | undefined;
+    return {
+      id: link,
+      title: toStringOrEmpty(obj.title),
+      summary: toStringOrEmpty(obj.description) || toStringOrEmpty(obj.content),
+      url: link,
+      image: toStringOrNull(obj.image),
+      published_at: toStringOrNull(obj.publishedAt),
+      source_name: source ? toStringOrEmpty(source.name) : "GNews",
+      source_country: country,
+      provider: "gnews",
+      content_raw: toStringOrEmpty(obj.content) || toStringOrEmpty(obj.description),
+    };
+  }) as NormalizedArticle[];
 };
 
 const fetchMediaStack = async (country: string, limit = 10, query?: string) => {
@@ -556,18 +584,21 @@ const fetchMediaStack = async (country: string, limit = 10, query?: string) => {
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
-  return (json.data || []).map((item: any) => ({
-    id: item.url,
-    title: item.title,
-    summary: item.description || "",
-    url: item.url,
-    image: item.image,
-    published_at: item.published_at,
-    source_name: item.source || "mediastack",
-    source_country: item.country || country,
-    provider: "mediastack",
-    content_raw: item.description || "",
-  })) as NormalizedArticle[];
+  return (json.data || []).map((item: unknown) => {
+    const obj = item as Record<string, unknown>;
+    return {
+      id: toStringOrEmpty(obj.url),
+      title: toStringOrEmpty(obj.title),
+      summary: toStringOrEmpty(obj.description),
+      url: toStringOrEmpty(obj.url),
+      image: toStringOrNull(obj.image),
+      published_at: toStringOrNull(obj.published_at),
+      source_name: toStringOrEmpty(obj.source) || "mediastack",
+      source_country: toStringOrEmpty(obj.country) || country,
+      provider: "mediastack",
+      content_raw: toStringOrEmpty(obj.description),
+    };
+  }) as NormalizedArticle[];
 };
 
 const fetchGuardian = async (limit = 10, query?: string) => {
@@ -579,20 +610,24 @@ const fetchGuardian = async (limit = 10, query?: string) => {
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
-  return (json.response?.results || []).map((item: any) => ({
-    id: item.id,
-    title: item.webTitle,
-    summary:
-      item.fields?.trailText ||
-      (item.fields?.bodyText ? item.fields.bodyText.slice(0, 300) : ""),
-    url: item.webUrl,
-    image: item.fields?.thumbnail,
-    published_at: item.webPublicationDate,
-    source_name: "The Guardian",
-    source_country: "gb",
-    provider: "guardian",
-    content_raw: item.fields?.bodyText || item.fields?.trailText || "",
-  })) as NormalizedArticle[];
+  return (json.response?.results || []).map((item: unknown) => {
+    const obj = item as Record<string, unknown>;
+    const fields = obj.fields as Record<string, unknown> | undefined;
+    const bodyText = toStringOrEmpty(fields?.bodyText);
+    const trailText = toStringOrEmpty(fields?.trailText);
+    return {
+      id: toStringOrEmpty(obj.id),
+      title: toStringOrEmpty(obj.webTitle),
+      summary: trailText || (bodyText ? bodyText.slice(0, 300) : ""),
+      url: toStringOrEmpty(obj.webUrl),
+      image: toStringOrNull(fields?.thumbnail),
+      published_at: toStringOrNull(obj.webPublicationDate),
+      source_name: "The Guardian",
+      source_country: "gb",
+      provider: "guardian",
+      content_raw: bodyText || trailText,
+    };
+  }) as NormalizedArticle[];
 };
 
 const collectArticles = async (country: string, needed = 60, query?: string) => {
@@ -784,15 +819,20 @@ serve(async (req: Request) => {
   }
 
   // Optional body and flags
-  let body: any = null;
+  let body: Record<string, unknown> | null = null;
   let bypassCache = false;
   let purgeExisting = false;
   let query: string | undefined;
   try {
-    body = await req.json();
-    bypassCache = Boolean(body?.refresh || body?.bypass_cache || body?.triggered_at);
-    purgeExisting = Boolean(body?.purge);
-    query = typeof body?.query === "string" ? body.query.trim() : undefined;
+    const parsed = await req.json();
+    if (parsed && typeof parsed === "object") {
+      body = parsed as Record<string, unknown>;
+      bypassCache = Boolean(
+        body.refresh || body.bypass_cache || body.triggered_at,
+      );
+      purgeExisting = Boolean(body.purge);
+      query = typeof body.query === "string" ? body.query.trim() : undefined;
+    }
   } catch (_e) {
     // no-op; body might be empty
   }
