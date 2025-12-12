@@ -125,3 +125,12 @@ async function resolveRedirect(url: string): Promise<string> {
   }
   return url;
 }
+
+function safeJson(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}

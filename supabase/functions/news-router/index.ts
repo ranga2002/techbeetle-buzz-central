@@ -7,6 +7,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-country",
 };
 
+const categoryCache = new Map<string, string>();
+
 // Simple in-memory cache (per cold start); use short TTL to avoid staleness.
 const cache = new Map<string, { expiresAt: number; payload: any }>();
 // Keep cache comfortably under the scheduler cadence (5 min). Set to 4 minutes.
@@ -36,6 +38,12 @@ type NormalizedArticle = {
   _ai_indexable?: boolean;
 };
 
+type CategoryRule = {
+  slug: string;
+  name: string;
+  patterns: RegExp[];
+};
+
 const safeEnv = (key: string) => Deno.env.get(key) ?? "";
 
 const NEWS_DATA_KEY = safeEnv("NEWSDATA_API_KEY");
@@ -49,6 +57,89 @@ const supabaseServiceKey = safeEnv("SUPABASE_SERVICE_ROLE_KEY");
 const defaultAuthorId = safeEnv("DEFAULT_AUTHOR_ID"); // Set to a valid profiles.id for attribution
 
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+const CATEGORY_RULES: CategoryRule[] = [
+  {
+    slug: "ai",
+    name: "AI",
+    patterns: [/(\b|[^a-z])ai(\b|[^a-z])/i, /artificial intelligence/i, /machine learning/i, /\bllm\b/i, /chatgpt/i, /openai/i, /generative ai/i],
+  },
+  {
+    slug: "smartphones",
+    name: "Smartphones",
+    patterns: [/smartphone/i, /\biphone\b/i, /\bgalaxy\b/i, /\bpixel\b/i, /\boneplus\b/i, /\bphone\b/i],
+  },
+  {
+    slug: "laptops",
+    name: "Laptops",
+    patterns: [/laptop/i, /notebook/i, /macbook/i, /chromebook/i, /surface (laptop|book)/i],
+  },
+  {
+    slug: "tablets",
+    name: "Tablets",
+    patterns: [/tablet/i, /\bipad\b/i, /galaxy tab/i, /surface pro/i],
+  },
+  {
+    slug: "wearables",
+    name: "Wearables",
+    patterns: [/wearable/i, /smartwatch/i, /fitness tracker/i, /fitbit/i, /apple watch/i, /garmin/i, /\bsmart ring\b/i],
+  },
+  {
+    slug: "smart-home",
+    name: "Smart Home",
+    patterns: [/smart home/i, /homekit/i, /matter\b/i, /alexa\b/i, /google home/i, /\bnest\b/i, /\bring\b/i, /homepod/i],
+  },
+  {
+    slug: "audio",
+    name: "Audio",
+    patterns: [/audio\b/i, /soundbar/i, /speaker/i, /hi-?fi/i, /spotify/i, /podcast/i, /dolby/i, /sonos/i],
+  },
+  {
+    slug: "headphones",
+    name: "Headphones",
+    patterns: [/headphone/i, /headset/i, /earbud/i, /earpod/i, /airpod/i, /\bbuds\b/i, /over-ear/i],
+  },
+  {
+    slug: "gaming",
+    name: "Gaming",
+    patterns: [/gaming\b/i, /\bgame\b/i, /xbox/i, /playstation/i, /\bps\d/i, /nintendo/i, /switch\b/i, /steam deck/i, /esports/i],
+  },
+  {
+    slug: "cameras",
+    name: "Cameras",
+    patterns: [/camera/i, /mirrorless/i, /dslr/i, /lens\b/i, /canon\b/i, /nikon\b/i, /sony alpha/i, /gopro/i],
+  },
+  {
+    slug: "drones",
+    name: "Drones",
+    patterns: [/drone/i, /quadcopter/i, /\buav\b/i, /\bdji\b/i, /mavic/i],
+  },
+  {
+    slug: "apps",
+    name: "Apps",
+    patterns: [/\bapp\b/i, /\bapps\b/i, /app store/i, /play store/i],
+  },
+  {
+    slug: "mobile",
+    name: "Mobile",
+    patterns: [/\bmobile\b/i, /\b5g\b/i, /carrier/i, /verizon/i, /t-mobile/i, /at&t/i],
+  },
+  {
+    slug: "startups",
+    name: "Startups",
+    patterns: [/startup/i, /seed round/i, /series [abc]/i, /funding/i, /venture/i, /\bvc\b/i],
+  },
+  {
+    slug: "reviews",
+    name: "Reviews",
+    patterns: [/review\b/i, /hands[- ]on/i, /first look/i],
+  },
+  {
+    slug: "gadgets",
+    name: "Gadgets",
+    patterns: [/gadget/i, /device\b/i, /hardware/i, /gizmo/i],
+  },
+];
 
 const resolveAuthorId = async (): Promise<string | null> => {
   if (defaultAuthorId) return defaultAuthorId;
@@ -302,19 +393,107 @@ const formatDate = (value: string) => {
   }
 };
 
+const normalizeUrl = (value?: string | null): string => {
+  if (!value) return "";
+  const trimmed = value.trim();
+  try {
+    const url = new URL(trimmed);
+    url.hash = "";
+    const params = new URLSearchParams(url.search);
+    for (const key of Array.from(params.keys())) {
+      const lower = key.toLowerCase();
+      if (lower.startsWith("utm") || lower === "ref" || lower === "source") {
+        params.delete(key);
+      }
+    }
+    url.search = params.toString();
+    return url.toString().replace(/\/$/, "").toLowerCase();
+  } catch (_e) {
+    return trimmed.replace(/\/$/, "").toLowerCase();
+  }
+};
+
 const dedupe = (items: NormalizedArticle[]): NormalizedArticle[] => {
   const seen = new Set<string>();
   const result: NormalizedArticle[] = [];
   for (const item of items) {
     const slugKey = toSlug(item.slug || item.title || "");
-    const urlKey = (item.url || item.id || "").toLowerCase();
-    const key = urlKey || `${slugKey}|${(item.source_name || "").toLowerCase()}`;
+    const urlKey = normalizeUrl(item.url || item.id || "");
+    const sourceKey = (item.source_name || "").toLowerCase().trim();
+    const key = urlKey || `${slugKey}|${sourceKey}`;
     if (!key) continue;
     if (seen.has(key)) continue;
     seen.add(key);
     result.push(item);
   }
   return result;
+};
+
+const fetchExistingArticleKeys = async (urls: string[], slugs: string[]) => {
+  const existingUrls = new Set<string>();
+  const existingSlugs = new Set<string>();
+
+  if (urls.length > 0) {
+    const { data, error } = await supabase
+      .from("content_sources")
+      .select("source_url")
+      .in("source_url", urls);
+    if (error) {
+      console.error("Existing source lookup failed", error);
+    } else {
+      for (const row of data || []) {
+        const key = normalizeUrl((row as any)?.source_url);
+        if (key) existingUrls.add(key);
+      }
+    }
+  }
+
+  if (slugs.length > 0) {
+    const { data, error } = await supabase
+      .from("content")
+      .select("slug")
+      .in("slug", slugs);
+    if (error) {
+      console.error("Existing slug lookup failed", error);
+    } else {
+      for (const row of data || []) {
+        const key = toSlug((row as any)?.slug || "");
+        if (key) existingSlugs.add(key);
+      }
+    }
+  }
+
+  return { existingUrls, existingSlugs };
+};
+
+const filterExistingArticles = async (items: NormalizedArticle[]) => {
+  const urlLookup = new Set<string>();
+  for (const item of items) {
+    const raw = (item.url || "").trim();
+    const normalized = normalizeUrl(item.url);
+    if (raw) urlLookup.add(raw);
+    if (normalized) urlLookup.add(normalized);
+  }
+  const urlKeys = Array.from(urlLookup);
+  const slugKeys = Array.from(
+    new Set(items.map((item) => toSlug(item.slug || item.title || "")).filter(Boolean)),
+  );
+
+  if (urlKeys.length === 0 && slugKeys.length === 0) return items;
+
+  try {
+    const { existingUrls, existingSlugs } = await fetchExistingArticleKeys(urlKeys, slugKeys);
+    return items.filter((item) => {
+      const urlKey = normalizeUrl(item.url);
+      const slugKey = toSlug(item.slug || item.title || "");
+      if (urlKey && existingUrls.has(urlKey)) return false;
+      if (slugKey && existingSlugs.has(slugKey)) return false;
+      return true;
+    });
+  } catch (err) {
+    console.error("Failed to filter existing articles", err);
+    return items;
+  }
 };
 
 const fetchNewsData = async (country: string, limit = 10, query?: string) => {
@@ -438,6 +617,7 @@ const collectArticles = async (country: string, needed = 60, query?: string) => 
     .map((item) => ({
       ...item,
       published_at: item.published_at || new Date().toISOString(),
+      source_country: item.source_country || country,
     }))
     .sort((a, b) => {
       const aDate = new Date(a.published_at || "").getTime() || 0;
@@ -446,14 +626,20 @@ const collectArticles = async (country: string, needed = 60, query?: string) => 
     })
     .slice(0, needed);
 
-  const enhanced = await Promise.all(sorted.map((item) => enhanceArticleWithAI(item)));
-  return enhanced;
+  const fresh = await filterExistingArticles(sorted);
+  const skippedExisting = sorted.length - fresh.length;
+
+  const enhanced = await Promise.all(fresh.map((item) => enhanceArticleWithAI(item)));
+  return { items: enhanced, skippedExisting };
 };
 
 const truncate = (value: string, max = 200) =>
   value.length > max ? `${value.slice(0, max - 3)}...` : value;
 
 const ensureCategory = async (slug: string, name: string) => {
+  const cached = categoryCache.get(slug);
+  if (cached) return cached;
+
   const { data, error } = await supabase
     .from("categories")
     .select("id")
@@ -464,7 +650,10 @@ const ensureCategory = async (slug: string, name: string) => {
     console.error("Category lookup failed", error);
     return null;
   }
-  if (data?.id) return data.id;
+  if (data?.id) {
+    categoryCache.set(slug, data.id);
+    return data.id;
+  }
 
   const { data: created, error: insertError } = await supabase
     .from("categories")
@@ -482,7 +671,38 @@ const ensureCategory = async (slug: string, name: string) => {
     console.error("Category insert failed", insertError);
     return null;
   }
+  if (created?.id) {
+    categoryCache.set(slug, created.id);
+  }
   return created?.id ?? null;
+};
+
+const detectCategoryForArticle = (article: NormalizedArticle, country: string): { slug: string; name: string } => {
+  const haystack = `${article.title} ${article.summary || ""} ${article.content_raw || ""} ${article.provider || ""} ${article.source_name || ""}`.toLowerCase();
+  for (const rule of CATEGORY_RULES) {
+    if (rule.patterns.some((p) => p.test(haystack))) {
+      return { slug: rule.slug, name: rule.name };
+    }
+  }
+
+  const region = (country || "us").toLowerCase();
+  if (region) {
+    return { slug: `news-${region}`, name: `News (${region.toUpperCase()})` };
+  }
+  return { slug: "technology", name: "Technology" };
+};
+
+const resolveCategoryForArticle = async (
+  article: NormalizedArticle,
+  country: string,
+): Promise<{ id: string | null; slug: string }> => {
+  const match = detectCategoryForArticle(article, country);
+  const categoryId = await ensureCategory(match.slug, match.name);
+  if (categoryId) {
+    return { id: categoryId, slug: match.slug };
+  }
+  const fallbackId = await ensureCategory("technology", "Technology");
+  return { id: fallbackId, slug: "technology" };
 };
 
 const persistArticles = async (items: NormalizedArticle[], country: string) => {
@@ -492,16 +712,9 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
     return;
   }
 
-  // Migration reference (run separately):
-  // alter table content add column if not exists is_indexable boolean not null default false;
-
-  const regionSlug = `news-${country.toLowerCase()}`;
-  const categoryId =
-    (await ensureCategory(regionSlug, `News (${country.toUpperCase()})`)) ||
-    (await ensureCategory("technology", "Technology"));
-
   for (const article of items) {
     try {
+      const category = await resolveCategoryForArticle(article, country);
       const nowIso = new Date().toISOString();
       const isIndexable = article._ai_indexable ?? false;
       const insertPayload = {
@@ -517,10 +730,10 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         content_type: "news",
         status: "published",
         author_id: authorId,
-        category_id: categoryId,
+        category_id: category?.id ?? null,
         published_at: article.published_at ?? new Date().toISOString(),
         source_name: article.source_name || null,
-        source_country: article.source_country || null,
+        source_country: article.source_country || country || null,
         meta_title: article.seo_title ?? truncate(article.title, 60),
         meta_description: article.seo_description ?? truncate(article.summary || article.title, 160),
         is_featured: false,
@@ -615,7 +828,7 @@ serve(async (req: Request) => {
       await purgeExistingNews();
     }
 
-    const items = await collectArticles(country, 20, query);
+    const { items, skippedExisting } = await collectArticles(country, 20, query);
 
     // Persist to content table (best effort; will skip if DEFAULT_AUTHOR_ID is not configured)
     await persistArticles(items, country);
@@ -637,6 +850,7 @@ serve(async (req: Request) => {
       country,
       query: query || null,
       count: items.length,
+      skipped_existing: skippedExisting,
       items,
       generated_at: new Date().toISOString(),
     };
