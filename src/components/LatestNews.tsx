@@ -10,6 +10,7 @@ import { Search, MapPin } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { formatLocalTime, pickTimeZone } from '@/lib/time';
+import { dedupeNewsItems } from '@/lib/news';
 
 const LatestNews = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -133,12 +134,13 @@ const LatestNews = () => {
         return bDate - aDate;
       });
       
-      setSearchResults(sortedArticles);
+      const dedupedArticles = dedupeNewsItems(sortedArticles);
+      setSearchResults(dedupedArticles);
       setHasSearched(true);
       
       toast({
         title: "Search Complete",
-        description: `Found ${articles.length} articles for "${query}"`,
+        description: `Found ${dedupedArticles.length} articles for "${query}"`,
       });
 
     } catch (error) {
@@ -194,7 +196,7 @@ const LatestNews = () => {
   const hasError = isError || categoriesError;
 
   const sortedContent = content
-    ? [...content].sort((a: any, b: any) => {
+    ? dedupeNewsItems(content).sort((a: any, b: any) => {
         const aDate = new Date(a.published_at || "").getTime() || 0;
         const bDate = new Date(b.published_at || "").getTime() || 0;
         return bDate - aDate;

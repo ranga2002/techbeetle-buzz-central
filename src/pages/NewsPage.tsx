@@ -13,6 +13,7 @@ import { useContent } from "@/hooks/useContent";
 import { formatLocalTime, pickTimeZone } from "@/lib/time";
 import { Helmet } from "react-helmet-async";
 import { Card, CardContent } from "@/components/ui/card";
+import { dedupeNewsItems } from "@/lib/news";
 
 const NewsPage = () => {
   const navigate = useNavigate();
@@ -55,16 +56,8 @@ const NewsPage = () => {
 
   useEffect(() => {
     try {
-      const deduped = [...(newsData || [])].reduce((acc: any[], item: any) => {
-        const key = item.slug || item.id;
-        if (!key) return acc;
-        if (!acc.find((x) => (x.slug || x.id) === key)) {
-          acc.push(item);
-        }
-        return acc;
-      }, []);
-
-      const sorted = deduped.sort((a, b) => {
+      const uniqueArticles = dedupeNewsItems(newsData || []);
+      const sorted = uniqueArticles.sort((a, b) => {
         const aDate = new Date(a.published_at || "").getTime() || 0;
         const bDate = new Date(b.published_at || "").getTime() || 0;
         return bDate - aDate;
