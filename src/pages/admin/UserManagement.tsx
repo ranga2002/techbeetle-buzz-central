@@ -10,6 +10,7 @@ import UserTable from '@/components/admin/users/UserTable';
 import type { Database } from '@/integrations/supabase/types';
 
 type UserRole = Database['public']['Enums']['user_role'];
+type ProfileRow = Database['public']['Tables']['profiles']['Row'];
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -20,12 +21,12 @@ const UserManagement = () => {
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users', searchTerm, roleFilter],
     queryFn: async () => {
-      // Fetch profiles with their roles from user_roles table
+      // Fetch profiles with their roles from user_roles table + profiles.role
       let profileQuery = supabase
         .from('profiles')
-        .select('*')
+        .select('id, full_name, username, created_at, is_active, role')
         .order('created_at', { ascending: false })
-        .limit(100);
+        .limit(200);
 
       if (searchTerm) {
         profileQuery = profileQuery.or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
@@ -36,15 +37,18 @@ const UserManagement = () => {
 
       // Fetch roles for each user
       const userIds = profiles?.map(p => p.id) || [];
-      const { data: roles } = await supabase
+      const { data: roles, error: rolesError } = await supabase
         .from('user_roles' as any)
         .select('user_id, role')
         .in('user_id', userIds);
+      if (rolesError) throw rolesError;
 
-      // Merge profiles with their roles
-      const usersWithRoles = profiles?.map(profile => {
+      // Merge profiles with their roles (fallback to profile.role)
+      const usersWithRoles = (profiles as ProfileRow[] | null)?.map(profile => {
         const userRoles = (roles as any[])?.filter((r: any) => r.user_id === profile.id) || [];
-        const primaryRole = userRoles.find((r: any) => ['admin', 'editor', 'author'].includes(r.role))?.role || 'user';
+        const primaryRole = (userRoles.find((r: any) => ['admin', 'editor', 'author', 'user'].includes(r.role))?.role ||
+          (profile.role as UserRole | null) ||
+          'user') as UserRole;
         return {
           ...profile,
           role: primaryRole
@@ -62,20 +66,18 @@ const UserManagement = () => {
 
   const updateRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: UserRole }) => {
-      // Delete existing roles for this user
-      const { error: deleteError } = await supabase
+      // Keep profiles.role and user_roles in sync
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ role })
+        .eq('id', userId);
+      if (profileError) throw profileError;
+
+      // Ensure single role row per user via upsert
+      const { error: roleError } = await supabase
         .from('user_roles' as any)
-        .delete()
-        .eq('user_id', userId);
-
-      if (deleteError) throw deleteError;
-
-      // Insert new role
-      const { error: insertError } = await supabase
-        .from('user_roles' as any)
-        .insert({ user_id: userId, role });
-
-      if (insertError) throw insertError;
+        .upsert({ user_id: userId, role }, { onConflict: 'user_id' });
+      if (roleError) throw roleError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });

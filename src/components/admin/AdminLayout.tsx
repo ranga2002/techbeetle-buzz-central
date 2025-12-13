@@ -79,13 +79,13 @@ const AdminLayout = () => {
     {
       title: 'People',
       items: [
-        { path: '/admin/users', icon: Users, label: 'Users', roles: ['admin', 'editor'] },
+        { path: '/admin/users', icon: Users, label: 'Users', roles: ['admin'] },
       ],
     },
     {
       title: 'Products',
       items: [
-        { path: '/admin/product-scraper', icon: Package, label: 'Amazon Fetcher', roles: ['admin', 'editor'] },
+        { path: '/admin/product-scraper', icon: Package, label: 'Amazon Fetcher', roles: ['admin'] },
         { path: '/admin/inventory', icon: Package, label: 'Products', roles: ['admin', 'editor'] },
       ],
     },
@@ -93,7 +93,7 @@ const AdminLayout = () => {
       title: 'Reviews',
       items: [
         { path: '/admin/product-management', icon: FileText, label: 'Review Management', roles: ['admin', 'editor'] },
-        { path: '/admin/review-generator', icon: Package, label: 'Review Generator', roles: ['admin', 'editor'] },
+        { path: '/admin/review-generator', icon: Package, label: 'Review Generator', roles: ['admin'] },
       ],
     },
     {

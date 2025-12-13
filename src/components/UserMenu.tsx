@@ -16,7 +16,7 @@ import { Link } from 'react-router-dom';
 
 const UserMenu = () => {
   const { user, signOut, loading } = useAuth();
-  const { hasContentAccess, isLoading: adminLoading } = useAdminAuth();
+  const { hasContentAccess, isAdmin, isEditor, isLoading: adminLoading } = useAdminAuth();
 
   if (loading || adminLoading) {
     return <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse" />;
@@ -85,9 +85,9 @@ const UserMenu = () => {
         </DropdownMenuItem>
         {hasContentAccess && (
           <DropdownMenuItem asChild>
-            <Link to="/admin" className="flex items-center">
+            <Link to={isAdmin ? "/admin" : "/editor"} className="flex items-center">
               <Shield className="mr-2 h-4 w-4" />
-              Admin Panel
+              {isAdmin ? 'Admin Panel' : isEditor ? 'Editor Panel' : 'Admin Panel'}
             </Link>
           </DropdownMenuItem>
         )}

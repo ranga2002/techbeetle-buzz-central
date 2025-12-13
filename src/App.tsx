@@ -42,6 +42,7 @@ import TermsPage from "./pages/TermsPage";
 import NewsEditor from "./pages/admin/NewsEditor";
 import { GlobalSeo } from "./components/GlobalSeo";
 import ProfilePage from "./pages/ProfilePage";
+import EditorLayout from "./components/admin/EditorLayout";
 
 
 const queryClient = new QueryClient();
@@ -75,6 +76,20 @@ const App = () => (
                   <Route path="/reading-history" element={<ReadingHistoryPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                       
+                  {/* Editor Routes */}
+                  <Route path="/editor" element={<EditorLayout />}>
+                    <Route index element={<AdminDashboard />} />
+                    <Route path="analytics" element={<AnalyticsManagement />} />
+                    <Route path="content" element={<ContentManagement />} />
+                    <Route path="categories" element={<CategoriesManagement />} />
+                    <Route path="tags" element={<TagsManagement />} />
+                    <Route path="products" element={<InventoryManagement />} />
+                    <Route path="review-management" element={<ProductManagement />} />
+                    <Route path="news-editor" element={<NewsEditor />} />
+                    <Route path="settings" element={<SettingsManagement />} />
+                    <Route path="site-settings" element={<SiteSettingsManagement />} />
+                  </Route>
+
                   {/* Admin Routes */}
                   <Route path="/admin" element={<AdminLayout />}>
                     <Route index element={<AdminDashboard />} />
