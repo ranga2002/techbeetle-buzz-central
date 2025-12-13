@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShoppingCart, ExternalLink } from "lucide-react";
+import { ShoppingCart, ExternalLink, ArrowLeft } from "lucide-react";
 
 type PurchaseLink = {
   retailer_name: string | null;
@@ -95,6 +95,12 @@ const ProductDetailPage = () => {
     }).format(price);
   }, [primaryLink, product?.inventory?.price]);
 
+  const heroImage = product?.featured_image || product?.inventory?.images?.[0];
+  const gallery = product?.inventory?.images || (product?.featured_image ? [product.featured_image] : []);
+  const specsEntries = product?.inventory?.specs
+    ? Object.entries(product.inventory.specs).filter(([_, v]) => Boolean(v))
+    : [];
+
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
@@ -107,7 +113,7 @@ const ProductDetailPage = () => {
         )}
       </Helmet>
       <Header />
-      <main className="container mx-auto px-4 py-10 max-w-5xl">
+      <main className="container mx-auto px-4 py-10 max-w-6xl">
         {loading && (
           <div className="space-y-4">
             <Skeleton className="h-8 w-2/3" />
@@ -123,9 +129,14 @@ const ProductDetailPage = () => {
           </div>
         )}
         {!loading && !error && product && (
-          <article className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-3">
+          <article className="space-y-8">
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <ArrowLeft className="w-4 h-4" />
+              <Link to="/products" className="hover:text-primary transition-colors">Back to products</Link>
+            </div>
+
+            <div className="rounded-3xl border bg-gradient-to-br from-card via-background to-card p-6 shadow-sm">
+              <div className="flex flex-wrap items-center gap-3 mb-4">
                 {product.categories?.name && (
                   <Badge
                     variant="outline"
@@ -148,76 +159,122 @@ const ProductDetailPage = () => {
                   </span>
                 )}
               </div>
-              <h1 className="text-3xl font-bold leading-tight">
-                {product.title}
-              </h1>
-              {product.excerpt && (
-                <p className="text-muted-foreground">{product.excerpt}</p>
-              )}
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2 space-y-4">
+                  <h1 className="text-4xl font-bold leading-tight">{product.title}</h1>
+                  {product.excerpt && (
+                    <p className="text-lg text-muted-foreground">{product.excerpt}</p>
+                  )}
+                  {heroImage && (
+                    <div className="overflow-hidden rounded-2xl border">
+                      <img
+                        src={heroImage}
+                        alt={product.title}
+                        className="w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  {gallery && gallery.length > 1 && (
+                    <div className="flex flex-wrap gap-3">
+                      {gallery.slice(0, 4).map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`${product.title}-${idx}`}
+                          className="w-24 h-24 rounded-lg object-cover border"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-4">
+                  <div className="rounded-2xl border bg-card p-5 shadow-sm">
+                    <div className="text-sm text-muted-foreground">Starting at</div>
+                    <div className="text-3xl font-semibold text-green-600 mt-1">
+                      {displayPrice || "—"}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Prices may vary by retailer and region.
+                    </p>
+                    {primaryLink?.product_url && (
+                      <Button
+                        size="lg"
+                        className="w-full mt-4 flex items-center gap-2"
+                        onClick={() => window.open(primaryLink.product_url || "", "_blank")}
+                      >
+                        <ShoppingCart className="w-4 h-4" />
+                        Buy now
+                        <ExternalLink className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {specsEntries.length > 0 && (
+                    <div className="rounded-2xl border bg-card p-5 space-y-3">
+                      <h3 className="text-lg font-semibold">Key specs</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                        {specsEntries.map(([key, val]) => (
+                          <div key={key} className="flex flex-col rounded-lg border bg-muted/40 px-3 py-2">
+                            <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                              {key.replace(/_/g, ' ')}
+                            </span>
+                            <span className="font-medium text-foreground">{String(val)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
-            {product.featured_image && (
-              <div className="overflow-hidden rounded-2xl border">
-                <img
-                  src={product.featured_image}
-                  alt={product.title}
-                  className="w-full object-cover"
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              <div className="lg:col-span-2 space-y-6">
+                {product.content && (
+                  <div className="rounded-2xl border bg-card p-6">
+                    <div
+                      className="prose prose-slate dark:prose-invert max-w-none"
+                      dangerouslySetInnerHTML={{ __html: product.content }}
+                    />
+                  </div>
+                )}
               </div>
-            )}
 
-            <div className="flex flex-wrap items-center gap-3">
-              {displayPrice && (
-                <div className="text-3xl font-semibold text-green-600">
-                  {displayPrice}
-                </div>
-              )}
-              {primaryLink?.product_url && (
-                <Button
-                  size="lg"
-                  className="flex items-center gap-2"
-                  onClick={() => window.open(primaryLink.product_url || "", "_blank")}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Buy now
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
-              )}
+              <div className="space-y-4">
+                {product.purchase_links && product.purchase_links.length > 0 && (
+                  <div className="rounded-2xl border bg-card p-5 space-y-3">
+                    <h3 className="text-lg font-semibold">Purchase options</h3>
+                    <div className="space-y-2">
+                      {product.purchase_links.map((link, idx) => (
+                        <div key={idx} className="flex items-center justify-between rounded-lg border px-3 py-2">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{link.retailer_name || "Retailer"}</span>
+                            {link.price !== null && link.price !== undefined && (
+                              <span className="text-sm text-muted-foreground">
+                                {new Intl.NumberFormat(undefined, {
+                                  style: "currency",
+                                  currency: link.currency || "USD",
+                                  maximumFractionDigits: 0,
+                                }).format(link.price || 0)}
+                              </span>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(link.product_url || "", "_blank")}
+                          >
+                            View
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-
-            {product.content && (
-              <div
-                className="prose prose-slate dark:prose-invert"
-                dangerouslySetInnerHTML={{ __html: product.content }}
-              />
-            )}
-
-            {product.purchase_links && product.purchase_links.length > 1 && (
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold">Other purchase options</h3>
-                <div className="flex flex-wrap gap-2">
-                  {product.purchase_links.map((link, idx) => (
-                    <Button
-                      key={idx}
-                      variant="outline"
-                      className="flex items-center gap-2"
-                      onClick={() => window.open(link.product_url || "", "_blank")}
-                    >
-                      {link.retailer_name || "Retailer"}
-                      {link.price !== null && link.price !== undefined && (
-                        <span className="text-muted-foreground">
-                          {new Intl.NumberFormat(undefined, {
-                            style: "currency",
-                            currency: link.currency || "USD",
-                            maximumFractionDigits: 0,
-                          }).format(link.price || 0)}
-                        </span>
-                      )}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
           </article>
         )}
       </main>

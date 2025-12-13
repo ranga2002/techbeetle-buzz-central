@@ -41,6 +41,7 @@ const InventoryManagement = () => {
     affiliate_url: '',
     description: '',
     price: '',
+    status: 'draft' as 'draft' | 'published',
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -98,50 +99,33 @@ const InventoryManagement = () => {
         : [];
       const priceValue = formData.price ? Number(formData.price) : null;
 
-      // Upsert inventory (match on affiliate or product URL)
-      const sourceUrl = formData.product_url || formData.affiliate_url || undefined;
-      const { data: invData, error: invError } = await supabase
-        .from('inventory')
-        .upsert({
-          title: formData.title,
-          affiliate_url: formData.affiliate_url || formData.product_url || null,
-          source_url: sourceUrl || null,
-          price: priceValue,
-          images: imagesArray.length ? imagesArray : null,
-          author_id: userId,
-        }, { onConflict: 'source_url' })
-        .select('id')
-        .single();
-      if (invError) throw invError;
-      const inventoryId = invData?.id;
-      if (!inventoryId) throw new Error('Failed to save product details');
+      const allImages = [
+        formData.image_url,
+        ...imagesArray,
+      ].filter(Boolean) as string[];
 
+      // Invoke add-product edge function to handle inventory + content
       const payload = {
         title: formData.title,
         slug: formData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
         category_id: formData.category_id || null,
         featured_image: formData.image_url || null,
-        external_url: formData.product_url || null,
         affiliate_url: formData.affiliate_url || formData.product_url || null,
-        images: imagesArray.length ? imagesArray : null,
-        excerpt: formData.description ? formData.description.slice(0, 200) : null,
+        source_url: formData.product_url || formData.affiliate_url || null,
+        price: priceValue ?? undefined,
+        images: allImages.length ? allImages : undefined,
+        excerpt: formData.description ? formData.description.slice(0, 200) : undefined,
         content: formData.description ? `# ${formData.title}\n\n${formData.description}` : `# ${formData.title}`,
-        content_type: 'product',
-        status: 'draft',
-        inventory_id: inventoryId,
+        status: formData.status,
         author_id: userId,
+        provider: 'amazon',
       };
-      let contentId = editing?.id;
-      if (editing) {
-        const { error } = await supabase.from('content').update(payload).eq('id', editing.id);
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.from('content').insert({
-          ...payload,
-        }).select('id').single();
-        if (error) throw error;
-        contentId = data?.id || contentId;
-      }
+
+      const { data: fnData, error: fnError } = await supabase.functions.invoke('add-product', {
+        body: payload,
+      });
+      if (fnError) throw fnError;
+      const contentId = fnData?.content_id as string | undefined;
 
       // Upsert primary purchase/affiliate link with price
       if (contentId && (formData.product_url || formData.affiliate_url || formData.price)) {
@@ -170,6 +154,7 @@ const InventoryManagement = () => {
         affiliate_url: '',
         description: '',
         price: '',
+        status: 'draft',
       });
     },
     onError: (err: any) => {
@@ -202,6 +187,7 @@ const InventoryManagement = () => {
       product_url: item.purchase_links?.[0]?.product_url || item.external_url || '',
       affiliate_url: item.purchase_links?.[0]?.product_url || item.external_url || '',
       description: item.excerpt || '',
+      status: (item.status as 'draft' | 'published') || 'draft',
     });
   };
 
@@ -226,6 +212,7 @@ const InventoryManagement = () => {
               affiliate_url: '',
               description: '',
               price: '',
+              status: 'draft',
             });
           }}
         >
@@ -258,6 +245,13 @@ const InventoryManagement = () => {
         </CardHeader>
         <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Input placeholder="Name" value={formData.title} onChange={(e) => setFormData({ ...formData, title: e.target.value })} />
+          <Select value={formData.status} onValueChange={(v) => setFormData({ ...formData, status: v as 'draft' | 'published' })}>
+            <SelectTrigger><SelectValue placeholder="Status" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="draft">Draft</SelectItem>
+              <SelectItem value="published">Published</SelectItem>
+            </SelectContent>
+          </Select>
           <Input placeholder="Primary image URL" value={formData.image_url} onChange={(e) => setFormData({ ...formData, image_url: e.target.value })} />
           <Input placeholder="Additional images (comma separated)" value={formData.additional_images} onChange={(e) => setFormData({ ...formData, additional_images: e.target.value })} />
           <Input placeholder="Price" type="number" value={formData.price} onChange={(e) => setFormData({ ...formData, price: e.target.value })} />
@@ -284,7 +278,23 @@ const InventoryManagement = () => {
               {saveItem.isPending ? 'Saving...' : editing ? 'Update' : 'Create'}
             </Button>
             {editing && (
-              <Button variant="outline" onClick={() => { setEditing(null); setFormData({ title: '', price: '', category_id: '', image_url: '', additional_images: '', product_url: '', affiliate_url: '', description: '' }); }}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setEditing(null);
+                  setFormData({
+                    title: '',
+                    category_id: '',
+                    image_url: '',
+                    additional_images: '',
+                    product_url: '',
+                    affiliate_url: '',
+                    description: '',
+                    price: '',
+                    status: 'draft',
+                  });
+                }}
+              >
                 Cancel
               </Button>
             )}
@@ -325,7 +335,28 @@ const InventoryManagement = () => {
                       )}
                     </TableCell>
                     <TableCell>{item.categories?.name || 'Uncategorized'}</TableCell>
-                    <TableCell className="capitalize">{item.status || 'draft'}</TableCell>
+                    <TableCell className="capitalize">
+                      <Select
+                        value={(item.status as 'draft' | 'published') || 'draft'}
+                        onValueChange={async (value) => {
+                          try {
+                            await supabase.from('content').update({ status: value as 'draft' | 'published' }).eq('id', item.id);
+                            queryClient.invalidateQueries({ queryKey: ['inventory-items'] });
+                            toast({ title: 'Status updated', description: `${item.title} set to ${value}.` });
+                          } catch (err: any) {
+                            toast({ title: 'Error', description: err.message || 'Failed to update status', variant: 'destructive' });
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="draft">Draft</SelectItem>
+                          <SelectItem value="published">Published</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
                     <TableCell>{(item.views_count || 0).toLocaleString()}</TableCell>
                     <TableCell>
                       {item.purchase_links?.[0]?.price ? `₹${item.purchase_links[0].price}` : '-'}
@@ -346,6 +377,14 @@ const InventoryManagement = () => {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
+                        <Button size="sm" variant="ghost" asChild>
+                          <a href={`/products/${item.slug}`} target="_blank" rel="noreferrer">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                              <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                          </a>
+                        </Button>
                         <Button size="sm" variant="outline" onClick={() => startEdit(item)}>
                           <Edit className="w-4 h-4" />
                         </Button>

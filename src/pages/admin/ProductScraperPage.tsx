@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -49,6 +49,13 @@ const ProductScraperPage = () => {
     }
   });
 
+  // Auto-select first category when loaded and none chosen
+  useEffect(() => {
+    if (!selectedCategory && categories && categories.length > 0) {
+      setSelectedCategory(categories[0].id);
+    }
+  }, [selectedCategory, categories]);
+
   // Mutation to save product
   const saveProductMutation = useMutation({
     mutationFn: async () => {
@@ -60,15 +67,21 @@ const ProductScraperPage = () => {
       if (!user) throw new Error('Not authenticated');
 
       const payload = formData || scrapedData;
+      const numericPrice =
+        payload?.price !== undefined && payload?.price !== null
+          ? Number(payload.price)
+          : null;
 
       // Upsert inventory (match on source/affiliate URL)
-      const { data: invData, error: invError } = await supabase
+      // inventory is not in generated types; cast is intentional
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data: invData, error: invError } = await (supabase as any)
         .from('inventory')
         .upsert({
           title: payload.title,
           affiliate_url: amazonUrl,
           source_url: amazonUrl,
-          price: payload.price ?? null,
+          price: Number.isFinite(numericPrice) ? numericPrice : null,
           images: payload.image ? [payload.image] : null,
           author_id: user.id,
         }, { onConflict: 'source_url' })
@@ -87,7 +100,9 @@ const ProductScraperPage = () => {
           excerpt: payload.description.substring(0, 200) + '...',
           content: `# ${payload.title}\n\n${payload.description}`,
           featured_image: payload.image,
-          content_type: 'product',
+          // 'product' is a custom content_type; suppress type mismatch with generated enums
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          content_type: 'product' as any,
           status: 'draft',
           author_id: user.id,
           category_id: selectedCategory,
@@ -108,7 +123,7 @@ const ProductScraperPage = () => {
           content_id: contentData.id,
           retailer_name: 'Amazon',
           product_url: amazonUrl,
-          price: payload.price,
+          price: Number.isFinite(numericPrice) ? numericPrice : null,
           currency: 'INR',
           is_primary: true,
           availability_status: payload.availability || 'in_stock'
@@ -129,10 +144,11 @@ const ProductScraperPage = () => {
       setAmazonUrl('');
       setSelectedCategory('');
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
+      const message = error instanceof Error ? error.message : 'Failed to save product';
       toast({
         title: "Error",
-        description: error.message || "Failed to save product",
+        description: message,
         variant: "destructive",
       });
     }
@@ -173,9 +189,8 @@ const ProductScraperPage = () => {
             product_url: amazonUrl,
             apiKey: apiKey || undefined,
           },
-          signal: controller.signal,
         }),
-        new Promise<{ data: any; error: any }>((_, reject) =>
+        new Promise<{ data: unknown; error: unknown }>((_, reject) =>
           setTimeout(() => reject(new Error('Scrape timed out after 2 minutes. Try again or use a different URL.')), timeoutMs),
         ),
       ]);
@@ -193,7 +208,9 @@ const ProductScraperPage = () => {
             const text = await error.context.response.text();
             console.error('Edge response body:', text);
             setLastError(text || error.message);
-          } catch {}
+          } catch (innerErr) {
+            console.error('Failed to read edge error body', innerErr);
+          }
         }
         if (!error.context?.response?.status) {
           setLastError('Request blocked (likely CORS/preflight). Ensure the edge function allows https://techbeetle.org and responds to OPTIONS with 200.');
@@ -222,21 +239,24 @@ const ProductScraperPage = () => {
       } else {
         throw new Error('No product data found');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Scraping error:', error);
-      setLastError(error?.message || 'Edge function returned an error. Check CORS/edge logs.');
+      const message = error instanceof Error ? error.message : 'Edge function returned an error. Check CORS/edge logs.';
+      setLastError(message);
       toast({
         title: "Scraping Failed",
-        description: error?.message || "Edge function returned an error. Check CORS/edge logs.",
+        description: message,
         variant: "destructive",
       });
       
       // Show additional suggestions if available
-      if (error.suggestions && Array.isArray(error.suggestions)) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const suggestions = (error as any)?.suggestions;
+      if (suggestions && Array.isArray(suggestions)) {
         setTimeout(() => {
           toast({
             title: "Suggestions",
-            description: error.suggestions.join('. '),
+            description: suggestions.join('. '),
             variant: "default",
           });
         }, 2000);
