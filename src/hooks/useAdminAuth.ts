@@ -1,6 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import type { Database } from '@/integrations/supabase/types';
+
+type UserRole = Database['public']['Enums']['user_role'];
+type UserRoleRow = { role: UserRole | null };
+
+const ROLE_PRIORITY: UserRole[] = ['admin', 'editor', 'author', 'user'];
 
 export const useAdminAuth = () => {
   const { user, loading: authLoading } = useAuth();
@@ -9,34 +15,44 @@ export const useAdminAuth = () => {
     queryKey: ['user-role', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('No user');
-      
-      // Fetch user's roles from user_roles table
+
+      // Prefer server-side role resolver to avoid profile policy recursion
+      const { data: rpcRole, error: rpcError } = await supabase.rpc<UserRole>('get_current_user_role');
+
+      // Also look at user_roles table for any explicit mappings
       const { data: roles, error: rolesError } = await supabase
-        .from('user_roles' as any)
+        .from<UserRoleRow>('user_roles')
         .select('role')
         .eq('user_id', user.id);
-      
-      // Get profile data (may include role)
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('full_name, username, role')
-        .eq('id', user.id)
-        .single();
-      
-      if (rolesError && !profile?.role) {
-        throw rolesError;
+
+      if (rpcError && rolesError) {
+        throw rpcError || rolesError;
       }
-      
-      // Determine highest priority role from user_roles + profile.role fallback
-      const roleMap = (roles as any[])?.map((r: any) => r.role) || [];
-      if (profile?.role) roleMap.push(profile.role);
-      const uniqueRoles = Array.from(new Set(roleMap));
-      const role = uniqueRoles.includes('admin') ? 'admin' 
-        : uniqueRoles.includes('editor') ? 'editor'
-        : uniqueRoles.includes('author') ? 'author'
-        : 'user';
-      
-      return { role, full_name: profile?.full_name, username: profile?.username };
+
+      const userRoles: UserRole[] = [];
+      if (rpcRole) userRoles.push(rpcRole as UserRole);
+      if (roles?.length) {
+        userRoles.push(
+          ...roles
+            .map((r: { role: UserRole | null }) => r.role)
+            .filter((r): r is UserRole => Boolean(r))
+        );
+      }
+
+      const role = ROLE_PRIORITY.find(r => userRoles.includes(r)) || 'user';
+
+      // Pull display info from auth metadata to avoid touching profiles table
+      const full_name =
+        (user.user_metadata as Record<string, string | undefined>)?.full_name ||
+        (user.user_metadata as Record<string, string | undefined>)?.name ||
+        user.email ||
+        'User';
+      const username =
+        (user.user_metadata as Record<string, string | undefined>)?.username ||
+        (user.user_metadata as Record<string, string | undefined>)?.preferred_username ||
+        undefined;
+
+      return { role, full_name, username };
     },
     enabled: !!user?.id && !authLoading,
     retry: 1,

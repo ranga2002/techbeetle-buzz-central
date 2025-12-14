@@ -5,13 +5,22 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import UserFilters from '@/components/admin/users/UserFilters';
 import UserTable from '@/components/admin/users/UserTable';
 import type { Database } from '@/integrations/supabase/types';
 
 type UserRole = Database['public']['Enums']['user_role'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type ProfileWithEmail = ProfileRow & { email?: string | null };
 type AdminUser = ProfileRow & { email?: string | null };
+type UserRoleRow = { user_id: string; role: UserRole | null };
+
+const enableProfileEmailSelect =
+  import.meta.env.VITE_ENABLE_PROFILE_EMAIL === undefined
+    ? true
+    : import.meta.env.VITE_ENABLE_PROFILE_EMAIL === 'true';
+let canSelectProfileEmail = enableProfileEmailSelect;
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -19,70 +28,97 @@ const UserManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery<AdminUser[]>({
+  const { data: users, isLoading, error } = useQuery<AdminUser[]>({
     queryKey: ['admin-users', searchTerm, roleFilter],
     queryFn: async () => {
-      // Fetch profiles with their roles from user_roles table + profiles.role
-      // Also join auth.users to pull email for admin table display
-      let profileQuery = supabase
-        .from('profiles')
-        .select(`
-          id,
-          full_name,
-          username,
-          created_at,
-          is_active,
-          role,
-          auth_user:auth.users(email)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(200);
+      const baseSelect = 'id, full_name, username, created_at, is_active, role';
+      const profileSelectWithEmail = `${baseSelect}, email`;
 
-      if (searchTerm) {
-        profileQuery = profileQuery.or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
-      }
+      try {
+        // Fetch profiles with their roles from user_roles table + profiles.role
+        // Attempt to pull email from profiles.email if present (fallback to no email)
+        let profileQuery = supabase
+          .from('profiles')
+          .select(canSelectProfileEmail ? profileSelectWithEmail : baseSelect)
+          .order('created_at', { ascending: false })
+          .limit(200);
 
-      const { data: profiles, error: profilesError } = await profileQuery;
-      if (profilesError) throw profilesError;
+        if (searchTerm) {
+          profileQuery = profileQuery.or(`full_name.ilike.%${searchTerm}%,username.ilike.%${searchTerm}%`);
+        }
 
-      const profilesWithEmail = ((profiles as (ProfileRow & { auth_user?: { email?: string } })[] | null)?.map(
-        (profile) => ({
+        let baseProfiles: ProfileWithEmail[] = [];
+
+        if (canSelectProfileEmail) {
+          const { data: profiles, error: profilesError } = await profileQuery;
+          if (profilesError) {
+            canSelectProfileEmail = false;
+            console.warn('Email column not available on profiles; falling back without email', profilesError.message || profilesError);
+          } else {
+            baseProfiles = (profiles || []) as ProfileWithEmail[];
+          }
+        }
+
+        if (!baseProfiles.length) {
+          const { data: fallbackProfiles, error: fallbackError } = await supabase
+            .from('profiles')
+            .select(baseSelect)
+            .order('created_at', { ascending: false })
+            .limit(200);
+
+          if (fallbackError) throw fallbackError;
+          baseProfiles = (fallbackProfiles || []) as ProfileWithEmail[];
+        }
+
+        const profilesWithEmail = baseProfiles.map((profile) => ({
           ...profile,
-          email: profile.auth_user?.email ?? (profile as any).email ?? null,
-        })
-      ) || []) as AdminUser[];
+          email: profile.email ?? null,
+        })) as AdminUser[];
 
-      // Fetch roles for each user
-      const userIds = profilesWithEmail.map(p => p.id);
-      const { data: roles, error: rolesError } = userIds.length
-        ? await supabase
-            .from('user_roles' as any)
-            .select('user_id, role')
-            .in('user_id', userIds)
-        : { data: [], error: null };
-      if (rolesError) throw rolesError;
+        // Fetch roles for each user
+        const userIds = profilesWithEmail.map(p => p.id);
+        const { data: roles, error: rolesError } = userIds.length
+          ? await supabase
+              .from<UserRoleRow>('user_roles')
+              .select('user_id, role')
+              .in('user_id', userIds)
+          : { data: [], error: null };
+        if (rolesError) throw rolesError;
 
-      // Merge profiles with their roles (prefer profile.role, then user_roles)
-      const priority: UserRole[] = ['admin', 'editor', 'author', 'user'];
-      const usersWithRoles: AdminUser[] = profilesWithEmail.map(profile => {
-        const userRoles = (roles as any[])?.filter((r: any) => r.user_id === profile.id) || [];
-        const primaryRole =
-          (profile.role as UserRole | null) ||
-          (priority.find(r => userRoles.some((ur: any) => ur.role === r)) as UserRole | undefined) ||
-          'user';
-        return {
-          ...profile,
-          role: primaryRole,
-        };
-      });
+        // Merge profiles with their roles (prefer profile.role, then user_roles)
+        const priority: UserRole[] = ['admin', 'editor', 'author', 'user'];
+        const usersWithRoles: AdminUser[] = profilesWithEmail.map(profile => {
+          const userRoles = (roles || []).filter((r) => r.user_id === profile.id);
+          const primaryRole =
+            (profile.role as UserRole | null) ||
+            (priority.find(r => userRoles.some((ur) => ur.role === r)) as UserRole | undefined) ||
+            'user';
+          return {
+            ...profile,
+            role: primaryRole,
+          };
+        });
 
-      // Apply role filter
-      if (roleFilter !== 'all') {
-        return usersWithRoles.filter(u => u.role === roleFilter);
+        // Apply role filter
+        if (roleFilter !== 'all') {
+          return usersWithRoles.filter(u => u.role === roleFilter);
+        }
+
+        return usersWithRoles;
+      } catch (err: any) {
+        if (err?.code === '42P17') {
+          toast({
+            title: 'Profiles policy recursion',
+            description: 'The profiles RLS policy is recursive. Please fix the backend policy and retry.',
+            variant: 'destructive',
+          });
+          throw new Error('Profiles RLS policy recursion detected; backend change required.');
+        }
+        throw err;
       }
-
-      return usersWithRoles;
     },
+    retry: false,
+    refetchOnWindowFocus: false,
   });
 
   const updateRoleMutation = useMutation({
@@ -156,6 +192,20 @@ const UserManagement = () => {
       <div className="space-y-6">
         <Skeleton className="h-20" />
         <Skeleton className="h-96" />
+      </div>
+    );
+  }
+
+  if (error) {
+    const message = error instanceof Error ? error.message : 'Failed to load users.';
+    return (
+      <div className="space-y-4">
+        <Alert variant="destructive">
+          <AlertTitle>Could not load users</AlertTitle>
+          <AlertDescription>
+            {message} If this mentions profiles policy recursion (code 42P17), update the profiles RLS policy on Supabase and retry.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
