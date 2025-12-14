@@ -11,6 +11,7 @@ import type { Database } from '@/integrations/supabase/types';
 
 type UserRole = Database['public']['Enums']['user_role'];
 type ProfileRow = Database['public']['Tables']['profiles']['Row'];
+type AdminUser = ProfileRow & { email?: string | null };
 
 const UserManagement = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,13 +19,22 @@ const UserManagement = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: users, isLoading } = useQuery({
+  const { data: users, isLoading } = useQuery<AdminUser[]>({
     queryKey: ['admin-users', searchTerm, roleFilter],
     queryFn: async () => {
       // Fetch profiles with their roles from user_roles table + profiles.role
+      // Also join auth.users to pull email for admin table display
       let profileQuery = supabase
         .from('profiles')
-        .select('id, full_name, username, created_at, is_active, role')
+        .select(`
+          id,
+          full_name,
+          username,
+          created_at,
+          is_active,
+          role,
+          auth_user:auth.users(email)
+        `)
         .order('created_at', { ascending: false })
         .limit(200);
 
@@ -35,25 +45,36 @@ const UserManagement = () => {
       const { data: profiles, error: profilesError } = await profileQuery;
       if (profilesError) throw profilesError;
 
+      const profilesWithEmail = ((profiles as (ProfileRow & { auth_user?: { email?: string } })[] | null)?.map(
+        (profile) => ({
+          ...profile,
+          email: profile.auth_user?.email ?? (profile as any).email ?? null,
+        })
+      ) || []) as AdminUser[];
+
       // Fetch roles for each user
-      const userIds = profiles?.map(p => p.id) || [];
-      const { data: roles, error: rolesError } = await supabase
-        .from('user_roles' as any)
-        .select('user_id, role')
-        .in('user_id', userIds);
+      const userIds = profilesWithEmail.map(p => p.id);
+      const { data: roles, error: rolesError } = userIds.length
+        ? await supabase
+            .from('user_roles' as any)
+            .select('user_id, role')
+            .in('user_id', userIds)
+        : { data: [], error: null };
       if (rolesError) throw rolesError;
 
-      // Merge profiles with their roles (fallback to profile.role)
-      const usersWithRoles = (profiles as ProfileRow[] | null)?.map(profile => {
+      // Merge profiles with their roles (prefer profile.role, then user_roles)
+      const priority: UserRole[] = ['admin', 'editor', 'author', 'user'];
+      const usersWithRoles: AdminUser[] = profilesWithEmail.map(profile => {
         const userRoles = (roles as any[])?.filter((r: any) => r.user_id === profile.id) || [];
-        const primaryRole = (userRoles.find((r: any) => ['admin', 'editor', 'author', 'user'].includes(r.role))?.role ||
+        const primaryRole =
           (profile.role as UserRole | null) ||
-          'user') as UserRole;
+          (priority.find(r => userRoles.some((ur: any) => ur.role === r)) as UserRole | undefined) ||
+          'user';
         return {
           ...profile,
-          role: primaryRole
+          role: primaryRole,
         };
-      }) || [];
+      });
 
       // Apply role filter
       if (roleFilter !== 'all') {

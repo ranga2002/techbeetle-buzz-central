@@ -34,9 +34,10 @@ import { Textarea } from '@/components/ui/textarea';
 import { useState } from 'react';
 
 type UserRole = Database['public']['Enums']['user_role'];
+type AdminUser = Tables<'profiles'> & { email?: string | null };
 
 interface UserTableProps {
-  users: Tables<'profiles'>[] | undefined;
+  users: AdminUser[] | undefined;
   onRoleUpdate: (userId: string, role: UserRole) => void;
   onStatusToggle: (args: { userId: string; isActive: boolean; reason?: string; email?: string }) => void;
   isUpdating: boolean;
@@ -99,7 +100,7 @@ const UserTable: React.FC<UserTableProps> = ({
               >
                 <SelectTrigger className="w-32">
                   <Badge className={getRoleBadge(user.role || 'user')}>
-                    {user.role}
+                    {user.role || 'user'}
                   </Badge>
                 </SelectTrigger>
                 <SelectContent>
