@@ -212,6 +212,25 @@ const parseCountry = (req: Request): string => {
   return country.length === 2 ? country : "us";
 };
 
+const extractClientIp = (req: Request): string | null => {
+  const xff = req.headers.get("x-forwarded-for") || "";
+  const ip = xff.split(",")[0].trim();
+  return ip || null;
+};
+
+const geoLookupCountry = async (ip: string | null): Promise<string | null> => {
+  if (!ip) return null;
+  try {
+    const resp = await fetch(`https://api.country.is/${ip}`);
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const c = typeof json?.country === "string" ? json.country.toLowerCase() : null;
+    return c && c.length === 2 ? c : null;
+  } catch (_e) {
+    return null;
+  }
+};
+
 const toSlug = (title: string) =>
   title
     .toLowerCase()
@@ -447,10 +466,14 @@ const fetchExistingArticleKeys = async (urls: string[], slugs: string[]) => {
   const existingSlugs = new Set<string>();
 
   if (urls.length > 0) {
+    // Expand lookup to include normalized URLs so differences in tracking params don't slip through.
+    const normalizedUrls = urls.map((u) => normalizeUrl(u)).filter(Boolean);
+    const urlLookup = Array.from(new Set([...urls, ...normalizedUrls]));
+
     const { data, error } = await supabase
       .from("content_sources")
       .select("source_url")
-      .in("source_url", urls);
+      .in("source_url", urlLookup);
     if (error) {
       console.error("Existing source lookup failed", error);
     } else {
@@ -497,7 +520,7 @@ const filterExistingArticles = async (items: NormalizedArticle[]) => {
   try {
     const { existingUrls, existingSlugs } = await fetchExistingArticleKeys(urlKeys, slugKeys);
     return items.filter((item) => {
-      const urlKey = normalizeUrl(item.url);
+      const urlKey = normalizeUrl(item.url) || (item.url || "").trim();
       const slugKey = toSlug(item.slug || item.title || "");
       if (urlKey && existingUrls.has(urlKey)) return false;
       if (slugKey && existingSlugs.has(slugKey)) return false;
@@ -509,14 +532,14 @@ const filterExistingArticles = async (items: NormalizedArticle[]) => {
   }
 };
 
-const fetchNewsData = async (country: string, limit = 10, query?: string) => {
+const fetchNewsData = async (country: string, limit = 10, query?: string, page = 1) => {
   if (!NEWS_DATA_KEY) return [] as NormalizedArticle[];
   const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
   const url =
     `https://newsdata.io/api/1/news?apikey=${NEWS_DATA_KEY}` +
     `&category=technology&language=en&country=${country}` +
     `&q=${search}` +
-    `&page=1`;
+    `&page=${page}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -545,13 +568,13 @@ const fetchNewsData = async (country: string, limit = 10, query?: string) => {
   }) as NormalizedArticle[];
 };
 
-const fetchGNews = async (country: string, limit = 10, query?: string) => {
+const fetchGNews = async (country: string, limit = 10, query?: string, page = 1) => {
   if (!GNEWS_KEY) return [] as NormalizedArticle[];
   const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
   const base = query
     ? `https://gnews.io/api/v4/search?token=${GNEWS_KEY}&lang=en&country=${country}`
     : `https://gnews.io/api/v4/top-headlines?token=${GNEWS_KEY}&topic=technology&lang=en&country=${country}`;
-  const url = `${base}&max=${limit}&q=${search}`;
+  const url = `${base}&max=${limit}&page=${page}&q=${search}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -574,12 +597,14 @@ const fetchGNews = async (country: string, limit = 10, query?: string) => {
   }) as NormalizedArticle[];
 };
 
-const fetchMediaStack = async (country: string, limit = 10, query?: string) => {
+const fetchMediaStack = async (country: string, limit = 10, query?: string, page = 1) => {
   if (!MEDIASTACK_KEY) return [] as NormalizedArticle[];
   const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
+  const offset = (Math.max(page, 1) - 1) * limit;
   const url =
     `http://api.mediastack.com/v1/news?access_key=${MEDIASTACK_KEY}` +
     `&categories=technology&countries=${country}&languages=en&limit=${limit}` +
+    `&offset=${offset}` +
     `&keywords=${search.replace(/%20/g, ",")}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
@@ -601,12 +626,12 @@ const fetchMediaStack = async (country: string, limit = 10, query?: string) => {
   }) as NormalizedArticle[];
 };
 
-const fetchGuardian = async (limit = 10, query?: string) => {
+const fetchGuardian = async (limit = 10, query?: string, page = 1) => {
   if (!GUARDIAN_KEY) return [] as NormalizedArticle[];
   const search = encodeURIComponent(query || DEFAULT_QUERY_TERMS);
   const url =
     `https://content.guardianapis.com/search?q=${search}&section=technology` +
-    `&order-by=newest&show-fields=trailText,bodyText,thumbnail&api-key=${GUARDIAN_KEY}&page-size=${limit}`;
+    `&order-by=newest&show-fields=trailText,bodyText,thumbnail&api-key=${GUARDIAN_KEY}&page-size=${limit}&page=${page}`;
   const resp = await fetch(url);
   if (!resp.ok) return [];
   const json = await resp.json();
@@ -630,12 +655,12 @@ const fetchGuardian = async (limit = 10, query?: string) => {
   }) as NormalizedArticle[];
 };
 
-const collectArticles = async (country: string, needed = 60, query?: string) => {
+const collectArticles = async (country: string, needed = 60, query?: string, page = 1) => {
   const providers: Array<() => Promise<NormalizedArticle[]>> = [
-    () => fetchNewsData(country, 10, query),
-    () => fetchGNews(country, 10, query),
-    () => fetchMediaStack(country, 10, query),
-    () => fetchGuardian(10, query),
+    () => fetchNewsData(country, 10, query, page),
+    () => fetchGNews(country, 10, query, page),
+    () => fetchMediaStack(country, 10, query, page),
+    () => fetchGuardian(10, query, page),
   ];
 
   const results: NormalizedArticle[] = [];
@@ -740,6 +765,13 @@ const resolveCategoryForArticle = async (
   return { id: fallbackId, slug: "technology" };
 };
 
+const buildSearchQuery = (baseQuery: string | undefined, city: string | null) => {
+  const q = baseQuery && baseQuery.length > 0 ? baseQuery : DEFAULT_QUERY_TERMS;
+  return city ? `${q} AND (${city})` : q;
+};
+
+const OTHER_COUNTRIES_POOL = ["us", "gb", "in", "au", "ca", "de", "fr", "jp"];
+
 const persistArticles = async (items: NormalizedArticle[], country: string) => {
   const authorId = await resolveAuthorId();
   if (!authorId) {
@@ -752,6 +784,7 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
       const category = await resolveCategoryForArticle(article, country);
       const nowIso = new Date().toISOString();
       const isIndexable = article._ai_indexable ?? false;
+      const normalizedUrl = normalizeUrl(article.url);
       const insertPayload = {
         title: article.title,
         slug: article.slug || toSlug(article.title),
@@ -797,7 +830,7 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         const now = new Date().toISOString();
         const { error: sourceError } = await supabase.from("content_sources").upsert({
           content_id: contentId,
-          source_url: article.url,
+          source_url: normalizedUrl || article.url,
           source_name: article.source_name,
           source_type: article.provider,
           last_updated: now,
@@ -841,6 +874,9 @@ serve(async (req: Request) => {
   }
 
   const url = new URL(req.url);
+  const localCursor = Math.max(parseInt(url.searchParams.get("local_cursor") || "1", 10) || 1, 1);
+  const otherCursor = Math.max(parseInt(url.searchParams.get("other_cursor") || "1", 10) || 1, 1);
+  const limit = Math.min(Math.max(parseInt(url.searchParams.get("limit") || "10", 10) || 10, 1), 50);
   if (!query) {
     const qp = url.searchParams.get("q");
     query = qp ? qp.trim() : undefined;
@@ -850,10 +886,15 @@ serve(async (req: Request) => {
     bypassCache = true;
   }
 
-  const country = parseCountry(req);
+  const explicitCountry = (url.searchParams.get("country") || req.headers.get("x-country") || "").toLowerCase();
+  const city = (url.searchParams.get("city") || "").trim() || null;
+  const clientIp = extractClientIp(req);
+  const geoCountry = explicitCountry ? null : await geoLookupCountry(clientIp);
+  const country = (explicitCountry || geoCountry || "us").toLowerCase();
+
   const cacheKey = query
-    ? `news-${country}-${query.toLowerCase()}`
-    : `news-${country}`;
+    ? `news-${country}-${city || "none"}-${query.toLowerCase()}-${localCursor}-${otherCursor}-${limit}`
+    : `news-${country}-${city || "none"}-default-${localCursor}-${otherCursor}-${limit}`;
   const cached = cache.get(cacheKey);
   const now = Date.now();
   if (!bypassCache && cached && cached.expiresAt > now) {
@@ -868,10 +909,37 @@ serve(async (req: Request) => {
       await purgeExistingNews();
     }
 
-    const { items, skippedExisting } = await collectArticles(country, 20, query);
+    const searchQuery = buildSearchQuery(query || undefined, city);
+
+    // Local fetch
+    const localRaw = await collectArticles(country, limit * 2, searchQuery, localCursor);
+
+    // Other countries fetch
+    const otherCountries = OTHER_COUNTRIES_POOL.filter((c) => c !== country);
+    const otherRaw: NormalizedArticle[] = [];
+    for (const c of otherCountries) {
+      if (otherRaw.length >= limit * 2) break;
+      const chunk = await collectArticles(c, limit, searchQuery, otherCursor);
+      otherRaw.push(...chunk.items);
+    }
+
+    // Dedupe and filter against DB across combined
+    const combined = dedupe([...localRaw.items, ...otherRaw]);
+    const fresh = await filterExistingArticles(combined);
+    const skippedExisting = combined.length - fresh.length;
+
+    const localItems = fresh
+      .filter((i) => (i.source_country || country).toLowerCase() === country)
+      .sort((a, b) => (new Date(b.published_at || "").getTime() || 0) - (new Date(a.published_at || "").getTime() || 0))
+      .slice(0, limit);
+
+    const otherItems = fresh
+      .filter((i) => (i.source_country || "").toLowerCase() !== country)
+      .sort((a, b) => (new Date(b.published_at || "").getTime() || 0) - (new Date(a.published_at || "").getTime() || 0))
+      .slice(0, limit);
 
     // Persist to content table (best effort; will skip if DEFAULT_AUTHOR_ID is not configured)
-    await persistArticles(items, country);
+    await persistArticles([...localItems, ...otherItems], country);
 
     // Optional: record pull usage (no-op if table missing)
     try {
@@ -888,10 +956,16 @@ serve(async (req: Request) => {
     const payload = {
       success: true,
       country,
-      query: query || null,
-      count: items.length,
+      city,
+      local: {
+        items: localItems,
+        next_cursor: localItems.length < limit ? null : String(localCursor + 1),
+      },
+      other: {
+        items: otherItems,
+        next_cursor: otherItems.length < limit ? null : String(otherCursor + 1),
+      },
       skipped_existing: skippedExisting,
-      items,
       generated_at: new Date().toISOString(),
     };
 
