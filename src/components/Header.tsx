@@ -17,6 +17,7 @@ const navLinks = [
   { label: 'How-To', to: '/how-to' },
   { label: 'Compare', to: '/compare' },
   { label: 'Products', to: '/products' },
+  { label: 'Contact', to: '/contact' },
 ];
 
 const Header = () => {

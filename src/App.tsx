@@ -43,6 +43,7 @@ import NewsEditor from "./pages/admin/NewsEditor";
 import { GlobalSeo } from "./components/GlobalSeo";
 import ProfilePage from "./pages/ProfilePage";
 import EditorLayout from "./components/admin/EditorLayout";
+import ContactPage from "./pages/ContactPage";
 
 
 const queryClient = new QueryClient();
@@ -109,6 +110,7 @@ const App = () => (
                     <Route path="inventory" element={<InventoryManagement />} />
                   </Route>
                     
+                  <Route path="/contact" element={<ContactPage />} />
                   <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
                   <Route path="/terms" element={<TermsPage />} />
 
