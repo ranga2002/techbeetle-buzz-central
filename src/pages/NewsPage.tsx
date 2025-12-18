@@ -20,7 +20,7 @@ const NewsPage = () => {
   const GEO_COUNTRY_KEY = "tb_geo_country";
   const navigate = useNavigate();
   const { slug } = useParams<{ slug?: string }>();
-  const { useContentQuery, useCategoriesQuery } = useContent();
+  const { useContentQuery, useContentCountQuery, useCategoriesQuery } = useContent();
 
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(!!slug);
@@ -76,6 +76,10 @@ const NewsPage = () => {
     }
   );
   const { data: categories = [], isError: categoriesError } = useCategoriesQuery();
+  const { data: totalNewsCount = 0 } = useContentCountQuery({
+    contentType: "news",
+    status: "published",
+  });
 
   const handleNewsClick = (newsItem: any) => {
     setSelectedNewsItem(newsItem);
@@ -101,6 +105,35 @@ const NewsPage = () => {
     }
     if (storedCity) {
       setUserCity(storedCity);
+    }
+
+    // If we don't have a stored location, ask for one here so any page can prompt once.
+    if (!storedCountry && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const response = await fetch(
+              `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
+            );
+            const data = await response.json();
+            if (data.city) {
+              setUserCity(data.city);
+              localStorage.setItem(GEO_CITY_KEY, data.city);
+            }
+            if (data.countryCode) {
+              const resolvedCountry = data.countryCode.toLowerCase();
+              setUserCountry(resolvedCountry);
+              localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
+            }
+          } catch (_e) {
+            // ignore failures; fallback already set
+          }
+        },
+        () => {
+          // User denied or unavailable; keep fallback language country if any
+        }
+      );
     }
   }, []);
 
@@ -434,7 +467,7 @@ const NewsPage = () => {
             <div className="grid grid-cols-2 gap-4 text-sm w-full lg:w-auto">
               <div className="rounded-2xl border bg-card px-5 py-4">
                 <p className="text-muted-foreground">Total stories</p>
-                <p className="text-2xl font-semibold">{totalCount}</p>
+                <p className="text-2xl font-semibold">{totalNewsCount || totalCount}</p>
               </div>
               <div className="rounded-2xl border bg-card px-5 py-4">
                 <p className="text-muted-foreground">Local stories</p>
@@ -582,7 +615,7 @@ const NewsPage = () => {
                           Fresh tech headlines from other regions.
                         </p>
                       </div>
-                      <Badge variant="outline" className="text-sm">{otherArticles.length} stories</Badge>
+                      {/* <Badge variant="outline" className="text-sm">{otherArticles.length} stories</Badge> */}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                       {otherCards}

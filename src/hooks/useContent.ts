@@ -77,6 +77,36 @@ export const useContent = () => {
     return data || [];
   };
 
+  const fetchContentCount = async (filters?: {
+    contentType?: string;
+    status?: string;
+    isIndexable?: boolean;
+    country?: string;
+  }): Promise<number> => {
+    let query = supabase
+      .from('content')
+      .select('id', { count: 'exact', head: true });
+
+    if (filters?.contentType) {
+      query = query.eq('content_type', filters.contentType as any);
+    }
+    if (typeof filters?.isIndexable === 'boolean') {
+      query = query.eq('is_indexable', filters.isIndexable);
+    }
+    if (filters?.country) {
+      query = query.eq('source_country', filters.country.toLowerCase());
+    }
+    if (filters?.status) {
+      query = query.eq('status', filters.status as any);
+    } else {
+      query = query.eq('status', 'published');
+    }
+
+    const { count, error } = await query;
+    if (error) throw error;
+    return count ?? 0;
+  };
+
   const fetchCategories = async (): Promise<Category[]> => {
     const { data, error } = await supabase
       .from('categories')
@@ -142,7 +172,16 @@ export const useContent = () => {
         queryKey: ['featured-content'],
         queryFn: fetchFeaturedContent,
       }),
-    
+
+    useContentCountQuery: (
+      filters?: Parameters<typeof fetchContentCount>[0],
+    ) =>
+      useQuery({
+        queryKey: ['content-count', filters],
+        queryFn: () => fetchContentCount(filters),
+        staleTime: 60_000,
+      }),
+
     incrementViews,
   };
 };
