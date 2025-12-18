@@ -22,14 +22,27 @@ const AuthPage = () => {
     setIsLoading(true);
     
     const formData = new FormData(e.target as HTMLFormElement);
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
+    const email = ((formData.get('email') as string) || '').trim().toLowerCase();
+    const password = ((formData.get('password') as string) || '').trim();
 
-    const { error } = await signIn(email, password);
-    if (!error) {
-      navigate('/');
+    if (!email || !password) {
+      toast({
+        title: "Missing credentials",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
     }
-    setIsLoading(false);
+
+    try {
+      const { error } = await signIn(email, password);
+      if (!error) {
+        navigate('/');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -37,25 +50,48 @@ const AuthPage = () => {
     setIsLoading(true);
     
     const formData = new FormData(e.target as HTMLFormElement);
-    const email = formData.get('signup-email') as string;
-    const password = formData.get('signup-password') as string;
-    const fullName = formData.get('full-name') as string;
-    const username = formData.get('username') as string;
+    const email = ((formData.get('signup-email') as string) || '').trim().toLowerCase();
+    const password = ((formData.get('signup-password') as string) || '').trim();
+    const confirmPassword = ((formData.get('confirm-password') as string) || '').trim();
+    const fullName = ((formData.get('full-name') as string) || '').trim();
+    const username = ((formData.get('username') as string) || '').trim();
 
-    const { error } = await signUp(email, password, {
-      full_name: fullName,
-      username: username,
-    });
-
-    if (!error) {
+    if (password.length < 8) {
       toast({
-        title: "Check your inbox",
-        description: "Confirm your email to complete signup.",
+        title: "Password too short",
+        description: "Please use at least 8 characters.",
+        variant: "destructive",
       });
-      navigate('/');
+      setIsLoading(false);
+      return;
     }
-    
-    setIsLoading(false);
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords do not match",
+        description: "Make sure both password fields match.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await signUp(email, password, {
+        full_name: fullName,
+        username,
+      });
+
+      if (!error) {
+        toast({
+          title: "Check your inbox",
+          description: "Confirm your email to complete signup.",
+        });
+        navigate('/');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGoogleSignIn = async () => {
@@ -81,8 +117,9 @@ const AuthPage = () => {
         description: "Failed to authenticate with Google",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   return (
@@ -229,7 +266,18 @@ const AuthPage = () => {
                       type="password"
                       required
                       placeholder="Create a password"
-                      minLength={6}
+                      minLength={8}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="confirm-password">Confirm Password</Label>
+                    <Input
+                      id="confirm-password"
+                      name="confirm-password"
+                      type="password"
+                      required
+                      placeholder="Confirm your password"
+                      minLength={8}
                     />
                   </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>

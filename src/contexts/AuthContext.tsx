@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -27,7 +27,32 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const profileSyncRef = useRef<Set<string>>(new Set());
   const { toast } = useToast();
+
+  const ensureProfile = async (newSession: Session | null) => {
+    const authUser = newSession?.user;
+    if (!authUser?.id || profileSyncRef.current.has(authUser.id)) {
+      return;
+    }
+    profileSyncRef.current.add(authUser.id);
+
+    try {
+      await fetch("/functions/v1/create-profile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${newSession?.access_token}`,
+        },
+        body: JSON.stringify({
+          full_name: (authUser.user_metadata as Record<string, string | undefined>)?.full_name,
+          username: (authUser.user_metadata as Record<string, string | undefined>)?.username,
+        }),
+      });
+    } catch (err) {
+      console.error("Profile sync failed", err);
+    }
+  };
 
   useEffect(() => {
     // Set up auth state listener
@@ -36,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
+        ensureProfile(session);
       }
     );
 
@@ -44,6 +70,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
+      ensureProfile(session);
     });
 
     return () => subscription.unsubscribe();
@@ -51,14 +78,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signUp = async (email: string, password: string, userData?: any) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+    const normalizedEmail = email.trim().toLowerCase();
+
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: {
         emailRedirectTo: redirectUrl,
-        data: userData
-      }
+        data: userData,
+      },
     });
 
     if (error) {
@@ -67,31 +95,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      // create profile row eagerly when user is returned
-      if (data.user?.id) {
-        await supabase
-          .from("profiles")
-          .upsert({
-            id: data.user.id,
-            email,
-            full_name: userData?.full_name,
-            username: userData?.username,
-          })
-          .catch(() => null);
-      }
-      toast({
-        title: "Success!",
-        description: "Please check your email to confirm your account.",
-      });
+      return { error };
     }
 
-    return { error };
+    toast({
+      title: "Success!",
+      description: "Please check your email to confirm your account.",
+    });
+
+    return { error: null };
   };
 
   const signIn = async (email: string, password: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
     const { error } = await supabase.auth.signInWithPassword({
-      email,
+      email: normalizedEmail,
       password,
     });
 
@@ -113,12 +131,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut();
-    if (!error) {
+    if (error) {
       toast({
-        title: "Signed out",
-        description: "You have been successfully signed out.",
+        title: "Sign Out Failed",
+        description: error.message,
+        variant: "destructive",
       });
+      return;
     }
+
+    toast({
+      title: "Signed out",
+      description: "You have been successfully signed out.",
+    });
   };
 
   const value = {
