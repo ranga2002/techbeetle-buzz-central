@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Sparkles, RefreshCw, ArrowUp, Flame, TrendingUp, Filter, Radio } from "lucide-react";
+import { Sparkles, RefreshCw, ArrowUp, Flame, TrendingUp, Filter, Radio, MapPin } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useContent } from "@/hooks/useContent";
 import { formatLocalTime, pickTimeZone } from "@/lib/time";
@@ -16,26 +16,61 @@ import { Card, CardContent } from "@/components/ui/card";
 import { dedupeNewsItems } from "@/lib/news";
 
 const NewsPage = () => {
+  const GEO_CITY_KEY = "tb_geo_city";
+  const GEO_COUNTRY_KEY = "tb_geo_country";
   const navigate = useNavigate();
   const { slug } = useParams<{ slug?: string }>();
   const { useContentQuery, useCategoriesQuery } = useContent();
 
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(!!slug);
+  const [userCountry, setUserCountry] = useState<string>("us");
+  const [userCity, setUserCity] = useState<string>("");
   const [articles, setArticles] = useState<any[]>([]);
+  const [localArticles, setLocalArticles] = useState<any[]>([]);
+  const [otherArticles, setOtherArticles] = useState<any[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [visibleCount, setVisibleCount] = useState<number>(12);
+  const [otherVisibleCount, setOtherVisibleCount] = useState<number>(6);
   const [error, setError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [seoItem, setSeoItem] = useState<any>(null);
 
-  const { data: newsData = [], isLoading, isError, error: newsError } = useContentQuery(
+  const categoryFilter = selectedCategory !== "all" ? selectedCategory : undefined;
+  const normalizedCountry = (userCountry || "us").toLowerCase();
+
+  const {
+    data: localNewsData = [],
+    isLoading: isLoadingLocal,
+    isError: isErrorLocal,
+    error: localNewsError,
+  } = useContentQuery(
     {
       contentType: "news",
-      category: selectedCategory !== "all" ? selectedCategory : undefined,
+      category: categoryFilter,
+      country: normalizedCountry,
     },
     {
       refetchInterval: 120000, // refresh every 2 minutes
+      refetchOnWindowFocus: true,
+      staleTime: 60000,
+    }
+  );
+
+  const {
+    data: otherNewsData = [],
+    isLoading: isLoadingOther,
+    isError: isErrorOther,
+    error: otherNewsError,
+  } = useContentQuery(
+    {
+      contentType: "news",
+      category: categoryFilter,
+      excludeCountry: normalizedCountry,
+      limit: 30,
+    },
+    {
+      refetchInterval: 120000,
       refetchOnWindowFocus: true,
       staleTime: 60000,
     }
@@ -55,20 +90,46 @@ const NewsPage = () => {
   };
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const storedCountry = localStorage.getItem(GEO_COUNTRY_KEY);
+    const storedCity = localStorage.getItem(GEO_CITY_KEY);
+    const langCountry = navigator.language?.split("-")[1]?.toLowerCase();
+    if (storedCountry) {
+      setUserCountry(storedCountry.toLowerCase());
+    } else if (langCountry) {
+      setUserCountry(langCountry);
+    }
+    if (storedCity) {
+      setUserCity(storedCity);
+    }
+  }, []);
+
+  useEffect(() => {
     try {
-      const uniqueArticles = dedupeNewsItems(newsData || []);
-      const sorted = uniqueArticles.sort((a, b) => {
+      const combined = dedupeNewsItems([...(localNewsData || []), ...(otherNewsData || [])]);
+      const sorted = combined.sort((a, b) => {
         const aDate = new Date(a.published_at || "").getTime() || 0;
         const bDate = new Date(b.published_at || "").getTime() || 0;
         return bDate - aDate;
       });
+
+      const locals = sorted.filter(
+        (item: any) => (item.source_country || "").toLowerCase() === normalizedCountry
+      );
+      const others = sorted.filter(
+        (item: any) => (item.source_country || "").toLowerCase() !== normalizedCountry
+      );
+
       setArticles(sorted);
+      setLocalArticles(locals);
+      setOtherArticles(others);
+      setVisibleCount(12);
+      setOtherVisibleCount(6);
       setSeoItem(
         slug
           ? sorted.find((item: any) => item.slug === slug) || sorted[0] || null
-          : sorted[0] || null
+          : locals[0] || sorted[0] || null
       );
-      setVisibleCount(12);
 
       if (slug) {
         const match = sorted.find((item: any) => item.slug === slug);
@@ -87,7 +148,7 @@ const NewsPage = () => {
       console.error("Error processing news data:", err);
       setError("Unable to load the latest tech news right now.");
     }
-  }, [newsData, slug]);
+  }, [localNewsData, otherNewsData, slug, normalizedCountry]);
 
   useEffect(() => {
     let ticking = false;
@@ -109,17 +170,14 @@ const NewsPage = () => {
     setVisibleCount(12);
   };
 
-  const filtered = selectedCategory === "all"
-    ? articles
-    : articles.filter((item: any) => {
-        const itemSlug = item.categories?.slug || item.category_slug;
-        const itemId = item.categories?.id || item.category_id;
-        return itemSlug === selectedCategory || itemId === selectedCategory;
-      });
+  const filtered = localArticles;
 
-  const trending = [...articles]
+  const trendingSource = localArticles.length ? localArticles : articles;
+  const trending = [...trendingSource]
     .sort((a: any, b: any) => (b.views_count || 0) - (a.views_count || 0))
     .slice(0, 5);
+
+  const totalCount = (localArticles?.length || 0) + (otherArticles?.length || 0);
 
   const sourcesCount = filtered.reduce((acc: Record<string, number>, item: any) => {
     const name = item.source_name || item.provider || item.categories?.name || "Source";
@@ -140,15 +198,20 @@ const NewsPage = () => {
 
   const regions = Array.from(
     new Set(
-      filtered
+      [...localArticles, ...otherArticles]
         .map((item: any) => (item.source_country || "").toLowerCase())
         .filter(Boolean)
     )
   );
+  if (!regions.length && normalizedCountry) regions.push(normalizedCountry);
 
   const topSources = Object.entries(sourcesCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
+
+  const isLoading = isLoadingLocal && localArticles.length === 0;
+  const hasError = Boolean(error || isErrorLocal || isErrorOther || categoriesError);
+  const newsError = localNewsError || otherNewsError;
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -207,11 +270,47 @@ const NewsPage = () => {
         image={content.image || content.featured_image || "https://placehold.co/800x450?text=Tech+Beetle"}
         comments={comments}
         likes={likes}
-        featured={featured}
+      featured={featured}
+      onClick={() => handleNewsClick(content)}
+    />
+  );
+});
+
+  const otherCards = otherArticles.slice(0, otherVisibleCount).map((content: any) => {
+    const category =
+      content.source_name ||
+      content.provider ||
+      (content.categories?.name?.startsWith("News (") ? "Tech" : content.categories?.name) ||
+      "Tech";
+    const author = content.profiles?.full_name || content.profiles?.username || "TechBeetle";
+    const publishedAt = formatLocalTime(
+      content.published_at,
+      pickTimeZone(content.source_country || content.categories?.country)
+    );
+    const readTime = content.reading_time ? `${content.reading_time} min read` : "5 min read";
+    const comments = content.comments_count || 0;
+    const likes = content.likes_count || 0;
+
+    return (
+      <NewsCard
+        key={`other-${content.id}`}
+        title={content.title}
+        excerpt={content.summary || content.excerpt || "Global tech highlights worth skimming."}
+        category={category}
+        author={author}
+        publishTime={publishedAt}
+        readTime={readTime}
+        image={content.image || content.featured_image || "https://placehold.co/800x450?text=Tech+Beetle"}
+        comments={comments}
+        likes={likes}
         onClick={() => handleNewsClick(content)}
       />
     );
   });
+
+  const hasLocal = cards.length > 0;
+  const hasOther = otherArticles.length > 0;
+  const hasAny = hasLocal || hasOther;
 
   return (
     <div className="min-h-screen bg-background">
@@ -317,7 +416,14 @@ const NewsPage = () => {
         <section className="rounded-3xl border bg-gradient-to-b from-background/60 to-card backdrop-blur px-6 py-8 shadow-sm">
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             <div className="space-y-3 max-w-2xl">
-              <Badge variant="outline" className="w-fit">Tech Intelligence Center</Badge>
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline" className="w-fit">Tech Intelligence Center</Badge>
+                <Badge variant="secondary" className="flex items-center gap-2 w-fit">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  {regionLabels[normalizedCountry] || normalizedCountry.toUpperCase()}
+                  {userCity ? ` • ${userCity}` : " news"}
+                </Badge>
+              </div>
               <div className="space-y-2">
                 <h1 className="text-4xl font-bold leading-tight">Signal-first news for builders</h1>
                 <p className="text-muted-foreground text-lg">
@@ -327,12 +433,12 @@ const NewsPage = () => {
             </div>
             <div className="grid grid-cols-2 gap-4 text-sm w-full lg:w-auto">
               <div className="rounded-2xl border bg-card px-5 py-4">
-                <p className="text-muted-foreground">Stories this week</p>
-                <p className="text-2xl font-semibold">{filtered.length}</p>
+                <p className="text-muted-foreground">Total stories</p>
+                <p className="text-2xl font-semibold">{totalCount}</p>
               </div>
               <div className="rounded-2xl border bg-card px-5 py-4">
-                <p className="text-muted-foreground">Tracked sources</p>
-                <p className="text-2xl font-semibold">{topSources.length}</p>
+                <p className="text-muted-foreground">Local stories</p>
+                <p className="text-2xl font-semibold">{filtered.length}</p>
               </div>
               <div className="rounded-2xl border bg-card px-5 py-4 col-span-2">
                 <p className="text-muted-foreground">Live coverage regions</p>
@@ -348,13 +454,13 @@ const NewsPage = () => {
           </div>
         </section>
 
-        {(error || isError || categoriesError) && (
+        {hasError && (
           <div className="bg-destructive/10 text-destructive border border-destructive/30 rounded-2xl p-4">
             {error || newsError?.message || "Unable to load the latest tech news right now."}
           </div>
         )}
 
-        {isLoading ? renderSkeleton() : cards && cards.length > 0 ? (
+        {isLoading ? renderSkeleton() : hasAny ? (
           <>
             <div className="lg:hidden">
               <Accordion type="multiple" className="w-full space-y-2">
@@ -445,14 +551,49 @@ const NewsPage = () => {
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-3 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {cards}
-                </div>
-                {visibleCount < filtered.length && (
-                  <div className="text-center">
-                    <Button variant="outline" onClick={() => setVisibleCount((c) => c + 9)}>
-                      Load more
-                    </Button>
+                {hasLocal ? (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {cards}
+                    </div>
+                    {visibleCount < filtered.length && (
+                      <div className="text-center">
+                        <Button variant="outline" onClick={() => setVisibleCount((c) => c + 9)}>
+                          Load more
+                        </Button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="rounded-2xl border bg-muted/20 p-4 text-sm text-muted-foreground">
+                    No local stories yet for your region. Browse the latest from other regions below.
+                  </div>
+                )}
+
+                {hasOther && (
+                  <div className="mt-4 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <Badge variant="secondary" className="flex items-center gap-2 text-base py-1.5 px-3">
+                          <MapPin className="w-4 h-4 text-primary" />
+                          Beyond {regionLabels[normalizedCountry] || normalizedCountry.toUpperCase()}
+                        </Badge>
+                        <p className="text-base text-muted-foreground">
+                          Fresh tech headlines from other regions.
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-sm">{otherArticles.length} stories</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                      {otherCards}
+                    </div>
+                    {otherVisibleCount < otherArticles.length && (
+                      <div className="text-center">
+                        <Button variant="outline" onClick={() => setOtherVisibleCount((c) => c + 6)}>
+                          Load more from other regions
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

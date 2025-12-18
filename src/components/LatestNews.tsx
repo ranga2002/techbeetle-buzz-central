@@ -13,6 +13,8 @@ import { formatLocalTime, pickTimeZone } from '@/lib/time';
 import { dedupeNewsItems } from '@/lib/news';
 
 const LatestNews = () => {
+  const GEO_CITY_KEY = 'tb_geo_city';
+  const GEO_COUNTRY_KEY = 'tb_geo_country';
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -45,6 +47,13 @@ const LatestNews = () => {
 
   // Auto-detect user's city on component mount
   useEffect(() => {
+    // Reuse saved location to avoid extra prompts if the user already granted access.
+    const storedCity = typeof window !== 'undefined' ? localStorage.getItem(GEO_CITY_KEY) : null;
+    const storedCountry = typeof window !== 'undefined' ? localStorage.getItem(GEO_COUNTRY_KEY) : null;
+    if (storedCity) setLocation(storedCity);
+    if (storedCountry) setCountry(storedCountry);
+    if (storedCity && storedCountry) return;
+
     const detectLocation = async () => {
       try {
         if (navigator.geolocation) {
@@ -56,30 +65,45 @@ const LatestNews = () => {
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
             );
             const data = await response.json();
-            
+
             if (data.city) {
               setLocation(data.city);
+              localStorage.setItem(GEO_CITY_KEY, data.city);
             }
             if (data.countryCode) {
-              setCountry(data.countryCode.toLowerCase());
+              const resolvedCountry = data.countryCode.toLowerCase();
+              setCountry(resolvedCountry);
+              localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
             }
           }, (error) => {
             console.log('Location detection failed:', error);
             // Fallback to a default city
-            setLocation('Toronto');
+            const fallbackCity = 'Toronto';
             const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
-            setCountry(langCountry || 'ca');
+            const resolvedCountry = langCountry || 'ca';
+            setLocation(fallbackCity);
+            setCountry(resolvedCountry);
+            localStorage.setItem(GEO_CITY_KEY, fallbackCity);
+            localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
           });
         } else {
-          setLocation('Toronto');
+          const fallbackCity = 'Toronto';
           const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
-          setCountry(langCountry || 'ca');
+          const resolvedCountry = langCountry || 'ca';
+          setLocation(fallbackCity);
+          setCountry(resolvedCountry);
+          localStorage.setItem(GEO_CITY_KEY, fallbackCity);
+          localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
         }
       } catch (error) {
         console.log('Location detection error:', error);
-        setLocation('Toronto');
+        const fallbackCity = 'Toronto';
         const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
-        setCountry(langCountry || 'us');
+        const resolvedCountry = langCountry || 'us';
+        setLocation(fallbackCity);
+        setCountry(resolvedCountry);
+        localStorage.setItem(GEO_CITY_KEY, fallbackCity);
+        localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
       }
     };
 

@@ -21,6 +21,8 @@ export const useContent = () => {
     limit?: number;
     slug?: string;
     isIndexable?: boolean;
+    country?: string;
+    excludeCountry?: string;
   }): Promise<Content[]> => {
     let query = supabase
       .from('content')
@@ -54,6 +56,12 @@ export const useContent = () => {
     }
     if (typeof filters?.isIndexable === 'boolean') {
       query = query.eq('is_indexable', filters.isIndexable);
+    }
+    if (filters?.country) {
+      query = query.eq('source_country', filters.country.toLowerCase());
+    }
+    if (filters?.excludeCountry) {
+      query = query.neq('source_country', filters.excludeCountry.toLowerCase());
     }
     if (filters?.status) {
       query = query.eq('status', filters.status as any);
