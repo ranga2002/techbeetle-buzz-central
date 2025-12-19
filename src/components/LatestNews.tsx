@@ -1,5 +1,5 @@
 ﻿
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useContent } from '@/hooks/useContent';
 import NewsCard from './NewsCard';
 import NewsModal from './NewsModal';
@@ -23,6 +23,7 @@ const LatestNews = () => {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
+  const [autoSearchTriggered, setAutoSearchTriggered] = useState(false);
   
   const { useContentQuery, useCategoriesQuery } = useContent();
   const { toast } = useToast();
@@ -44,6 +45,16 @@ const LatestNews = () => {
   });
   
   const { data: categories, isError: categoriesError } = useCategoriesQuery();
+  const hasError = isError || categoriesError;
+
+  const sortedContent = useMemo(() => {
+    if (!content) return [];
+    return dedupeNewsItems(content).sort((a: any, b: any) => {
+      const aDate = new Date(a.published_at || "").getTime() || 0;
+      const bDate = new Date(b.published_at || "").getTime() || 0;
+      return bDate - aDate;
+    });
+  }, [content]);
 
   // Auto-detect user's city on component mount
   useEffect(() => {
@@ -110,74 +121,98 @@ const LatestNews = () => {
     detectLocation();
   }, []);
 
-  // Search functionality
-  const performSearch = async () => {
-    if (!location.trim()) {
-      toast({
-        title: "Location Required",
-        description: "Please enter a location to search for news.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSearching(true);
-    
-    try {
-      // Create search query
-      let query = location.trim();
-      if (selectedCategory !== 'All') {
-        // Find the category name instead of slug
-        const categoryName = categories?.find(cat => cat.slug === selectedCategory)?.name || selectedCategory;
-        query = `${categoryName} AND ${location.trim()}`;
-      }
-
-      console.log('Searching with query:', query);
-
-      // Call the news-router edge function (geo + multi-provider)
+  const fetchNewsForQuery = useCallback(
+    async (query: string) => {
       const { data, error } = await supabase.functions.invoke('news-router', {
         headers: { 'x-country': country || 'us' },
-        body: { query }
+        body: { query },
       });
 
-      if (error) {
-        console.error('Search error:', error);
-        toast({
-          title: "Search Failed",
-          description: "Failed to fetch news. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
+      if (error) throw error;
 
-      // Parse the response data
       const articles = data?.items || data?.articles || [];
       const sortedArticles = [...articles].sort((a: any, b: any) => {
         const aDate = new Date(a.published_at || a.publishedAt || "").getTime() || 0;
         const bDate = new Date(b.published_at || b.publishedAt || "").getTime() || 0;
         return bDate - aDate;
       });
-      
-      const dedupedArticles = dedupeNewsItems(sortedArticles);
-      setSearchResults(dedupedArticles);
-      setHasSearched(true);
-      
-      toast({
-        title: "Search Complete",
-        description: `Found ${dedupedArticles.length} articles for "${query}"`,
-      });
 
+      return dedupeNewsItems(sortedArticles);
+    },
+    [country]
+  );
+
+  // Search functionality with graceful fallbacks
+  const performSearch = useCallback(async () => {
+    if (!location.trim()) {
+      toast({
+        title: "Location required",
+        description: "Please enter a city to search for news.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSearching(true);
+    setAutoSearchTriggered(true);
+
+    try {
+      const categoryName =
+        selectedCategory !== 'All'
+          ? categories?.find((cat) => cat.slug === selectedCategory)?.name || selectedCategory
+          : null;
+
+      const primaryQuery = categoryName ? `${categoryName} AND ${location.trim()}` : location.trim();
+      const primaryResults = await fetchNewsForQuery(primaryQuery);
+
+      if (primaryResults.length === 0) {
+        // Try a broader, country-level query before giving up.
+        const fallbackQuery = `${country?.toUpperCase() || 'US'} technology`;
+        const fallbackResults = await fetchNewsForQuery(fallbackQuery);
+
+        if (fallbackResults.length) {
+          setSearchResults(fallbackResults);
+          setHasSearched(true);
+          toast({
+            title: "Showing nearby tech headlines",
+            description: `No matches for "${location.trim()}". Showing top ${country?.toUpperCase() || 'US'} stories instead.`,
+          });
+        } else if (sortedContent.length) {
+          setSearchResults(sortedContent);
+          setHasSearched(true);
+          toast({
+            title: "No local matches yet",
+            description: `Showing the latest TechBeetle headlines while we look for "${location.trim()}".`,
+          });
+        } else {
+          setSearchResults([]);
+          setHasSearched(true);
+          toast({
+            title: "No articles found",
+            description: `Try a nearby city or a broader keyword than "${location.trim()}".`,
+            variant: "destructive",
+          });
+        }
+        return;
+      }
+
+      setSearchResults(primaryResults);
+      setHasSearched(true);
+      toast({
+        title: "Search complete",
+        description: `Found ${primaryResults.length} article${primaryResults.length === 1 ? '' : 's'} for "${primaryQuery}"`,
+      });
     } catch (error) {
       console.error('Search error:', error);
       toast({
-        title: "Search Failed",
+        title: "Search failed",
         description: "An error occurred while searching. Please try again.",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsSearching(false);
     }
-  };
+  }, [categories, country, fetchNewsForQuery, location, selectedCategory, sortedContent, toast]);
 
   const handleCategoryClick = (category: string) => {
     setSelectedCategory(category);
@@ -196,6 +231,15 @@ const LatestNews = () => {
     setIsModalOpen(false);
     setSelectedNewsItem(null);
   };
+
+  // If we have no CMS content, automatically run a search once location is known.
+  useEffect(() => {
+    if (autoSearchTriggered || isSearching) return;
+    if (location && sortedContent.length === 0) {
+      performSearch();
+      setAutoSearchTriggered(true);
+    }
+  }, [autoSearchTriggered, isSearching, location, performSearch, sortedContent.length]);
 
   if (isLoading) {
     return (
@@ -216,16 +260,6 @@ const LatestNews = () => {
       </section>
     );
   }
-
-  const hasError = isError || categoriesError;
-
-  const sortedContent = content
-    ? dedupeNewsItems(content).sort((a: any, b: any) => {
-        const aDate = new Date(a.published_at || "").getTime() || 0;
-        const bDate = new Date(b.published_at || "").getTime() || 0;
-        return bDate - aDate;
-      })
-    : [];
 
   return (
     <section className="py-12">
@@ -300,15 +334,20 @@ const LatestNews = () => {
             <div className="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
               {searchResults.map((item, index) => {
                 const excerpt = item.summary || item.description || item.excerpt || "";
-                const categoryLabel = item.source_name || item.source?.name || 'Tech';
-                const authorLabel = item.author || item.source_name || 'TechBeetle';
+                const categoryLabel = item.source_name || item.source?.name || item.categories?.name || 'Tech';
+                const authorLabel =
+                  item.author ||
+                  item.profiles?.full_name ||
+                  item.profiles?.username ||
+                  item.source_name ||
+                  'TechBeetle';
                 const publishTime = item.publishedAt || item.published_at || 'Recently';
                 const readTime = item.reading_time ? `${item.reading_time} min read` : '5 min read';
-                const image = item.image || item.urlToImage || item.featured_image || '';
+                const image = item.featured_image || item.image || item.urlToImage || '';
 
                 const publishedLabel = formatLocalTime(
                   publishTime,
-                  pickTimeZone(item.source_country)
+                  pickTimeZone(item.source_country || item.categories?.country)
                 );
 
                 return (

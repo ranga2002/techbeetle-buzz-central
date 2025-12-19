@@ -21,23 +21,33 @@ const getDateKey = (item: any) => {
  */
 export const dedupeNewsItems = <T extends { [key: string]: any }>(items: T[]): T[] => {
   const seenSlugs = new Set<string>();
-  const seenTitles = new Set<string>();
+  const seenTitleByDay = new Set<string>();
+  const seenTitleNoDate = new Set<string>();
 
   return items.reduce<T[]>((acc, item) => {
     const slugKey = (item?.slug || item?.id)?.toString();
     const titleKey = normalizeTitle(item?.title);
     const dateKey = getDateKey(item);
-    const compositeTitleKey = titleKey ? `${titleKey}:${dateKey}` : "";
+    const titleDayKey = titleKey && dateKey ? `${titleKey}:${dateKey}` : "";
 
-    if ((slugKey && seenSlugs.has(slugKey)) || (compositeTitleKey && seenTitles.has(compositeTitleKey))) {
+    const isDuplicate =
+      (slugKey && seenSlugs.has(slugKey)) ||
+      (titleDayKey && seenTitleByDay.has(titleDayKey)) ||
+      (!dateKey && titleKey && seenTitleNoDate.has(titleKey));
+
+    if (isDuplicate) {
       return acc;
     }
 
     if (slugKey) seenSlugs.add(slugKey);
-    if (compositeTitleKey) seenTitles.add(compositeTitleKey);
+    if (titleDayKey) {
+      seenTitleByDay.add(titleDayKey);
+    } else if (titleKey) {
+      // If no usable date exists, still dedupe by normalized title.
+      seenTitleNoDate.add(titleKey);
+    }
 
     acc.push(item);
     return acc;
   }, []);
 };
-
