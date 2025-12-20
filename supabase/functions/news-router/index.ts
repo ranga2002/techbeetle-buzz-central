@@ -461,6 +461,31 @@ const getDateKey = (value?: string | null): string => {
   return parsed.toISOString().slice(0, 10);
 };
 
+// Cache city -> country lookups to avoid repeated geocode calls per cold start.
+const cityCountryCache = new Map<string, string>();
+
+const resolveCountryFromCity = async (city: string): Promise<string | null> => {
+  const key = city.toLowerCase().trim();
+  if (!key) return null;
+  if (cityCountryCache.has(key)) return cityCountryCache.get(key) ?? null;
+  try {
+    // Lightweight, keyless geocode endpoint. We only need country_code.
+    const resp = await fetch(
+      `https://geocode.maps.co/search?format=json&limit=1&q=${encodeURIComponent(city)}`,
+    );
+    if (!resp.ok) return null;
+    const json = await resp.json();
+    const first = Array.isArray(json) && json.length ? json[0] : null;
+    const addr = first?.address as Record<string, unknown> | undefined;
+    const cc = addr && typeof addr["country_code"] === "string" ? addr["country_code"] : null;
+    const code = cc && cc.length === 2 ? cc.toLowerCase() : null;
+    if (code) cityCountryCache.set(key, code);
+    return code;
+  } catch (_e) {
+    return null;
+  }
+};
+
 const STOPWORDS = new Set([
   "a",
   "an",
@@ -999,7 +1024,9 @@ serve(async (req: Request) => {
   const city = (url.searchParams.get("city") || "").trim() || null;
   const clientIp = extractClientIp(req);
   const geoCountry = explicitCountry ? null : await geoLookupCountry(clientIp);
-  const country = (explicitCountry || geoCountry || "us").toLowerCase();
+  // If a city is provided, try to derive its country to improve relevance.
+  const cityDerivedCountry = city ? await resolveCountryFromCity(city) : null;
+  const country = (cityDerivedCountry || explicitCountry || geoCountry || "us").toLowerCase();
 
   const cacheKey = query
     ? `news-${country}-${city || "none"}-${query.toLowerCase()}-${localCursor}-${otherCursor}-${limit}`
