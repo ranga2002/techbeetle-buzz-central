@@ -445,19 +445,128 @@ const normalizeUrl = (value?: string | null): string => {
   }
 };
 
+const normalizeTitle = (value?: string | null): string => {
+  if (!value) return "";
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+};
+
+const getDateKey = (value?: string | null): string => {
+  if (!value) return "";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "";
+  return parsed.toISOString().slice(0, 10);
+};
+
+const STOPWORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "the",
+  "of",
+  "in",
+  "on",
+  "for",
+  "to",
+  "with",
+  "at",
+  "by",
+  "from",
+  "is",
+  "are",
+  "was",
+  "were",
+  "be",
+  "as",
+  "that",
+  "this",
+  "it",
+  "its",
+  "about",
+]);
+
+const tokenize = (value?: string | null): string[] => {
+  if (!value) return [];
+  return normalizeTitle(value)
+    .split(" ")
+    .filter((word) => word.length > 2 && !STOPWORDS.has(word));
+};
+
+const jaccard = (aTokens: string[], bTokens: string[]): number => {
+  if (!aTokens.length || !bTokens.length) return 0;
+  const a = new Set(aTokens);
+  const b = new Set(bTokens);
+  let intersection = 0;
+  for (const token of a) {
+    if (b.has(token)) intersection += 1;
+  }
+  const union = a.size + b.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+};
+
 const dedupe = (items: NormalizedArticle[]): NormalizedArticle[] => {
-  const seen = new Set<string>();
+  const seenUrl = new Set<string>();
+  const seenSlug = new Set<string>();
+  const seenTitleDay = new Set<string>();
+  const seenTitleNoDate = new Set<string>();
+
+  const fingerprints: Array<{
+    titleTokens: string[];
+    summaryTokens: string[];
+    dateKey: string;
+  }> = [];
+
   const result: NormalizedArticle[] = [];
+
   for (const item of items) {
     const slugKey = toSlug(item.slug || item.title || "");
     const urlKey = normalizeUrl(item.url || item.id || "");
-    const sourceKey = (item.source_name || "").toLowerCase().trim();
-    const key = urlKey || `${slugKey}|${sourceKey}`;
-    if (!key) continue;
-    if (seen.has(key)) continue;
-    seen.add(key);
+    const titleKey = normalizeTitle(item.title);
+    const dateKey = getDateKey(item.published_at || item.source_published_at || null);
+    const titleDayKey = titleKey && dateKey ? `${titleKey}:${dateKey}` : "";
+
+    if (urlKey && seenUrl.has(urlKey)) continue;
+    if (slugKey && seenSlug.has(slugKey)) continue;
+    if (titleDayKey && seenTitleDay.has(titleDayKey)) continue;
+    if (!dateKey && titleKey && seenTitleNoDate.has(titleKey)) continue;
+
+    // Fuzzy check against already-accepted items to catch AI rephrasing.
+    const titleTokens = tokenize(item.title);
+    const summaryTokens = tokenize(item.summary || item.content_raw || "");
+    let isNearDuplicate = false;
+
+    for (const fp of fingerprints) {
+      const titleSim = jaccard(titleTokens, fp.titleTokens);
+      const summarySim = jaccard(summaryTokens, fp.summaryTokens);
+      const blended = Math.max(titleSim, (titleSim * 2 + summarySim) / 3);
+      // Tight threshold to avoid over-merging; tuned for rephrased headlines.
+      if (blended >= 0.88) {
+        isNearDuplicate = true;
+        break;
+      }
+      // If same day and moderately similar, also treat as duplicate.
+      if (dateKey && dateKey === fp.dateKey && blended >= 0.82) {
+        isNearDuplicate = true;
+        break;
+      }
+    }
+    if (isNearDuplicate) continue;
+
+    if (urlKey) seenUrl.add(urlKey);
+    if (slugKey) seenSlug.add(slugKey);
+    if (titleDayKey) {
+      seenTitleDay.add(titleDayKey);
+    } else if (titleKey) {
+      seenTitleNoDate.add(titleKey);
+    }
+
+    fingerprints.push({ titleTokens, summaryTokens, dateKey });
     result.push(item);
   }
+
   return result;
 };
 
