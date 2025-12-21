@@ -331,7 +331,7 @@ const HowToPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>How-To Guides | TechBeetle</title>
+        <title>How-To Guides | Tech Beetle</title>
         <meta
           name="description"
           content="Build ready-to-run tech checklists by device, platform, and time budget. Curated and dynamic how-to guides for laptops, phones, and audio."
@@ -346,7 +346,7 @@ const HowToPage = () => {
         <meta property="og:url" content="https://techbeetle.org/how-to" />
         <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="How-To Guides | TechBeetle" />
+        <meta name="twitter:title" content="How-To Guides | Tech Beetle" />
         <meta
           name="twitter:description"
           content="Curated and dynamic how-to guides for laptops, phones, and audio."

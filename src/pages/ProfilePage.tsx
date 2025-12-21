@@ -206,8 +206,8 @@ const ProfilePage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 via-slate-950 to-background text-white">
       <Helmet>
-        <title>Profile | TechBeetle</title>
-        <meta name="description" content="Manage your TechBeetle profile and account settings." />
+        <title>Profile | Tech Beetle</title>
+        <meta name="description" content="Manage your Tech Beetle profile and account settings." />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-10 max-w-5xl text-slate-50">
@@ -218,7 +218,7 @@ const ProfilePage = () => {
           </div>
           <h1 className="mt-4 text-4xl font-bold tracking-tight text-white">Your profile, refreshed</h1>
           <p className="mt-2 text-lg text-slate-200">
-            Review your details, update your identity, and keep your TechBeetle presence sharp.
+            Review your details, update your identity, and keep your Tech Beetle presence sharp.
           </p>
         </div>
 
@@ -339,7 +339,7 @@ const ProfilePage = () => {
                       id="bio"
                       value={formState.bio}
                       onChange={(e) => handleInputChange("bio", e.target.value)}
-                      placeholder="Short bio for your TechBeetle profile."
+                      placeholder="Short bio for your Tech Beetle profile."
                       className="bg-slate-900/70 text-slate-50 border-white/10 placeholder:text-slate-500 min-h-[120px]"
                       disabled={loading}
                     />
@@ -420,7 +420,7 @@ const ProfilePage = () => {
 
         <div className="mt-6 grid gap-4 sm:flex sm:items-center sm:justify-between">
           <div className="text-slate-200">
-            Changes sync immediately to your TechBeetle profile. Need help? Visit support or contact an admin.
+            Changes sync immediately to your Tech Beetle profile. Need help? Visit support or contact an admin.
           </div>
           <Button variant="outline" className="border-red-500/50 text-red-100 hover:bg-red-500/10" onClick={() => signOut()}>
             <LogOut className="mr-2 h-4 w-4" />

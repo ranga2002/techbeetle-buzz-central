@@ -140,8 +140,8 @@ const SearchPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Search | TechBeetle</title>
-        <meta name="description" content="Search news, reviews, how-tos, and videos across TechBeetle." />
+        <title>Search | Tech Beetle</title>
+        <meta name="description" content="Search news, reviews, how-tos, and videos across Tech Beetle." />
         <link rel="canonical" href={`https://techbeetle.org/search${query ? `?q=${encodeURIComponent(query)}` : ""}`} />
       </Helmet>
       <Header />

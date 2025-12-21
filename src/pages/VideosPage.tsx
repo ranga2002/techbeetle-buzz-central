@@ -17,8 +17,8 @@ const VideosPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Videos | TechBeetle</title>
-        <meta name="description" content="Watch the latest TechBeetle videos, reviews, tutorials, and explainers." />
+        <title>Videos | Tech Beetle</title>
+        <meta name="description" content="Watch the latest Tech Beetle videos, reviews, tutorials, and explainers." />
         <link rel="canonical" href="https://techbeetle.org/videos" />
       </Helmet>
       <Header />

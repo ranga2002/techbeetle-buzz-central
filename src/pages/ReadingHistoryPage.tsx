@@ -21,7 +21,7 @@ const ReadingHistoryPage = () => {
     return (
       <div className="min-h-screen bg-background">
         <Helmet>
-          <title>Reading History | TechBeetle</title>
+          <title>Reading History | Tech Beetle</title>
           <meta name="description" content="Sign in to see your reading history and recommendations." />
         </Helmet>
         <Header />
@@ -44,8 +44,8 @@ const ReadingHistoryPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Reading History | TechBeetle</title>
-        <meta name="description" content="Track your reading history and get personalized recommendations on TechBeetle." />
+        <title>Reading History | Tech Beetle</title>
+        <meta name="description" content="Track your reading history and get personalized recommendations on Tech Beetle." />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">

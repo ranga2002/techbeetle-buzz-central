@@ -255,7 +255,7 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Weekly Top Articles - TechBeetle</title>
+        <title>Weekly Top Articles - Tech Beetle</title>
       </head>
       <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f3f4f6;">
@@ -265,7 +265,7 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
                 <tr>
                   <td style="text-align: center; padding: 0 0 32px 0;">
                     <h1 style="margin: 0; font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                      &#128030; TechBeetle
+                      &#128030; Tech Beetle
                     </h1>
                     <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 18px; font-weight: 500;">
                       Your Weekly Tech Digest

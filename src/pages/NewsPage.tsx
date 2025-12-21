@@ -348,7 +348,7 @@ const NewsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
-        <title>Latest Tech News | TechBeetle</title>
+        <title>Latest Tech News | Tech Beetle</title>
         <meta
           name="description"
           content="Live, region-aware tech headlines on gadgets, AI, laptops, and launches. Updated continuously."

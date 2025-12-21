@@ -100,7 +100,7 @@ const ReviewDetailPage = () => {
     };
   }, [slug, navigate, toast]);
 
-  const pageTitle = review ? `${review.title} | TechBeetle Reviews` : "Review | TechBeetle";
+  const pageTitle = review ? `${review.title} | Tech Beetle Reviews` : "Review | Tech Beetle";
   const publishTime = review?.published_at
     ? formatLocalTime(review.published_at, pickTimeZone(review.source_country || review.categories?.country))
     : "";

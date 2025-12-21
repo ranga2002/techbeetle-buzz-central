@@ -308,10 +308,10 @@ const enhanceArticleWithAI = async (
   }
 
   const systemPrompt =
-    "You are a TechBeetle editor. Write original explainer articles, not paraphrases. " +
+    "You are a Tech Beetle editor. Write original explainer articles, not paraphrases. " +
     "Use the provided content_raw/summary for facts; do NOT invent details. " +
     "Body: 8-12 sentences (~550-600 words) that cover the key facts, context, and implications. " +
-    "Takeaways: 3–5 concise bullets. Tone: concise, neutral, helpful. " +
+    "Takeaways: 3-5 concise bullets. Tone: concise, neutral, helpful. " +
     "Return ONLY valid JSON for the fields described.";
 
   const userPayload = {

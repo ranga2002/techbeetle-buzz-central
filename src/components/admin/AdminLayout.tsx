@@ -258,7 +258,7 @@ const AdminLayout = () => {
   return (
     <div className="min-h-screen bg-background text-foreground flex">
       <Helmet>
-        <title>Admin | TechBeetle</title>
+        <title>Admin | Tech Beetle</title>
         <meta name="robots" content="noindex,nofollow" />
       </Helmet>
       <div

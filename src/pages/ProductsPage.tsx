@@ -101,21 +101,21 @@ const ProductsPage = () => {
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-background">
       <Helmet>
-        <title>Products | TechBeetle</title>
+        <title>Products | Tech Beetle</title>
         <meta
           name="description"
           content="Browse curated tech products with ratings, prices, and purchase links. Filter by category, rating, and budget."
         />
         <link rel="canonical" href="https://techbeetle.org/products" />
         <meta property="og:type" content="website" />
-        <meta property="og:title" content="Products | TechBeetle" />
+        <meta property="og:title" content="Products | Tech Beetle" />
         <meta
           property="og:description"
           content="Curated gadget picks with reviews, ratings, and purchase links."
         />
         <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Products | TechBeetle" />
+        <meta name="twitter:title" content="Products | Tech Beetle" />
         <meta
           name="twitter:description"
           content="Curated gadget picks with reviews, ratings, and purchase links."

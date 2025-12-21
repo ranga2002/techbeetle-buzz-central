@@ -50,7 +50,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
       <Helmet>
-        <title>TechBeetle | Live Tech Briefings, Reviews, How-Tos & Picks</title>
+        <title>Tech Beetle | Live Tech Briefings, Reviews, How-Tos & Picks</title>
         <meta
           name="description"
           content="Stay ahead with live tech news, tested reviews, guided how-tos, comparisons, and curated gadget picks tailored to you."
@@ -65,7 +65,7 @@ const Index = () => {
         <meta property="og:url" content="https://techbeetle.org/" />
         <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="TechBeetle | Live Tech Briefings, Reviews, How-Tos & Picks" />
+        <meta name="twitter:title" content="Tech Beetle | Live Tech Briefings, Reviews, How-Tos & Picks" />
         <meta
           name="twitter:description"
           content="Live tech headlines, trusted reviews, guided how-tos, and curated gadget picks in one place."
@@ -188,7 +188,7 @@ const Index = () => {
                     Personalize
                   </p>
                   <h3 className="text-2xl font-semibold mb-2">
-                    Tune TechBeetle to you
+                    Tune Tech Beetle to you
                   </h3>
                   <p className="text-muted-foreground text-sm mb-4">
                     Follow categories, set newsletter cadence, and keep your feed sharp.

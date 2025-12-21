@@ -125,7 +125,7 @@ const ReviewsPage = () => {
     return list;
   }, [searched, sortBy, ratingsMap]);
 
-  const pageTitle = "Tech Reviews | TechBeetle";
+  const pageTitle = "Tech Reviews | Tech Beetle";
 
   const averageRating =
     searched.length > 0
