@@ -19,8 +19,8 @@ export const ArticleJsonLd: React.FC<ArticleProps> = ({
   image,
   datePublished,
   dateModified,
-  authorName = 'TechBeetle',
-  siteName = 'TechBeetle',
+  authorName = 'Tech Beetle',
+  siteName = 'Tech Beetle',
 }) => {
   const jsonLd = {
     '@context': 'https://schema.org',
@@ -107,7 +107,7 @@ export const ReviewJsonLd: React.FC<ReviewProps> = ({
   url,
   image,
   description,
-  authorName = 'TechBeetle',
+  authorName = 'Tech Beetle',
   ratingValue,
   bestRating = 5,
   worstRating = 1,

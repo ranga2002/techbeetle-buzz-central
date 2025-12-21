@@ -1,175 +1,240 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { Resend } from 'npm:resend@2.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
 interface NewsletterContent {
   id: string;
-  title: string;
-  excerpt: string;
-  featured_image: string;
-  slug: string;
-  published_at: string;
-  views_count: number;
-  likes_count: number;
-  reading_time: number;
-  categories?: {
-    name: string;
-    color: string;
-  };
+  title: string | null;
+  excerpt: string | null;
+  featured_image: string | null;
+  slug: string | null;
+  published_at: string | null;
+  views_count: number | null;
+  likes_count: number | null;
+  reading_time: number | null;
+  categories?: { name: string; color: string } | { name: string; color: string }[];
 }
+
+type Subscriber = { email: string };
+
+const requiredEnv = (key: string): string => {
+  const value = Deno.env.get(key);
+  if (!value) {
+    throw new Error(`${key} is not set`);
+  }
+  return value;
+};
+
+const SUPABASE_URL = requiredEnv('SUPABASE_URL');
+const SUPABASE_SERVICE_ROLE_KEY = requiredEnv('SUPABASE_SERVICE_ROLE_KEY');
+const RESEND_API_KEY = requiredEnv('RESEND_API_KEY');
+
+const SITE_URL = (Deno.env.get('SITE_URL') ?? Deno.env.get('PUBLIC_SITE_URL') ?? SUPABASE_URL).replace(/\/$/, '');
+const NEWSLETTER_FROM = Deno.env.get('NEWSLETTER_FROM') ?? 'Tech Beetle <onboarding@resend.dev>';
+const NEWSLETTER_SUBJECT = Deno.env.get('NEWSLETTER_SUBJECT') ?? 'Weekly Top Tech Articles - Tech Beetle';
+const LIST_UNSUBSCRIBE_URL = SITE_URL ? `${SITE_URL}/preferences` : '';
+
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+const resend = new Resend(RESEND_API_KEY);
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+  if (req.method !== 'POST') {
+    return new Response(
+      JSON.stringify({ message: 'Method not allowed' }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 405 },
     );
+  }
 
-    const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
-
-    // Get top articles from the past week
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-
-    const { data: topArticles, error: articlesError } = await supabaseClient
-      .from('content')
-      .select(`
-        id,
-        title,
-        excerpt,
-        featured_image,
-        slug,
-        published_at,
-        views_count,
-        likes_count,
-        reading_time,
-        categories (name, color)
-      `)
-      .eq('status', 'published')
-      .gte('published_at', oneWeekAgo.toISOString())
-      .order('views_count', { ascending: false })
-      .limit(5);
-
-    if (articlesError) throw articlesError;
-
-    if (!topArticles || topArticles.length === 0) {
+  try {
+    const topArticles = await fetchTopArticles();
+    if (!topArticles.length) {
       console.log('No articles found for this week');
       return new Response(
         JSON.stringify({ message: 'No articles to send' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
     }
 
-    // Get active newsletter subscribers
-    const { data: subscribers, error: subscribersError } = await supabaseClient
-      .from('newsletter_subscriptions')
-      .select('email')
-      .eq('is_active', true);
-
-    if (subscribersError) throw subscribersError;
-
-    if (!subscribers || subscribers.length === 0) {
+    const subscribers = await fetchSubscribers();
+    if (!subscribers.length) {
       console.log('No active subscribers');
       return new Response(
         JSON.stringify({ message: 'No active subscribers' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       );
     }
 
     console.log(`Sending newsletter to ${subscribers.length} subscribers with ${topArticles.length} articles`);
 
-    // Send emails to all subscribers
-    const emailPromises = subscribers.map(subscriber => 
-      resend.emails.send({
-        from: 'TechBeetle <onboarding@resend.dev>',
-        to: subscriber.email,
-        subject: 'Weekly Top Tech Articles - TechBeetle',
-        html: generateNewsletterHTML(topArticles)
-      })
-    );
-
-    await Promise.all(emailPromises);
-
-    // Save to newsletter queue
-    const { error: queueError } = await supabaseClient
-      .from('newsletter_queue')
-      .insert({
-        sent_at: new Date().toISOString(),
-        recipient_count: subscribers.length,
-        status: 'sent',
-        content_ids: topArticles.map(a => a.id)
-      });
-
-    if (queueError) throw queueError;
+    const html = generateNewsletterHTML(topArticles);
+    await sendEmails(subscribers, html);
+    await recordQueue(topArticles, subscribers.length);
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         success: true,
         message: `Newsletter sent to ${subscribers.length} subscribers`,
-        articles_count: topArticles.length
+        articles_count: topArticles.length,
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
     );
-
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error sending newsletter:', error);
+    const message = error instanceof Error ? error.message : 'Unknown error';
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+      JSON.stringify({ error: message }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 },
     );
   }
 });
 
-// Helper function to generate beautiful HTML email
+async function fetchTopArticles(): Promise<NewsletterContent[]> {
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const { data, error } = await supabaseClient
+    .from('content')
+    .select(`
+      id,
+      title,
+      excerpt,
+      featured_image,
+      slug,
+      published_at,
+      views_count,
+      likes_count,
+      reading_time,
+      categories (name, color)
+    `)
+    .eq('status', 'published')
+    .gte('published_at', oneWeekAgo.toISOString())
+    .order('views_count', { ascending: false })
+    .limit(5);
+
+  if (error) {
+    throw new Error(`Failed to fetch articles: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
+async function fetchSubscribers(): Promise<Subscriber[]> {
+  const { data, error } = await supabaseClient
+    .from('newsletter_subscriptions')
+    .select('email')
+    .eq('is_active', true);
+
+  if (error) {
+    throw new Error(`Failed to fetch subscribers: ${error.message}`);
+  }
+
+  return (data ?? []).filter((subscriber): subscriber is Subscriber => Boolean(subscriber.email));
+}
+
+async function sendEmails(subscribers: Subscriber[], html: string): Promise<void> {
+  const listUnsubscribeHeader = LIST_UNSUBSCRIBE_URL ? `<${LIST_UNSUBSCRIBE_URL}>` : '';
+
+  const sendTasks = subscribers.map(async ({ email }) => {
+    const { error } = await resend.emails.send({
+      from: NEWSLETTER_FROM,
+      to: email,
+      subject: NEWSLETTER_SUBJECT,
+      html,
+      headers: listUnsubscribeHeader ? { 'List-Unsubscribe': listUnsubscribeHeader } : undefined,
+    });
+
+    if (error) {
+      throw new Error(`Failed to send to ${email}: ${error.message ?? error}`);
+    }
+  });
+
+  const results = await Promise.allSettled(sendTasks);
+  const failures = results.filter((result): result is PromiseRejectedResult => result.status === 'rejected');
+
+  if (failures.length) {
+    const sample = failures[0]?.reason?.message ?? failures[0]?.reason ?? 'Unknown send failure';
+    throw new Error(`Failed to send ${failures.length} of ${subscribers.length} emails. Example: ${sample}`);
+  }
+}
+
+async function recordQueue(articles: NewsletterContent[], recipientCount: number): Promise<void> {
+  const { error } = await supabaseClient.from('newsletter_queue').insert({
+    sent_at: new Date().toISOString(),
+    recipient_count: recipientCount,
+    status: 'sent',
+    content_ids: articles.map((article) => article.id),
+  });
+
+  if (error) {
+    throw new Error(`Failed to record newsletter queue: ${error.message}`);
+  }
+}
+
 function generateNewsletterHTML(articles: NewsletterContent[]): string {
-  const articlesHTML = articles.map((article, index) => `
+  const articlesHTML = articles
+    .map((article) => {
+      const category = normalizeCategory(article.categories);
+      const title = article.title ?? 'Untitled';
+      const excerpt = article.excerpt ?? '';
+      const slug = article.slug ?? article.id;
+      const articleUrl = buildArticleUrl(slug);
+      const imageBlock = article.featured_image
+        ? `
+              <img src="${escapeAttribute(article.featured_image)}" alt="${escapeAttribute(title)}" style="width: 100%; height: 250px; object-fit: cover; display: block;" />
+            `
+        : '';
+
+      const categoryBlock = category
+        ? `
+                    <div style="display: inline-block; padding: 4px 12px; background-color: ${escapeAttribute(category.color)}; color: white; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 12px;">
+                      ${escapeHtml(category.name)}
+                    </div>
+          `
+        : '';
+
+      return `
     <tr>
       <td style="padding: 0 0 30px 0;">
         <table width="100%" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-              ${article.featured_image ? `
-                <img src="${article.featured_image}" alt="${article.title}" style="width: 100%; height: 250px; object-fit: cover; display: block;" />
-              ` : ''}
+              ${imageBlock}
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td style="padding: 24px;">
-                    ${article.categories ? `
-                      <div style="display: inline-block; padding: 4px 12px; background-color: ${article.categories.color}; color: white; border-radius: 20px; font-size: 12px; font-weight: 600; margin-bottom: 12px;">
-                        ${article.categories.name}
-                      </div>
-                    ` : ''}
+                    ${categoryBlock}
                     <h2 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #111827; line-height: 1.3;">
-                      ${article.title}
+                      ${escapeHtml(title)}
                     </h2>
                     <p style="margin: 0 0 16px 0; color: #6b7280; font-size: 15px; line-height: 1.6;">
-                      ${article.excerpt}
+                      ${escapeHtml(excerpt)}
                     </p>
                     <table cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td style="padding-right: 16px;">
-                          <span style="color: #9ca3af; font-size: 13px;">≡ƒôû ${article.reading_time || 5} min read</span>
+                          <span style="color: #9ca3af; font-size: 13px;">&#9201; ${article.reading_time ?? 5} min read</span>
                         </td>
                         <td style="padding-right: 16px;">
-                          <span style="color: #9ca3af; font-size: 13px;">≡ƒæü∩╕Å ${article.views_count || 0} views</span>
+                          <span style="color: #9ca3af; font-size: 13px;">&#128065; ${article.views_count ?? 0} views</span>
                         </td>
                         <td>
-                          <span style="color: #9ca3af; font-size: 13px;">Γ¥ñ∩╕Å ${article.likes_count || 0} likes</span>
+                          <span style="color: #9ca3af; font-size: 13px;">&#10084; ${article.likes_count ?? 0} likes</span>
                         </td>
                       </tr>
                     </table>
                     <div style="margin-top: 20px;">
-                      <a href="https://mnlgianmqlcndjyovlxj.supabase.co/news/${article.slug}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
-                        Read Article ΓåÆ
+                      <a href="${articleUrl}" style="display: inline-block; padding: 12px 28px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; text-decoration: none; border-radius: 8px; font-size: 15px; font-weight: 600; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);">
+                        Read Article &rarr;
                       </a>
                     </div>
                   </td>
@@ -180,7 +245,9 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
         </table>
       </td>
     </tr>
-  `).join('');
+    `;
+    })
+    .join('');
 
   return `
     <!DOCTYPE html>
@@ -195,11 +262,10 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
           <tr>
             <td align="center" style="padding: 40px 20px;">
               <table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width: 600px;">
-                <!-- Header -->
                 <tr>
                   <td style="text-align: center; padding: 0 0 32px 0;">
                     <h1 style="margin: 0; font-size: 36px; font-weight: 800; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
-                      ≡ƒÉ₧ TechBeetle
+                      &#128030; TechBeetle
                     </h1>
                     <p style="margin: 8px 0 0 0; color: #6b7280; font-size: 18px; font-weight: 500;">
                       Your Weekly Tech Digest
@@ -209,23 +275,19 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
                     </p>
                   </td>
                 </tr>
-                
-                <!-- Articles -->
                 ${articlesHTML}
-                
-                <!-- Footer -->
                 <tr>
                   <td style="text-align: center; padding: 32px 0 0 0; border-top: 2px solid #e5e7eb;">
                     <p style="margin: 0 0 12px 0; color: #6b7280; font-size: 14px; line-height: 1.6;">
-                      You're receiving this because you subscribed to TechBeetle newsletter.
+                      You are receiving this because you subscribed to the TechBeetle newsletter.
                     </p>
                     <p style="margin: 0; color: #9ca3af; font-size: 13px;">
-                      <a href="https://mnlgianmqlcndjyovlxj.supabase.co/preferences" style="color: #667eea; text-decoration: none; font-weight: 500;">Manage preferences</a>
-                      <span style="margin: 0 8px; color: #d1d5db;">ΓÇó</span>
-                      <a href="https://mnlgianmqlcndjyovlxj.supabase.co/preferences" style="color: #667eea; text-decoration: none; font-weight: 500;">Unsubscribe</a>
+                      <a href="${LIST_UNSUBSCRIBE_URL || '#'}" style="color: #667eea; text-decoration: none; font-weight: 500;">Manage preferences</a>
+                      <span style="margin: 0 8px; color: #d1d5db;">&bull;</span>
+                      <a href="${LIST_UNSUBSCRIBE_URL || '#'}" style="color: #667eea; text-decoration: none; font-weight: 500;">Unsubscribe</a>
                     </p>
                     <p style="margin: 16px 0 0 0; color: #9ca3af; font-size: 12px;">
-                      ┬⌐ ${new Date().getFullYear()} TechBeetle. All rights reserved.
+                      &copy; ${new Date().getFullYear()} TechBeetle. All rights reserved.
                     </p>
                   </td>
                 </tr>
@@ -236,4 +298,38 @@ function generateNewsletterHTML(articles: NewsletterContent[]): string {
       </body>
     </html>
   `;
+}
+
+function normalizeCategory(category: NewsletterContent['categories']): { name: string; color: string } | null {
+  if (!category) return null;
+  if (Array.isArray(category)) {
+    return category[0] ?? null;
+  }
+  return category;
+}
+
+function buildArticleUrl(slug: string): string {
+  const encodedSlug = encodeURIComponent(slug);
+  return SITE_URL ? `${SITE_URL}/news/${encodedSlug}` : `/news/${encodedSlug}`;
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"]/g, (char) => {
+    switch (char) {
+      case '&':
+        return '&amp;';
+      case '<':
+        return '&lt;';
+      case '>':
+        return '&gt;';
+      case '"':
+        return '&quot;';
+      default:
+        return char;
+    }
+  });
+}
+
+function escapeAttribute(value: string): string {
+  return escapeHtml(value).replace(/'/g, '&#39;');
 }

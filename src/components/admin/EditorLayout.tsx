@@ -125,7 +125,7 @@ const EditorLayout = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex">
       <Helmet>
-        <title>Editor | TechBeetle</title>
+        <title>Editor | Tech Beetle</title>
         <meta name="robots" content="noindex,nofollow" />
       </Helmet>
 

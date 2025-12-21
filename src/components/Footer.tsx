@@ -15,7 +15,7 @@ const Footer = () => {
                 <span className="text-primary-foreground font-bold text-sm">TB</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-xl font-bold">TechBeetle</span>
+                <span className="text-xl font-bold">Tech Beetle</span>
                 <span className="text-xs uppercase tracking-[0.18em] text-muted-foreground">
                   Signal-first tech briefings
                 </span>
@@ -79,7 +79,7 @@ const Footer = () => {
 
         <div className="border-t mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-muted-foreground text-sm">
-            © 2024 TechBeetle. All rights reserved.
+            © 2024 Tech Beetle. All rights reserved.
           </p>
           <div className="flex space-x-6">
             <Link to="/privacy-policy" className="text-muted-foreground hover:text-primary text-sm transition-colors">

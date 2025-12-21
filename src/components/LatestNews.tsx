@@ -182,7 +182,7 @@ const LatestNews = () => {
           setHasSearched(true);
           toast({
             title: "No local matches yet",
-            description: `Showing the latest TechBeetle headlines while we look for "${location.trim()}".`,
+            description: `Showing the latest Tech Beetle headlines while we look for "${location.trim()}".`,
           });
         } else {
           setSearchResults([]);
