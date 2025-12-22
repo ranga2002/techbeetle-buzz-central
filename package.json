@@ -9,8 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:sitemap:news": "node --loader ts-node/esm scripts/generate-news-sitemap.ts",
-    "generate:sitemap:main": "node --loader ts-node/esm scripts/generate-main-sitemap.ts"
+    "generate:sitemap:news": "node scripts/generate-news-sitemap.mjs",
+    "generate:sitemap:main": "node scripts/generate-main-sitemap.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
