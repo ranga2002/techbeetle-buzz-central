@@ -3,6 +3,27 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!-- Google Consent Mode default (deny until user choice) -->
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function(){dataLayer.push(arguments);}
+      window.gtag('consent', 'default', {
+        ad_storage: 'denied',
+        analytics_storage: 'denied',
+        ad_user_data: 'denied',
+        ad_personalization: 'denied',
+        wait_for_update: 500
+      });
+      window.gtagConsentUpdate = function(granted = true) {
+        const state = granted ? 'granted' : 'denied';
+        window.gtag('consent', 'update', {
+          ad_storage: state,
+          analytics_storage: state,
+          ad_user_data: state,
+          ad_personalization: state
+        });
+      };
+    </script>
     <!-- Google Tag Manager -->
     <script>
       (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -16,9 +37,9 @@
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-X6C5VTF6EH"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-X6C5VTF6EH');
+      window.gtag = window.gtag || function(){dataLayer.push(arguments);}
+      window.gtag('js', new Date());
+      window.gtag('config', 'G-X6C5VTF6EH');
     </script>
     <link rel="icon" type="image/png" href="/assets/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
