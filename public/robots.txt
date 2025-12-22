@@ -3,4 +3,4 @@ Disallow: /admin/
 Disallow: /auth
 
 Sitemap: https://techbeetle.org/sitemap.xml
-Sitemap: https://techbeetle.org/sitemap-news.xml
+Sitemap: https://techbeetle.org/news-sitemap.xml

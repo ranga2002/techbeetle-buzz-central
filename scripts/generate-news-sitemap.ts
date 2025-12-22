@@ -55,7 +55,7 @@ async function generate() {
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls}\n</urlset>\n`;
 
-  const outPath = path.join(process.cwd(), 'public', 'sitemap-news.xml');
+  const outPath = path.join(process.cwd(), 'public', 'news-sitemap.xml');
   await fs.writeFile(outPath, xml, 'utf8');
   console.log(`Wrote ${outPath} with ${data?.length ?? 0} URLs`);
 }
