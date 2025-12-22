@@ -339,7 +339,7 @@ const enhanceArticleWithAI = async (
           {
             role: "user",
             content:
-              "Create a TechBeetle explainer based on this source. Respond with JSON only.\n" +
+              "Create a Tech Beetle explainer based on this source. Respond with JSON only.\n" +
               JSON.stringify(userPayload, null, 2),
           },
         ],
