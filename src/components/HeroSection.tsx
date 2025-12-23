@@ -8,7 +8,23 @@ import { Link } from 'react-router-dom';
 const HeroSection = () => {
   const { useFeaturedContentQuery } = useContent();
   const { data: featuredContent } = useFeaturedContentQuery();
-  const mainStory = featuredContent?.[0];
+  const [featuredIndex, setFeaturedIndex] = React.useState(0);
+
+  // Rotate through featured stories every 15 seconds so the hero stays fresh.
+  React.useEffect(() => {
+    if (!featuredContent?.length) return;
+    const interval = setInterval(() => {
+      setFeaturedIndex((prev) => (prev + 1) % featuredContent.length);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [featuredContent]);
+
+  // Reset the index whenever the featured list changes.
+  React.useEffect(() => {
+    setFeaturedIndex(0);
+  }, [featuredContent?.length]);
+
+  const mainStory = featuredContent?.[featuredIndex];
   const signal = [
     { label: "Daily drops", value: "24", footnote: "New pieces this week" },
     { label: "Reviews lab", value: "4.6", footnote: "Avg rating across latest gear" },
