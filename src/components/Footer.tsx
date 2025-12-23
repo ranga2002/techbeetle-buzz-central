@@ -88,6 +88,13 @@ const Footer = () => {
             <Link to="/terms" className="text-muted-foreground hover:text-primary text-sm transition-colors">
               Terms of Service
             </Link>
+            <button
+              type="button"
+              className="text-muted-foreground hover:text-primary text-sm transition-colors"
+              onClick={() => window.gtagConsentOpen?.()}
+            >
+              Manage consent
+            </button>
             <Link to="/contact" className="text-muted-foreground hover:text-primary text-sm transition-colors flex items-center gap-1">
               Contact <ArrowUpRight className="w-3 h-3" />
             </Link>

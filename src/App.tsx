@@ -44,6 +44,7 @@ import { GlobalSeo } from "./components/GlobalSeo";
 import ProfilePage from "./pages/ProfilePage";
 import EditorLayout from "./components/admin/EditorLayout";
 import ContactPage from "./pages/ContactPage";
+import ConsentBanner from "./components/ConsentBanner";
 
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ const App = () => (
       <HelmetProvider>
         <TooltipProvider>
           <GlobalSeo />
+          <ConsentBanner />
           <Toaster />
           <Sonner />
           <BrowserRouter>

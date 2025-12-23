@@ -3,7 +3,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <!-- Google Consent Mode default (deny until user choice) -->
+    <!-- Google Consent Mode default (deny until user choice; region gated below) -->
     <script>
       window.dataLayer = window.dataLayer || [];
       window.gtag = window.gtag || function(){dataLayer.push(arguments);}
@@ -14,14 +14,33 @@
         ad_personalization: 'denied',
         wait_for_update: 500
       });
-      window.gtagConsentUpdate = function(granted = true) {
-        const state = granted ? 'granted' : 'denied';
+      window.gtagConsentUpdate = function(choice = true) {
+        // choice: boolean to grant/deny all, or object with specific grants
+        if (typeof choice === 'object') {
+          window.gtag('consent', 'update', choice);
+          return;
+        }
+        const state = choice ? 'granted' : 'denied';
         window.gtag('consent', 'update', {
           ad_storage: state,
           analytics_storage: state,
           ad_user_data: state,
           ad_personalization: state
         });
+      };
+      // Region-aware easing: if likely not EEA/UK, grant by default to preserve measurement
+      (function() {
+        const eea = ['AT','BE','BG','HR','CY','CZ','DK','EE','FI','FR','DE','GR','HU','IS','IE','IT','LV','LI','LT','LU','MT','NL','NO','PL','PT','RO','SK','SI','ES','SE','GB'];
+        const navCountry = (navigator.language || '').split('-')[1] || '';
+        // If your host provides a country hint, add it here (e.g., window.NETLIFY.country)
+        const hinted = (window.NETLIFY && window.NETLIFY.country) || navCountry;
+        const inEea = eea.includes((hinted || '').toUpperCase());
+        if (!inEea) {
+          window.gtagConsentUpdate(true);
+        }
+      })();
+      window.gtagConsentOpen = function() {
+        window.dispatchEvent(new Event('tb-consent-open'));
       };
     </script>
     <!-- Google Tag Manager -->
