@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ShoppingCart, ExternalLink, ArrowLeft } from "lucide-react";
+import { ProductJsonLd } from "@/components/seo/StructuredData";
 
 type PurchaseLink = {
   retailer_name: string | null;
@@ -100,16 +101,31 @@ const ProductDetailPage = () => {
   const specsEntries = product?.inventory?.specs
     ? Object.entries(product.inventory.specs).filter(([_, v]) => Boolean(v))
     : [];
+  const siteUrl = import.meta.env.VITE_SITE_URL || window.location.origin;
+  const canonical = product?.slug ? `${siteUrl.replace(/\/+$/, "")}/products/${product.slug}` : undefined;
+  const metaDescription =
+    product?.excerpt ||
+    (product?.content ? product.content.slice(0, 155) : undefined) ||
+    "Explore product details, specs, and buying options on Tech Beetle.";
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>{product?.title || "Product"}</title>
-        {product?.excerpt && (
-          <meta name="description" content={product.excerpt} />
+        {metaDescription && <meta name="description" content={metaDescription} />}
+        {canonical && <link rel="canonical" href={canonical} />}
+        <meta property="og:type" content="product" />
+        <meta property="og:title" content={product?.title || "Product"} />
+        {metaDescription && <meta property="og:description" content={metaDescription} />}
+        {canonical && <meta property="og:url" content={canonical} />}
+        {(heroImage || product?.featured_image) && (
+          <meta property="og:image" content={heroImage || product?.featured_image || ""} />
         )}
-        {product?.featured_image && (
-          <meta property="og:image" content={product.featured_image} />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content={product?.title || "Product"} />
+        {metaDescription && <meta name="twitter:description" content={metaDescription} />}
+        {(heroImage || product?.featured_image) && (
+          <meta name="twitter:image" content={heroImage || product?.featured_image || ""} />
         )}
       </Helmet>
       <Header />
@@ -130,6 +146,18 @@ const ProductDetailPage = () => {
         )}
         {!loading && !error && product && (
           <article className="space-y-8">
+            {product && canonical && (
+              <ProductJsonLd
+                name={product.title}
+                description={metaDescription || undefined}
+                url={canonical}
+                image={heroImage}
+                brand={product.categories?.name}
+                price={primaryLink?.price ?? product.inventory?.price ?? undefined}
+                currency={primaryLink?.currency || "USD"}
+                availability="https://schema.org/InStock"
+              />
+            )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <ArrowLeft className="w-4 h-4" />
               <Link to="/products" className="hover:text-primary transition-colors">Back to products</Link>

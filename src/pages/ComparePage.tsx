@@ -15,6 +15,14 @@ const ComparePage = () => {
         <title>Compare Products | TechBeetle</title>
         <meta name="description" content="Line up tech products side by side. Compare specs, features, and prices." />
         <link rel="canonical" href="https://techbeetle.org/compare" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Compare Products | TechBeetle" />
+        <meta property="og:description" content="Line up tech products side by side. Compare specs, features, and prices." />
+        <meta property="og:image" content="https://techbeetle.org/assets/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Compare Products | TechBeetle" />
+        <meta name="twitter:description" content="Line up tech products side by side. Compare specs, features, and prices." />
+        <meta name="twitter:image" content="https://techbeetle.org/assets/logo.png" />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">

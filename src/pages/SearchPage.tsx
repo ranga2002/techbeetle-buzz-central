@@ -142,6 +142,7 @@ const SearchPage = () => {
       <Helmet>
         <title>Search | Tech Beetle</title>
         <meta name="description" content="Search news, reviews, how-tos, and videos across Tech Beetle." />
+        <meta name="robots" content="noindex,follow" />
         <link rel="canonical" href={`https://techbeetle.org/search${query ? `?q=${encodeURIComponent(query)}` : ""}`} />
       </Helmet>
       <Header />

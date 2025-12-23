@@ -196,6 +196,7 @@ const PreferencesPage = () => {
       <Helmet>
         <title>Preferences | TechBeetle</title>
         <meta name="description" content="Tune your TechBeetle notifications, followed categories, and newsletter preferences." />
+        <meta name="robots" content="noindex,follow" />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8 max-w-4xl">

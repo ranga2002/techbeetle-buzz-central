@@ -25,6 +25,7 @@ const BookmarksPage = () => {
         <Helmet>
           <title>Bookmarks | Tech Beetle</title>
           <meta name="description" content="Sign in to view and manage your saved articles on Tech Beetle." />
+          <meta name="robots" content="noindex,follow" />
         </Helmet>
         <Header />
         <main className="container mx-auto px-4 py-8">
@@ -54,6 +55,7 @@ const BookmarksPage = () => {
       <Helmet>
         <title>Bookmarks | Tech Beetle</title>
         <meta name="description" content="View and manage the stories you've saved on Tech Beetle." />
+        <meta name="robots" content="noindex,follow" />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">

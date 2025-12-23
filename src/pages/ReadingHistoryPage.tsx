@@ -23,6 +23,7 @@ const ReadingHistoryPage = () => {
         <Helmet>
           <title>Reading History | Tech Beetle</title>
           <meta name="description" content="Sign in to see your reading history and recommendations." />
+          <meta name="robots" content="noindex,follow" />
         </Helmet>
         <Header />
         <main className="container mx-auto px-4 py-8 text-center space-y-4">
@@ -46,6 +47,7 @@ const ReadingHistoryPage = () => {
       <Helmet>
         <title>Reading History | Tech Beetle</title>
         <meta name="description" content="Track your reading history and get personalized recommendations on Tech Beetle." />
+        <meta name="robots" content="noindex,follow" />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">

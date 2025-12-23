@@ -208,6 +208,7 @@ const ProfilePage = () => {
       <Helmet>
         <title>Profile | Tech Beetle</title>
         <meta name="description" content="Manage your Tech Beetle profile and account settings." />
+        <meta name="robots" content="noindex,follow" />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-10 max-w-5xl text-slate-50">

@@ -20,6 +20,14 @@ const VideosPage = () => {
         <title>Videos | Tech Beetle</title>
         <meta name="description" content="Watch the latest Tech Beetle videos, reviews, tutorials, and explainers." />
         <link rel="canonical" href="https://techbeetle.org/videos" />
+        <meta property="og:type" content="website" />
+        <meta property="og:title" content="Videos | Tech Beetle" />
+        <meta property="og:description" content="Watch the latest Tech Beetle videos, reviews, tutorials, and explainers." />
+        <meta property="og:image" content="https://techbeetle.org/assets/logo.png" />
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="Videos | Tech Beetle" />
+        <meta name="twitter:description" content="Watch the latest Tech Beetle videos, reviews, tutorials, and explainers." />
+        <meta name="twitter:image" content="https://techbeetle.org/assets/logo.png" />
       </Helmet>
       <Header />
       <main className="container mx-auto px-4 py-8">

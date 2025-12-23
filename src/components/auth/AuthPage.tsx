@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { Helmet } from 'react-helmet-async';
 
 const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -124,6 +125,12 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <Helmet>
+        <title>Sign in | Tech Beetle</title>
+        <meta name="description" content="Access Tech Beetle to personalize your feed, bookmarks, and preferences." />
+        <meta name="robots" content="noindex,follow" />
+        <link rel="canonical" href="https://techbeetle.org/auth" />
+      </Helmet>
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <h2 className="text-3xl font-bold">TechBeetle</h2>
