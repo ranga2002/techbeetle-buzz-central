@@ -15,9 +15,24 @@ import { Helmet } from "react-helmet-async";
 import { Card, CardContent } from "@/components/ui/card";
 import { dedupeNewsItems } from "@/lib/news";
 
+const GEO_CITY_KEY = "tb_geo_city";
+const GEO_COUNTRY_KEY = "tb_geo_country";
+const GEO_COUNTRY_NAME_KEY = "tb_geo_country_name";
+
+const countryNameFromCode = (code?: string | null) => {
+  if (!code) return null;
+  try {
+    const formatter =
+      typeof Intl !== "undefined" && (Intl as any).DisplayNames
+        ? new (Intl as any).DisplayNames(["en"], { type: "region" })
+        : null;
+    return (formatter?.of(code.toUpperCase()) as string | undefined) || code.toUpperCase();
+  } catch (_e) {
+    return code.toUpperCase();
+  }
+};
+
 const NewsPage = () => {
-  const GEO_CITY_KEY = "tb_geo_city";
-  const GEO_COUNTRY_KEY = "tb_geo_country";
   const navigate = useNavigate();
   const { slug } = useParams<{ slug?: string }>();
   const { useContentQuery, useContentCountQuery, useCategoriesQuery } = useContent();
@@ -95,6 +110,7 @@ const NewsPage = () => {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
+    const storedCountryName = localStorage.getItem(GEO_COUNTRY_NAME_KEY);
     const storedCountry = localStorage.getItem(GEO_COUNTRY_KEY);
     const storedCity = localStorage.getItem(GEO_CITY_KEY);
     const langCountry = navigator.language?.split("-")[1]?.toLowerCase();
@@ -103,8 +119,16 @@ const NewsPage = () => {
     } else if (langCountry) {
       setUserCountry(langCountry);
     }
-    if (storedCity) {
-      setUserCity(storedCity);
+    const displayLocation =
+      storedCountryName ||
+      (storedCountry ? countryNameFromCode(storedCountry) : null) ||
+      storedCity ||
+      null;
+    if (displayLocation) {
+      setUserCity(displayLocation);
+      if (storedCountry && !storedCountryName) {
+        localStorage.setItem(GEO_COUNTRY_NAME_KEY, displayLocation);
+      }
     }
 
     // If we don't have a stored location, ask for one here so any page can prompt once.
@@ -117,14 +141,16 @@ const NewsPage = () => {
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
             );
             const data = await response.json();
-            if (data.city) {
-              setUserCity(data.city);
-              localStorage.setItem(GEO_CITY_KEY, data.city);
+            const countryCode = data.countryCode?.toLowerCase();
+            const countryName = data.countryName || countryNameFromCode(countryCode);
+            if (countryCode) {
+              setUserCountry(countryCode);
+              localStorage.setItem(GEO_COUNTRY_KEY, countryCode);
             }
-            if (data.countryCode) {
-              const resolvedCountry = data.countryCode.toLowerCase();
-              setUserCountry(resolvedCountry);
-              localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
+            if (countryName) {
+              setUserCity(countryName);
+              localStorage.setItem(GEO_CITY_KEY, countryName);
+              localStorage.setItem(GEO_COUNTRY_NAME_KEY, countryName);
             }
           } catch (_e) {
             // ignore failures; fallback already set
@@ -132,6 +158,12 @@ const NewsPage = () => {
         },
         () => {
           // User denied or unavailable; keep fallback language country if any
+          if (langCountry) {
+            const countryName = countryNameFromCode(langCountry) || langCountry.toUpperCase();
+            setUserCity(countryName);
+            localStorage.setItem(GEO_CITY_KEY, countryName);
+            localStorage.setItem(GEO_COUNTRY_NAME_KEY, countryName);
+          }
         }
       );
     }
@@ -241,6 +273,13 @@ const NewsPage = () => {
   const topSources = Object.entries(sourcesCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
+  const regionLabel = regionLabels[normalizedCountry] || normalizedCountry.toUpperCase();
+  const locationSuffix =
+    userCity &&
+    userCity.toLowerCase() !== regionLabel.toLowerCase() &&
+    userCity.toLowerCase() !== normalizedCountry
+      ? ` • ${userCity}`
+      : " news";
 
   const isLoading = isLoadingLocal && localArticles.length === 0;
   const hasError = Boolean(error || isErrorLocal || isErrorOther || categoriesError);
@@ -453,8 +492,8 @@ const NewsPage = () => {
                 <Badge variant="outline" className="w-fit">Tech Intelligence Center</Badge>
                 <Badge variant="secondary" className="flex items-center gap-2 w-fit">
                   <MapPin className="w-4 h-4 text-primary" />
-                  {regionLabels[normalizedCountry] || normalizedCountry.toUpperCase()}
-                  {userCity ? ` • ${userCity}` : " news"}
+                  {regionLabel}
+                  {locationSuffix}
                 </Badge>
               </div>
               <div className="space-y-2">

@@ -12,9 +12,24 @@ import { useToast } from '@/hooks/use-toast';
 import { formatLocalTime, pickTimeZone } from '@/lib/time';
 import { dedupeNewsItems } from '@/lib/news';
 
+const GEO_CITY_KEY = 'tb_geo_city';
+const GEO_COUNTRY_KEY = 'tb_geo_country';
+const GEO_COUNTRY_NAME_KEY = 'tb_geo_country_name';
+
+const countryNameFromCode = (code?: string | null) => {
+  if (!code) return null;
+  try {
+    const formatter =
+      typeof Intl !== 'undefined' && (Intl as any).DisplayNames
+        ? new (Intl as any).DisplayNames(['en'], { type: 'region' })
+        : null;
+    return (formatter?.of(code.toUpperCase()) as string | undefined) || code.toUpperCase();
+  } catch (_e) {
+    return code.toUpperCase();
+  }
+};
+
 const LatestNews = () => {
-  const GEO_CITY_KEY = 'tb_geo_city';
-  const GEO_COUNTRY_KEY = 'tb_geo_country';
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedNewsItem, setSelectedNewsItem] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,14 +71,26 @@ const LatestNews = () => {
     });
   }, [content]);
 
-  // Auto-detect user's city on component mount
+  // Auto-detect user's location (country-first) on component mount
   useEffect(() => {
     // Reuse saved location to avoid extra prompts if the user already granted access.
+    const storedCountryName = typeof window !== 'undefined' ? localStorage.getItem(GEO_COUNTRY_NAME_KEY) : null;
     const storedCity = typeof window !== 'undefined' ? localStorage.getItem(GEO_CITY_KEY) : null;
     const storedCountry = typeof window !== 'undefined' ? localStorage.getItem(GEO_COUNTRY_KEY) : null;
-    if (storedCity) setLocation(storedCity);
+    const displayLocation =
+      storedCountryName ||
+      (storedCountry ? countryNameFromCode(storedCountry) : null) ||
+      storedCity ||
+      null;
+
+    if (displayLocation) {
+      setLocation(displayLocation);
+      if (storedCountry && !storedCountryName && typeof window !== 'undefined') {
+        localStorage.setItem(GEO_COUNTRY_NAME_KEY, displayLocation);
+      }
+    }
     if (storedCountry) setCountry(storedCountry);
-    if (storedCity && storedCountry) return;
+    if (displayLocation && storedCountry) return;
 
     const detectLocation = async () => {
       try {
@@ -71,50 +98,58 @@ const LatestNews = () => {
           navigator.geolocation.getCurrentPosition(async (position) => {
             const { latitude, longitude } = position.coords;
             
-            // Use a reverse geocoding service to get city name
+            // Use a reverse geocoding service to get country name
             const response = await fetch(
               `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
             );
             const data = await response.json();
 
-            if (data.city) {
+            const countryCode = data.countryCode?.toLowerCase();
+            const countryName = data.countryName || countryNameFromCode(countryCode);
+
+            if (countryCode) {
+              setCountry(countryCode);
+              localStorage.setItem(GEO_COUNTRY_KEY, countryCode);
+            }
+            if (countryName) {
+              setLocation(countryName);
+              localStorage.setItem(GEO_COUNTRY_NAME_KEY, countryName);
+              localStorage.setItem(GEO_CITY_KEY, countryName);
+            } else if (data.city) {
               setLocation(data.city);
               localStorage.setItem(GEO_CITY_KEY, data.city);
             }
-            if (data.countryCode) {
-              const resolvedCountry = data.countryCode.toLowerCase();
-              setCountry(resolvedCountry);
-              localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
-            }
           }, (error) => {
             console.log('Location detection failed:', error);
-            // Fallback to a default city
-            const fallbackCity = 'Toronto';
             const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
             const resolvedCountry = langCountry || 'ca';
-            setLocation(fallbackCity);
+            const resolvedCountryName = countryNameFromCode(resolvedCountry) || resolvedCountry.toUpperCase();
+            setLocation(resolvedCountryName);
             setCountry(resolvedCountry);
-            localStorage.setItem(GEO_CITY_KEY, fallbackCity);
+            localStorage.setItem(GEO_CITY_KEY, resolvedCountryName);
             localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
+            localStorage.setItem(GEO_COUNTRY_NAME_KEY, resolvedCountryName);
           });
         } else {
-          const fallbackCity = 'Toronto';
           const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
           const resolvedCountry = langCountry || 'ca';
-          setLocation(fallbackCity);
+          const resolvedCountryName = countryNameFromCode(resolvedCountry) || resolvedCountry.toUpperCase();
+          setLocation(resolvedCountryName);
           setCountry(resolvedCountry);
-          localStorage.setItem(GEO_CITY_KEY, fallbackCity);
+          localStorage.setItem(GEO_CITY_KEY, resolvedCountryName);
           localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
+          localStorage.setItem(GEO_COUNTRY_NAME_KEY, resolvedCountryName);
         }
       } catch (error) {
         console.log('Location detection error:', error);
-        const fallbackCity = 'Toronto';
         const langCountry = navigator.language?.split('-')[1]?.toLowerCase();
         const resolvedCountry = langCountry || 'us';
-        setLocation(fallbackCity);
+        const resolvedCountryName = countryNameFromCode(resolvedCountry) || resolvedCountry.toUpperCase();
+        setLocation(resolvedCountryName);
         setCountry(resolvedCountry);
-        localStorage.setItem(GEO_CITY_KEY, fallbackCity);
+        localStorage.setItem(GEO_CITY_KEY, resolvedCountryName);
         localStorage.setItem(GEO_COUNTRY_KEY, resolvedCountry);
+        localStorage.setItem(GEO_COUNTRY_NAME_KEY, resolvedCountryName);
       }
     };
 
@@ -147,7 +182,7 @@ const LatestNews = () => {
     if (!location.trim()) {
       toast({
         title: "Location required",
-        description: "Please enter a city to search for news.",
+        description: "Please enter a country or city to search for news.",
         variant: "destructive",
       });
       return;
@@ -281,7 +316,7 @@ const LatestNews = () => {
             <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               type="text"
-              placeholder="Enter your city..."
+              placeholder="Enter your country or city..."
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               className="pl-10"
