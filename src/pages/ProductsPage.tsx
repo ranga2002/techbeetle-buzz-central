@@ -113,14 +113,14 @@ const ProductsPage = () => {
           property="og:description"
           content="Curated gadget picks with reviews, ratings, and purchase links."
         />
-        <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
+        <meta property="og:image" content="https://techbeetle.org/assets/logo_main.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Products | Tech Beetle" />
         <meta
           name="twitter:description"
           content="Curated gadget picks with reviews, ratings, and purchase links."
         />
-        <meta name="twitter:image" content="https://techbeetle.org/favicon.ico" />
+        <meta name="twitter:image" content="https://techbeetle.org/assets/logo_main.png" />
       </Helmet>
       <Header />
       

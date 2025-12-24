@@ -48,7 +48,7 @@ const Index = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-muted/30">
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 text-white">
       <Helmet>
         <title>Tech Beetle | Live Tech Briefings, Reviews, How-Tos & Picks</title>
         <meta
@@ -63,14 +63,14 @@ const Index = () => {
           content="Live tech headlines, trusted reviews, guided how-tos, and curated gadget picks in one place."
         />
         <meta property="og:url" content="https://techbeetle.org/" />
-        <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
+        <meta property="og:image" content="https://techbeetle.org/assets/logo_main.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Tech Beetle | Live Tech Briefings, Reviews, How-Tos & Picks" />
         <meta
           name="twitter:description"
           content="Live tech headlines, trusted reviews, guided how-tos, and curated gadget picks in one place."
         />
-        <meta name="twitter:image" content="https://techbeetle.org/favicon.ico" />
+        <meta name="twitter:image" content="https://techbeetle.org/assets/logo_main.png" />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",
@@ -86,24 +86,24 @@ const Index = () => {
       <main className="space-y-12">
         <HeroSection />
 
-        <section className="container mx-auto px-4 -mt-6">
-          <Card className="border-dashed bg-card/80">
+        <section className="container mx-auto px-4">
+          <Card className="border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_25px_90px_-40px_rgba(0,0,0,0.8)]">
             <CardContent className="p-6 md:p-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
               <div className="space-y-2">
-                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Quick start</p>
+                <p className="text-xs uppercase tracking-[0.14em] text-slate-300/80">Quick start</p>
                 <h2 className="text-2xl font-semibold">Pick your track</h2>
-                <p className="text-muted-foreground max-w-2xl">
+                <p className="text-slate-200/80 max-w-2xl">
                   Jump straight to live news, deep reviews, or how-to guides tailored to making faster buying decisions.
                 </p>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Button asChild>
+                <Button asChild className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30">
                   <Link to="/news">News</Link>
                 </Button>
-                <Button variant="outline" asChild>
+                <Button variant="outline" className="border-white/20 text-white hover:bg-white/10" asChild>
                   <Link to="/reviews">Reviews</Link>
                 </Button>
-                <Button variant="secondary" asChild>
+                <Button variant="secondary" className="bg-white/10 text-white hover:bg-white/20" asChild>
                   <Link to="/how-to">How-To Guides</Link>
                 </Button>
               </div>
@@ -111,16 +111,16 @@ const Index = () => {
           </Card>
         </section>
 
-        <section className="container mx-auto px-4 -mt-8">
+        <section className="container mx-auto px-4">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {pathways.map((item) => (
               <Link
                 key={item.title}
                 to={item.to}
-                className="group relative overflow-hidden rounded-2xl border bg-card p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg"
+                className="group relative overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_90px_-40px_rgba(0,0,0,0.8)] backdrop-blur"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <Badge variant="secondary" className="rounded-full text-xs px-3 py-1">
+                  <Badge variant="secondary" className="rounded-full text-xs px-3 py-1 bg-white/10 text-white">
                     {item.pill}
                   </Badge>
                   <span className="text-sm font-semibold text-primary">{item.icon}</span>
@@ -128,7 +128,7 @@ const Index = () => {
                 <h3 className="text-xl font-semibold mb-2 group-hover:text-primary">
                   {item.title}
                 </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-slate-200/80 leading-relaxed">
                   {item.description}
                 </p>
               </Link>
@@ -141,16 +141,16 @@ const Index = () => {
             <div className="xl:col-span-2 space-y-12">
               <LatestNews />
               <ProductsSection />
-              <Card className="border-dashed">
+              <Card className="border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_25px_90px_-40px_rgba(0,0,0,0.8)]">
                 <CardContent className="p-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                   <div className="space-y-2">
-                    <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">New</p>
+                    <p className="text-xs uppercase tracking-[0.14em] text-slate-300/80">New</p>
                     <h3 className="text-2xl font-semibold">Guided gadget picks</h3>
-                    <p className="text-muted-foreground">
+                    <p className="text-slate-200/80">
                       Start with the gadget type, drill into OS, brand, and specs. We'll hand you the right how-to.
                     </p>
                   </div>
-                  <Button asChild size="lg">
+                  <Button asChild size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30">
                     <Link to={user ? "/how-to" : "/auth"}>
                       {user ? "Launch How-To Flow" : "Sign in to personalize"}
                     </Link>
@@ -161,13 +161,13 @@ const Index = () => {
             <aside className="xl:col-span-1 space-y-6">
               <div className="sticky top-24 space-y-6">
                 <TrendingArticles />
-                <Card className="border bg-card p-6 shadow-sm">
+                {/* <Card className="border border-white/10 bg-white/5 p-6 shadow-[0_20px_70px_-40px_rgba(0,0,0,0.9)] backdrop-blur">
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-full bg-primary/10 text-primary">
                       <Compass className="w-4 h-4" />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-1">Discover</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-300/80 mb-1">Discover</p>
                       <h3 className="text-xl font-semibold">Explore by channel</h3>
                       <div className="flex flex-wrap gap-2">
                         <Link to="/videos">
@@ -183,14 +183,14 @@ const Index = () => {
                     </div>
                   </div>
                 </Card>
-                <div className="rounded-2xl border bg-card p-6 shadow-sm">
-                  <p className="text-sm uppercase tracking-[0.14em] text-muted-foreground mb-2">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 shadow-[0_20px_70px_-40px_rgba(0,0,0,0.9)] backdrop-blur">
+                  <p className="text-sm uppercase tracking-[0.14em] text-slate-300/80 mb-2">
                     Personalize
                   </p>
                   <h3 className="text-2xl font-semibold mb-2">
                     Tune Tech Beetle to you
                   </h3>
-                  <p className="text-muted-foreground text-sm mb-4">
+                  <p className="text-slate-200/80 text-sm mb-4">
                     Follow categories, set newsletter cadence, and keep your feed sharp.
                   </p>
                   <Button asChild className="w-full">
@@ -198,19 +198,19 @@ const Index = () => {
                       {user ? "Update preferences" : "Sign in to personalize"}
                     </Link>
                   </Button>
-                </div>
-                <Card className="border bg-card p-6 shadow-sm">
+                </div> */}
+                <Card className="border border-white/10 bg-white/5 p-6 shadow-[0_20px_70px_-40px_rgba(0,0,0,0.9)] backdrop-blur">
                   <div className="flex items-start gap-3">
                     <div className="p-2 rounded-full bg-primary/10 text-primary">
                       <Bell className="w-4 h-4" />
                     </div>
                     <div className="space-y-2">
-                      <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-1">Stay updated</p>
+                      <p className="text-xs uppercase tracking-[0.14em] text-slate-300/80 mb-1">Stay updated</p>
                       <h3 className="text-xl font-semibold">Get the briefing</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-slate-200/80">
                         Subscribe to quick drops and weekly rundowns tuned to your categories.
                       </p>
-                      <Button asChild variant="outline" className="w-full">
+                      <Button asChild variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
                         <Link to={user ? "/preferences" : "/auth"}>
                           {user ? "Manage newsletter" : "Sign in to subscribe"}
                         </Link>

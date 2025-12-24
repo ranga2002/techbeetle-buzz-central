@@ -35,7 +35,7 @@ export const ArticleJsonLd: React.FC<ArticleProps> = ({
     publisher: {
       '@type': 'Organization',
       name: siteName,
-      logo: { '@type': 'ImageObject', url: `${url.split('/news/')[0]}/favicon.ico` },
+      logo: { '@type': 'ImageObject', url: `${url.split('/news/')[0]}/assets/logo_main.png` },
     },
   };
   return (

@@ -74,25 +74,22 @@ const ProductsSection = () => {
   }
 
   return (
-    <section className="py-16 bg-gradient-to-br from-muted/20 to-background">
-      <div className="container mx-auto px-4">
+    <section className="relative overflow-hidden text-white">
+
+      <div className="container mx-auto px-4 relative">
         {/* Section Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 rounded-full bg-white/5 px-4 py-2 text-sm font-semibold text-primary/90 ring-1 ring-white/10 shadow-lg shadow-primary/30 backdrop-blur mb-4">
             <Star className="w-4 h-4 fill-current" />
             Affiliate Recommendations
           </div>
-          <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
+          <h2 className="text-4xl font-bold mb-3 bg-gradient-to-r from-orange-400 via-amber-200 to-cyan-300 bg-clip-text text-transparent">
             Top Rated Products
           </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Discover our hand-picked selection of the best tech products. 
-            Each recommendation comes with detailed reviews and honest insights.
-          </p>
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 mb-7">
           {products.map((product) => (
             <ProductCard
               key={product.id}
@@ -117,23 +114,25 @@ const ProductsSection = () => {
         </div>
 
         {/* Call to Action */}
-        <div className="text-center">
-          <div className="bg-card border rounded-2xl p-8 max-w-2xl mx-auto">
-            <h3 className="text-2xl font-bold mb-4">
-              Looking for More Products?
-            </h3>
-            <p className="text-muted-foreground mb-6">
-              Explore our complete collection of reviewed products with detailed comparisons, 
-              ratings, and purchase links.
-            </p>
+        <div className="mt-6 flex justify-end">
+          <Link to="/products">
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/30">
+              View More
+              <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            </Button>
+          </Link> 
+        </div>
+
+        {/* <div className="relative">
+          <div className=" backdrop-blur-xl text-center">
             <Link to="/products">
-              <Button size="lg" className="group">
+              <Button size="lg" className="group bg-primary hover:bg-primary/90 text-primary-foreground  font-semibold shadow-lg shadow-primary/30">
                 View All Products
                 <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>
-        </div>
+        </div> */}
       </div>
     </section>
   );

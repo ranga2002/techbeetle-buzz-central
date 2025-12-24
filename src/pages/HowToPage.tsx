@@ -344,14 +344,14 @@ const HowToPage = () => {
           content="Build ready-to-run tech checklists by device, platform, and time budget."
         />
         <meta property="og:url" content="https://techbeetle.org/how-to" />
-        <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
+        <meta property="og:image" content="https://techbeetle.org/assets/logo_main.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="How-To Guides | Tech Beetle" />
         <meta
           name="twitter:description"
           content="Curated and dynamic how-to guides for laptops, phones, and audio."
         />
-        <meta name="twitter:image" content="https://techbeetle.org/favicon.ico" />
+        <meta name="twitter:image" content="https://techbeetle.org/assets/logo_main.png" />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",

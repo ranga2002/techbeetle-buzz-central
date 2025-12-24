@@ -400,7 +400,7 @@ const NewsPage = () => {
         />
         <meta
           property="og:image"
-          content="https://techbeetle.org/favicon.ico"
+          content="https://techbeetle.org/assets/logo_main.png"
         />
         <meta
           property="og:url"
@@ -414,7 +414,7 @@ const NewsPage = () => {
         />
         <meta
           name="twitter:image"
-          content="https://techbeetle.org/favicon.ico"
+          content="https://techbeetle.org/assets/logo_main.png"
         />
         <link
           rel="canonical"
@@ -476,7 +476,7 @@ const NewsPage = () => {
                 name: "TechBeetle",
                 logo: {
                   "@type": "ImageObject",
-                  url: "https://techbeetle.org/favicon.ico",
+                  url: "https://techbeetle.org/assets/logo_main.png",
                 },
               },
             })}

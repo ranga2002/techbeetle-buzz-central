@@ -41,7 +41,7 @@ const TrendingArticles = () => {
         {trending.map((article, index) => (
           <div
             key={article.id}
-            className="group flex gap-4 p-3 rounded-lg border border-border/50 bg-background/50 hover:bg-accent/50 hover:border-primary/50 transition-all cursor-pointer"
+            className="group flex gap-4 p-3 rounded-lg border border-border/50 bg-background/50 transition-all cursor-pointer"
             onClick={() => navigate(`/content/${article.slug || article.id}`)}
           >
             <div className="flex-shrink-0">

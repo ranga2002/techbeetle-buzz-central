@@ -5,7 +5,7 @@ const orgJsonLd = {
   "@type": "Organization",
   name: "Tech Beetle",
   url: import.meta.env.VITE_SITE_URL || "https://techbeetle.org",
-  logo: `${(import.meta.env.VITE_SITE_URL || "https://techbeetle.org").replace(/\/+$/, "")}/favicon.ico`,
+  logo: `${(import.meta.env.VITE_SITE_URL || "https://techbeetle.org").replace(/\/+$/, "")}/assets/logo_main.png`,
   sameAs: [
     "https://www.facebook.com/",
     "https://www.instagram.com/",

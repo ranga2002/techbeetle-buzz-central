@@ -37,7 +37,7 @@ const NewsCard = ({
   return (
     <article
       className={cn(
-        "group rounded-3xl border border-border/70 bg-gradient-to-b from-card to-background/60 shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl",
+        "group rounded-3xl border border-white/10 bg-white/5 backdrop-blur transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_25px_70px_-35px_rgba(0,0,0,0.9)]",
         featured && "lg:col-span-2",
         className
       )}
@@ -96,22 +96,22 @@ const NewsCard = ({
         </div>
 
         <div className={`p-5 sm:p-6 ${featured ? 'lg:w-1/2' : ''}`}>
-          <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground mb-2">
+          <p className="text-xs uppercase tracking-[0.14em] text-slate-300/80 mb-2">
             {author}
           </p>
           <p
             className={cn(
-              "text-muted-foreground mb-4 line-clamp-3",
+              "text-slate-200/85 mb-4 line-clamp-3",
               featured ? "text-base lg:text-lg" : "text-sm"
             )}
           >
             {safeExcerpt}
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground mb-4">
+          <div className="flex flex-wrap items-center gap-3 text-sm text-slate-300/80 mb-4">
             <div className="flex items-center gap-2">
               <User className="w-4 h-4" />
-              <span className="font-medium text-foreground">{author}</span>
+              <span className="font-medium text-white">{author}</span>
             </div>
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -123,7 +123,7 @@ const NewsCard = ({
           </div>
 
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <div className="flex items-center gap-4 text-sm text-slate-300/80">
               <div className="flex items-center gap-1">
                 <MessageCircle className="w-4 h-4" />
                 {comments ?? 0}
@@ -133,7 +133,7 @@ const NewsCard = ({
                 {likes ?? 0}
               </div>
             </div>
-            <span className="inline-flex items-center gap-1 text-primary font-semibold group-hover:underline">
+            <span className="inline-flex items-center gap-1 text-primary/80 font-semibold group-hover:text-primary/70 group-hover:underline">
               Read more
               <ArrowRight className="w-4 h-4" />
             </span>

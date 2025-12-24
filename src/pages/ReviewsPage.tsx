@@ -178,14 +178,14 @@ const ReviewsPage = () => {
           content="In-depth, fast-turn tech reviews on laptops, phones, audio, and chips. Updated frequently."
         />
         <meta property="og:url" content="https://techbeetle.org/reviews" />
-        <meta property="og:image" content="https://techbeetle.org/favicon.ico" />
+        <meta property="og:image" content="https://techbeetle.org/assets/logo_main.png" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content="Tech Reviews | TechBeetle" />
         <meta
           name="twitter:description"
           content="In-depth, fast-turn tech reviews on laptops, phones, audio, and chips."
         />
-        <meta name="twitter:image" content="https://techbeetle.org/favicon.ico" />
+        <meta name="twitter:image" content="https://techbeetle.org/assets/logo_main.png" />
         <script type="application/ld+json">
           {JSON.stringify({
             "@context": "https://schema.org",

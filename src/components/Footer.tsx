@@ -11,8 +11,9 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8">
           <div className="space-y-4 lg:col-span-2">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-sm">TB</span>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center">
+                {/* <span className="text-primary-foreground font-bold text-sm">TB</span> */}
+                <img src="/assets/logo_main.png" alt="Tech Beetle Logo" />
               </div>
               <div className="flex flex-col">
                 <span className="text-xl font-bold">Tech Beetle</span>
@@ -48,6 +49,7 @@ const Footer = () => {
               <li><Link to="/videos" className="text-muted-foreground hover:text-primary transition-colors">Videos</Link></li>
               <li><Link to="/how-to" className="text-muted-foreground hover:text-primary transition-colors">How-To</Link></li>
               <li><Link to="/compare" className="text-muted-foreground hover:text-primary transition-colors">Compare</Link></li>
+              <li><Link to="/products" className="text-muted-foreground hover:text-primary transition-colors">Products</Link></li>
             </ul>
           </div>
 

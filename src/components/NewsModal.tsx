@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { RelatedArticles } from '@/components/RelatedArticles';
 import { cn } from '@/lib/utils';
 import { formatLocalTime, pickTimeZone } from '@/lib/time';
 import { Helmet } from 'react-helmet-async';
+import { Link } from 'react-router-dom';
 
 interface NewsModalProps {
   isOpen: boolean;
@@ -85,12 +86,15 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   const [comments, setComments] = useState<any[]>([]);
   const [showComments, setShowComments] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [visibleComments, setVisibleComments] = useState(12);
+  const fetchDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
   const { addBookmark, removeBookmark, isBookmarked } = useBookmarks();
 
   useEffect(() => {
     if (!newsItem?.id || !isOpen) return;
+    setVisibleComments(12);
 
     const fetchComments = async () => {
       const { data, error } = await supabase
@@ -118,11 +122,13 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     const channel = supabase
       .channel(`comments-${newsItem.id}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'comments' }, () => {
-        fetchComments();
+        if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
+        fetchDebounceRef.current = setTimeout(fetchComments, 250);
       })
       .subscribe();
 
     return () => {
+      if (fetchDebounceRef.current) clearTimeout(fetchDebounceRef.current);
       supabase.removeChannel(channel);
     };
   }, [newsItem?.id, isOpen]);
@@ -158,6 +164,14 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
 
   const displayImage = image || featuredImage || "https://placehold.co/1200x630?text=Tech+Beetle";
   const originalUrl = sourceUrl || articleUrl;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://techbeetle.org';
+  const currentPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const canonicalUrl = slug ? `${origin}/news/${slug}` : `${origin}${currentPath}`;
+  const keyFacts: string[] = Array.isArray(takeaways) && takeaways.length
+    ? takeaways
+    : Array.isArray(keyPoints) && keyPoints.length
+      ? keyPoints
+      : [];
 
   const sanitizeText = (value: string) => {
     return value
@@ -185,6 +199,8 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
     : null;
   const postedLabel = formatLocalTime(publishedAt);
   const updatedLabel = updated_at ? formatLocalTime(updated_at) : null;
+  const readingLabel = readingTime ? `${readingTime} min read` : null;
+  const hasMetaRow = Boolean(postedLabel || sourcePublishedLabel || readingLabel || viewsCount || likesCount);
 
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -252,10 +268,12 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
   };
 
   const isTogglingBookmark = addBookmark.isPending || removeBookmark.isPending;
+  const saved = user ? isBookmarked(id) : false;
+  const visibleCommentsList = comments.slice(0, visibleComments);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden p-0 bg-background">
+      <DialogContent className="max-w-5xl p-0 bg-background overflow-hidden">
         <Helmet>
           <script type="application/ld+json">
             {JSON.stringify({
@@ -265,9 +283,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
               description: cleanedExcerpt,
               datePublished: publishedAt,
               dateModified: updated_at || publishedAt,
-              mainEntityOfPage: slug
-                ? `https://techbeetle.org/news/${slug}`
-                : window.location.href,
+              mainEntityOfPage: canonicalUrl,
               image: displayImage,
               author: {
                 "@type": "Person",
@@ -278,7 +294,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                 name: "TechBeetle",
                 logo: {
                   "@type": "ImageObject",
-                  url: "https://techbeetle.org/favicon.ico",
+                  url: "https://techbeetle.org/assets/logo_main.png",
                 },
               },
             })}
@@ -290,23 +306,24 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
           title={title}
           description={cleanedExcerpt}
           image={displayImage}
-          url={slug ? `${window.location.origin}/news/${slug}` : window.location.href}
+          url={canonicalUrl}
         />
         
-        <div className="relative overflow-y-auto max-h-[90vh]">
+        <div className="relative flex flex-col max-h-[90vh]">
           <Button
             variant="ghost"
             size="icon"
             className="absolute top-4 right-4 z-50 bg-background/80 backdrop-blur hover:bg-background"
             onClick={onClose}
+            aria-label="Close modal"
           >
             <X className="h-5 w-5" />
           </Button>
 
-          <div className="relative w-full h-[360px] overflow-hidden">
+          <div className="relative w-full h-[280px] sm:h-[320px] lg:h-[360px] overflow-hidden">
             <img 
               src={displayImage} 
-              alt={title}
+              alt={title || 'Article image'}
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-background via-background/70 to-transparent" />
@@ -314,6 +331,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
               <Badge 
                 className="absolute top-6 left-6 text-sm px-4 py-2 shadow-lg rounded-full"
                 style={{ backgroundColor: category.color, color: 'white' }}
+                aria-label={`Category ${category.name}`}
               >
                 {category.name}
               </Badge>
@@ -322,13 +340,14 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
               <Badge
                 variant="secondary"
                 className="absolute top-6 right-6 text-xs px-3 py-1 rounded-full shadow"
+                aria-label={`Source ${sourceName}`}
               >
                 {sourceName}
               </Badge>
             )}
           </div>
 
-          <div className="px-6 sm:px-10 md:px-12 py-8 bg-gradient-to-b from-background via-background to-muted/20">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-10 md:px-12 py-8 bg-gradient-to-b from-background via-background to-muted/20">
             <Card className="mb-8 border-border/60 shadow-lg bg-card/90 backdrop-blur">
               <CardContent className="p-6 md:p-8 space-y-5">
                 <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-wide text-muted-foreground">
@@ -344,36 +363,54 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                       {category.name}
                     </span>
                   )}
+                  {originalUrl && (
+                    <Button asChild variant="outline" size="sm" className="ml-auto gap-2 h-8 text-xs">
+                      <a href={originalUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="w-4 h-4" />
+                        Original
+                      </a>
+                    </Button>
+                  )}
                 </div>
 
                 <h1 className="text-3xl md:text-4xl font-bold leading-tight text-foreground">
                   {title}
                 </h1>
 
-                <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    <span>{postedLabel}</span>
+                {hasMetaRow && (
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                    {postedLabel && (
+                      <div className="flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        <span>{postedLabel}</span>
+                      </div>
+                    )}
+                    {sourcePublishedLabel && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-muted-foreground/80">Source</span>
+                        <span>{sourcePublishedLabel}</span>
+                      </div>
+                    )}
+                    {readingLabel && (
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>{readingLabel}</span>
+                      </div>
+                    )}
+                    {viewsCount ? (
+                      <div className="flex items-center gap-2">
+                        <Eye className="w-4 h-4" />
+                        <span>{viewsCount}</span>
+                      </div>
+                    ) : null}
+                    {likesCount ? (
+                      <div className="flex items-center gap-2">
+                        <Heart className="w-4 h-4" />
+                        <span>{likesCount}</span>
+                      </div>
+                    ) : null}
                   </div>
-                  {sourcePublishedLabel && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground/80">Source</span>
-                      <span>{sourcePublishedLabel}</span>
-                    </div>
-                  )}
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4" />
-                    <span>{readingTime ? `${readingTime} min read` : '5 min read'}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    <span>{viewsCount || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Heart className="w-4 h-4" />
-                    <span>{likesCount || 0}</span>
-                  </div>
-                </div>
+                )}
                 {updatedLabel && (
                   <p className="text-xs text-muted-foreground">
                     Updated: {updatedLabel}
@@ -397,18 +434,17 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  {user && (
-                    <Button
-                      variant={isBookmarked(id) ? "default" : "outline"}
-                      size="sm"
-                      onClick={handleBookmarkToggle}
-                      disabled={isTogglingBookmark}
-                      className="gap-1.5 h-8 text-xs"
-                    >
-                      <Bookmark className={`w-3.5 h-3.5 ${isBookmarked(id) ? 'fill-current' : ''}`} />
-                      {isBookmarked(id) ? 'Saved' : 'Save'}
-                    </Button>
-                  )}
+                  <Button
+                    variant={saved ? "default" : "outline"}
+                    size="sm"
+                    onClick={handleBookmarkToggle}
+                    disabled={isTogglingBookmark || !user}
+                    className="gap-1.5 h-8 text-xs"
+                    title={user ? '' : 'Sign in to bookmark'}
+                  >
+                    <Bookmark className={`w-3.5 h-3.5 ${saved ? 'fill-current' : ''}`} />
+                    {saved ? 'Saved' : 'Save'}
+                  </Button>
                   {originalUrl && (
                     <Button asChild variant="outline" size="sm" className="gap-2">
                       <a href={originalUrl} target="_blank" rel="noopener noreferrer">
@@ -420,7 +456,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                   <ShareButtons 
                     title={title}
                     description={cleanedExcerpt}
-                    url={slug ? `/news/${slug}` : window.location.pathname}
+                    url={canonicalUrl}
                     image={displayImage}
                   />
                 </div>
@@ -433,6 +469,19 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                   {cleanedExcerpt}
                 </p>
               </div>
+            )}
+
+            {keyFacts.length > 0 && (
+              <Card className="mb-6 bg-muted/40 border-muted/50">
+                <CardContent className="p-5 space-y-2">
+                  <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Key facts</p>
+                  <ul className="text-sm text-foreground list-disc ml-4 space-y-1">
+                    {keyFacts.map((item: string, idx: number) => (
+                      <li key={idx}>{item}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
             )}
 
             {Array.isArray(keyPoints) && keyPoints.length > 0 && (
@@ -517,7 +566,7 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
             <RelatedArticles currentArticleId={id} categoryId={category?.slug} />
 
             {showComments && (
-              <Card className="mt-8 border-border/50 shadow-lg">
+              <Card id="comments" className="mt-8 border-border/50 shadow-lg scroll-mt-24">
                 <CardContent className="p-6">
                   <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
                     <MessageSquare className="w-6 h-6 text-primary" />
@@ -541,13 +590,15 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                     <Card className="mb-8 bg-muted/30 border-dashed">
                       <CardContent className="p-6 text-center">
                         <p className="text-base text-muted-foreground mb-3">Sign in to join the conversation</p>
-                        <Button variant="default">Sign In</Button>
+                        <Button variant="default" asChild>
+                          <Link to="/auth">Sign In</Link>
+                        </Button>
                       </CardContent>
                     </Card>
                   )}
                   
                   <div className="space-y-4">
-                    {comments.map((comment) => (
+                    {visibleCommentsList.map((comment) => (
                       <CommentItem 
                         key={comment.id} 
                         comment={comment} 
@@ -555,6 +606,15 @@ const NewsModal = ({ isOpen, onClose, newsItem }: NewsModalProps) => {
                         userId={user?.id}
                       />
                     ))}
+                    {comments.length > visibleCommentsList.length && (
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => setVisibleComments((prev) => prev + 10)}
+                      >
+                        Load more comments
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

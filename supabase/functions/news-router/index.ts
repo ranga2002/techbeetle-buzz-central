@@ -259,6 +259,15 @@ const safeJsonParse = <T>(value: string): T | null => {
   }
 };
 
+const normalizeParagraphs = (value?: string | null): string => {
+  if (!value) return "";
+  return value
+    .split(/\n{2,}|\r?\n/)
+    .map((p) => p.trim())
+    .filter(Boolean)
+    .join("\n\n");
+};
+
 const fallbackExplainer = (article: NormalizedArticle): NormalizedArticle => {
   const ingestedAt = new Date().toISOString();
   const cleanSummary =
@@ -310,7 +319,8 @@ const enhanceArticleWithAI = async (
   const systemPrompt =
     "You are a Tech Beetle editor. Write original explainer articles, not paraphrases. " +
     "Use the provided content_raw/summary for facts; do NOT invent details. " +
-    "Body: 8-12 sentences (~550-600 words) that cover the key facts, context, and implications. " +
+    "Body: 15-20 sentences (~1450-1500 words) across 4-6 paragraphs. " +
+    "Separate each paragraph with a blank line. Cover key facts, context, and implications. " +
     "Takeaways: 3-5 concise bullets. Tone: concise, neutral, helpful. " +
     "Return ONLY valid JSON for the fields described.";
 
@@ -403,7 +413,7 @@ const enhanceArticleWithAI = async (
       key_points: ai.key_points || [],
       seo_title: ai.seo_title?.slice(0, 120) || truncate(headline, 60),
       seo_description: ai.seo_description?.slice(0, 180) || truncate(ai.summary || headline, 155),
-      content: ai.body,
+      content: normalizeParagraphs(ai.body) || ai.body,
       source_published_at: article.published_at || article.source_published_at || null,
       published_at: now,
       _ai_indexable: Boolean(ai.indexable),
@@ -935,6 +945,7 @@ const persistArticles = async (items: NormalizedArticle[], country: string) => {
         category_id: category?.id ?? null,
         published_at: article.published_at ?? new Date().toISOString(),
         source_name: article.source_name || null,
+        source_url: normalizedUrl || article.url || null,
         source_country: article.source_country || country || null,
         meta_title: article.seo_title ?? truncate(article.title, 60),
         meta_description: article.seo_description ?? truncate(article.summary || article.title, 160),
