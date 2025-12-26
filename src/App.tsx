@@ -40,6 +40,7 @@ import SiteSettingsManagement from "./pages/admin/SiteSettingsManagement";
 import PrivacyPolicyPage from "./pages/PrivacyPolicyPage";
 import TermsPage from "./pages/TermsPage";
 import NewsEditor from "./pages/admin/NewsEditor";
+import SeoAnalytics from "./pages/admin/SeoAnalytics";
 import { GlobalSeo } from "./components/GlobalSeo";
 import ProfilePage from "./pages/ProfilePage";
 import EditorLayout from "./components/admin/EditorLayout";
@@ -110,6 +111,7 @@ const App = () => (
                     <Route path="product-management" element={<ProductManagement />} />
                     <Route path="product-scraper" element={<ProductScraperPage />} />
                     <Route path="inventory" element={<InventoryManagement />} />
+                    <Route path="seo" element={<SeoAnalytics />} />
                   </Route>
                     
                   <Route path="/contact" element={<ContactPage />} />

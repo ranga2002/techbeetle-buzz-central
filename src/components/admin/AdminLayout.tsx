@@ -65,6 +65,7 @@ const AdminLayout = () => {
       items: [
         { path: '/admin', icon: LayoutDashboard, label: 'Dashboard', roles: ['admin', 'editor', 'author'] },
         { path: '/admin/analytics', icon: BarChart3, label: 'Analytics', roles: ['admin'] },
+        { path: '/admin/seo', icon: Globe, label: 'SEO & Analytics', roles: ['admin'] },
       ],
     },
     {
